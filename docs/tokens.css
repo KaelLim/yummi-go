@@ -1,0 +1,182 @@
+/**
+ * Yummi Go — Design Tokens
+ * Source: design.md (origin: Color_A_1_final_.ai / Color-A-1_typography.pdf)
+ *
+ * ⚠️ Open items (awaiting designer confirmation):
+ *   1. --color-primary-lightest (#fff9ef) — PDF 中 Primary 區塊有 11 個 swatch，
+ *      第 11 個被命名為 "Light"，與第一個 Light (#e8eeeb) 命名衝突。
+ *      暫以 lightest 命名以區分。
+ *   2. --color-foreground — PDF 該欄位 hex 留空，視覺色塊與 Primary Normal 相同，
+ *      因此 alias 到 --color-primary。
+ *   3. --color-accent (#f6fca7) — PDF 文字標 #F6FCA7（淡黃綠），但旁邊視覺色塊呈暖橘。
+ *      暫以文字值為準。
+ *   4. --text-h1-cjk-size — PDF 中 Noto Sans TC 大標題 1 標 48pt（與 Title Cover 同），
+ *      推測為原稿筆誤，實作時可能應為 33px 對齊 Latin H1。
+ *   5. PDF 原稿群組拼字為 "Nuetrals"（typo），此處統一用 Neutrals。
+ *
+ * CJK weight 設計：
+ *   Noto Sans TC 在非 bold 尺度上比 Nunito 輕一級（更符合中文視覺密度）：
+ *     - H3 / Body : Nunito Semibold (600) ↔ Noto Sans TC Medium (500)
+ *     - Caption   : Nunito Regular (400)  ↔ Noto Sans TC Light (300)
+ *   若混排 Latin+CJK 共用 font-weight，建議偏向 CJK 值（避免中文過粗）。
+ */
+
+:root {
+  /* =========================================================================
+   * COLORS — Primary（深綠）
+   * ========================================================================= */
+  --color-primary-light:           #e8eeeb;
+  --color-primary-light-hover:     #dde6e1;
+  --color-primary-light-active:    #b9ccc1;
+  --color-primary:                 #1d5937;  /* Normal */
+  --color-primary-hover:           #1a5032;
+  --color-primary-active:          #17472c;
+  --color-primary-dark:            #164329;
+  --color-primary-dark-hover:      #113521;
+  --color-primary-dark-active:     #0d2819;
+  --color-primary-darker:          #0a1f13;
+  --color-primary-lightest:        #fff9ef;  /* ⚠️ 見 Open item #1 */
+
+  /* =========================================================================
+   * COLORS — Secondary（暖橘）
+   * ========================================================================= */
+  --color-secondary-light:         #fff4e8;
+  --color-secondary-light-hover:   #feefdc;
+  --color-secondary-light-active:  #fdddb7;
+  --color-secondary:               #fa9217;  /* Normal */
+  --color-secondary-hover:         #e18315;
+  --color-secondary-active:        #c87512;
+  --color-secondary-dark:          #bc6e11;
+  --color-secondary-dark-hover:    #96580e;
+  --color-secondary-dark-active:   #70420a;
+  --color-secondary-darker:        #583308;
+
+  /* =========================================================================
+   * COLORS — Neutrals（灰階）
+   * ========================================================================= */
+  --color-neutral-light:           #fcfcfc;
+  --color-neutral-light-hover:     #fbfbfb;
+  --color-neutral-light-active:    #f7f7f7;
+  --color-neutral:                 #e5e5e5;  /* Normal */
+  --color-neutral-hover:           #cecece;
+  --color-neutral-active:          #b7b7b7;
+  --color-neutral-dark:            #acacac;
+  --color-neutral-dark-hover:      #898989;
+  --color-neutral-dark-active:     #676767;
+  --color-neutral-darker:          #505050;
+
+  /* =========================================================================
+   * COLORS — Semantic
+   * ========================================================================= */
+  --color-background:              #fef9ed;            /* Warm cream — page bg */
+  --color-foreground:              var(--color-primary); /* ⚠️ 見 Open item #2 */
+  --color-foreground-alt:          #2d2a26;            /* Warm dark brown — alt text */
+  --color-card:                    #ffffff;
+  --color-card-foreground:         var(--color-foreground);
+  --color-muted:                   #f5f1e8;            /* Light beige — subtle bg */
+  --color-muted-foreground:        var(--color-neutral-darker);
+  --color-accent:                  #f6fca7;            /* ⚠️ 見 Open item #3 — hover states */
+  --color-destructive:             #e85d75;            /* Coral red — errors */
+  --color-destructive-foreground:  #ffffff;
+
+  /* =========================================================================
+   * TYPOGRAPHY — Font families
+   * ========================================================================= */
+  --font-latin:  "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-cjk:    "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-sans:   "Nunito", "Noto Sans TC", system-ui, -apple-system, sans-serif;
+
+  /* =========================================================================
+   * TYPOGRAPHY — Weights
+   * ========================================================================= */
+  --font-weight-light:      300;
+  --font-weight-regular:    400;
+  --font-weight-medium:     500;
+  --font-weight-semibold:   600;
+  --font-weight-bold:       700;
+  --font-weight-extrabold:  800;
+  --font-weight-black:      900;
+
+  /* =========================================================================
+   * TYPOGRAPHY — Font sizes（pt → px，1:1 對應）
+   * ========================================================================= */
+  --text-title-size:    48px;   /* Title Cover / 文件標題 */
+  --text-h1-size:       33px;   /* Heading 1 / 大標題 1（Latin） */
+  --text-h2-size:       28px;   /* Heading 2 / 大標題 2 */
+  --text-h3-size:       24px;   /* Heading 3 / 大標題 3 */
+  --text-body-size:     16px;   /* Body text / 內文 */
+  --text-caption-size:  12px;   /* caption / 備註 */
+  --text-button-xl-size: 24px;
+  --text-button-l-size:  20px;
+  --text-button-m-size:  18px;
+
+  /* CJK 尺寸覆寫（僅在與 Latin 不同時使用） */
+  --text-h1-cjk-size:   48px;   /* ⚠️ 見 Open item #4 */
+
+  /* =========================================================================
+   * TYPOGRAPHY — Per-scale weights
+   * 同一級在 Latin / CJK 字重不同時，請依文字屬性切換。
+   * ========================================================================= */
+  --text-title-weight-latin:    var(--font-weight-extrabold);  /* Nunito ExtraBold 800 */
+  --text-title-weight-cjk:      var(--font-weight-bold);       /* Noto Sans TC Bold 700 */
+
+  --text-h1-weight-latin:       var(--font-weight-bold);
+  --text-h1-weight-cjk:         var(--font-weight-bold);
+
+  --text-h2-weight-latin:       var(--font-weight-black);      /* Nunito Black 900 */
+  --text-h2-weight-cjk:         var(--font-weight-bold);
+
+  --text-h3-weight-latin:       var(--font-weight-semibold);
+  --text-h3-weight-cjk:         var(--font-weight-medium);
+
+  --text-body-weight-latin:     var(--font-weight-semibold);
+  --text-body-weight-cjk:       var(--font-weight-medium);
+
+  --text-caption-weight-latin:  var(--font-weight-regular);
+  --text-caption-weight-cjk:    var(--font-weight-light);
+
+  --text-button-weight-latin:   var(--font-weight-bold);
+  --text-button-weight-cjk:     var(--font-weight-bold);
+
+  /* =========================================================================
+   * SPACING（從 Group 4.pdf 元件樣本觀察到的基礎間距）
+   * ========================================================================= */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+
+  /* =========================================================================
+   * RADIUS
+   * ========================================================================= */
+  --radius-sm:    8px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --radius-pill: 9999px;
+}
+
+/* =============================================================================
+ * Utility classes — 文字尺度（含 Latin+CJK 字重切換）
+ * 預設用 CJK 字重（中文使用情境較多），Latin-only 內容請手動覆寫。
+ * ============================================================================= */
+.text-title    { font-family: var(--font-sans); font-size: var(--text-title-size);    font-weight: var(--text-title-weight-cjk); }
+.text-h1       { font-family: var(--font-sans); font-size: var(--text-h1-size);       font-weight: var(--text-h1-weight-cjk); }
+.text-h2       { font-family: var(--font-sans); font-size: var(--text-h2-size);       font-weight: var(--text-h2-weight-cjk); }
+.text-h3       { font-family: var(--font-sans); font-size: var(--text-h3-size);       font-weight: var(--text-h3-weight-cjk); }
+.text-body     { font-family: var(--font-sans); font-size: var(--text-body-size);     font-weight: var(--text-body-weight-cjk); }
+.text-caption  { font-family: var(--font-sans); font-size: var(--text-caption-size);  font-weight: var(--text-caption-weight-cjk); }
+.text-btn-xl   { font-family: var(--font-sans); font-size: var(--text-button-xl-size); font-weight: var(--text-button-weight-cjk); }
+.text-btn-l    { font-family: var(--font-sans); font-size: var(--text-button-l-size);  font-weight: var(--text-button-weight-cjk); }
+.text-btn-m    { font-family: var(--font-sans); font-size: var(--text-button-m-size);  font-weight: var(--text-button-weight-cjk); }
+
+/* Latin-only 覆寫（套在純英數字內容上） */
+.text-title.is-latin    { font-weight: var(--text-title-weight-latin); }
+.text-h1.is-latin       { font-weight: var(--text-h1-weight-latin); }
+.text-h2.is-latin       { font-weight: var(--text-h2-weight-latin); }
+.text-h3.is-latin       { font-weight: var(--text-h3-weight-latin); }
+.text-body.is-latin     { font-weight: var(--text-body-weight-latin); }
+.text-caption.is-latin  { font-weight: var(--text-caption-weight-latin); }
