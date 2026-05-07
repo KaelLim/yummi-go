@@ -44,7 +44,7 @@ function wrap(loader: RouteLoader): RouteLoader {
 defRoute('/', () => import('./routes/splash'));
 defRoute('/login', wrap(() => import('./routes/login')));
 defRoute('/register', wrap(() => import('./routes/register')));
-defRoute('/onboarding/oath', wrap(stub('Oath')));
+defRoute('/onboarding/oath', wrap(() => import('./routes/onboarding/oath')));
 defRoute('/onboarding/diet-survey', wrap(stub('Diet Survey')));
 defRoute('/onboarding/baseline', wrap(stub('Baseline')));
 defRoute('/onboarding/challenge-level', wrap(stub('Challenge Level')));
