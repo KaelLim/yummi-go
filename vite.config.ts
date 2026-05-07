@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: { enabled: true },
+      devOptions: { enabled: false },
       manifest: {
         name: 'Yummi Go 好味走走',
         short_name: 'Yummi Go',

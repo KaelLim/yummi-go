@@ -29,7 +29,7 @@ export class DrustClient {
   constructor(
     private base: string = ENV.DRUST_BASE,
     private token: string = ENV.DRUST_ANON_TOKEN,
-    private fetchImpl: typeof fetch = fetch,
+    private fetchImpl: typeof fetch = (...args) => fetch(...args),
   ) {}
 
   private async fetch<T>(path: string, init?: RequestInit): Promise<T | null> {

@@ -66,11 +66,16 @@ export default function register(): HTMLElement {
       setLoggedInUser(user);
       navigate('/onboarding/oath');
     } catch (err: unknown) {
+      console.error('[register] full error:', err);
       errorBox.hidden = false;
-      const msg = String((err as { message?: string } | null)?.message ?? '');
-      errorBox.textContent = msg.includes('UNIQUE')
-        ? '使用者名稱已被使用'
-        : '註冊失敗，請稍後再試';
+      const e = err as { message?: string; status?: number } | null;
+      const msg = String(e?.message ?? '');
+      const status = e?.status;
+      if (msg.includes('UNIQUE')) {
+        errorBox.textContent = '使用者名稱已被使用';
+      } else {
+        errorBox.textContent = `註冊失敗 (${status ?? '?'}): ${msg.slice(0, 200) || '未知錯誤'}`;
+      }
       submitBtn.disabled = false;
       submitBtn.textContent = '建立帳號';
     }
