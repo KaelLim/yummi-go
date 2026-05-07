@@ -110,3 +110,88 @@ body {
   border-radius: 50%;
 }
 .tab.active.center .tab-label { display: none; }
+
+/* =============================================================================
+ * Splash screen
+ * ============================================================================= */
+.splash {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 32px;
+  background: linear-gradient(180deg, #fff4e8 0%, #fef9ed 50%, #e8eeeb 100%);
+  min-height: 100dvh;
+}
+.splash-logo { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.splash-logo-mark {
+  width: 96px; height: 96px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 56px;
+  box-shadow: 0 12px 32px -8px rgba(29, 89, 55, 0.5);
+  margin-bottom: 12px;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.splash-title { font-size: 44px; font-weight: 900; color: var(--color-primary-dark); letter-spacing: -0.02em; }
+.splash-tagline { font-size: 13px; color: var(--color-neutral-darker); font-weight: 500; }
+.splash-loader { display: inline-flex; gap: 6px; }
+.splash-loader .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--color-primary);
+  animation: bounce 1.4s infinite;
+}
+.splash-loader .dot:nth-child(2) { animation-delay: 0.2s; }
+.splash-loader .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-8px); opacity: 1; }
+}
+
+/* =============================================================================
+ * Auth screens (login / register)
+ * ============================================================================= */
+.auth-screen { padding: 16px 20px 32px; min-height: 100dvh; display: flex; flex-direction: column; }
+.auth-header { display: flex; align-items: center; height: 44px; }
+.auth-back { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.auth-back:hover { background: var(--color-muted); }
+.auth-body { flex: 1; display: flex; flex-direction: column; padding-top: 16px; }
+.auth-title { font-size: 30px; font-weight: 800; color: var(--color-primary-dark); margin: 0 0 4px; letter-spacing: -0.015em; }
+.auth-sub { font-size: 15px; color: var(--color-neutral-darker); margin: 0 0 32px; }
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 13px; font-weight: 600; color: var(--color-neutral-darker); }
+.input {
+  padding: 14px 16px;
+  font-size: 16px;
+  font-family: inherit;
+  border: 1.5px solid var(--color-neutral);
+  border-radius: 16px;
+  background: var(--color-card, #fff);
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.input:focus { outline: none; border-color: var(--color-primary); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; cursor: pointer; border-radius: 999px;
+  padding: 16px 24px; width: 100%;
+  font-weight: 700; font-family: inherit;
+  transition: filter 0.12s, transform 0.06s;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:hover:not(:disabled) { filter: brightness(1.04); }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn-l { font-size: 17px; }
+.btn-primary {
+  background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff;
+  box-shadow: 0 6px 16px -4px rgba(29, 89, 55, 0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.auth-error { background: var(--color-secondary-light); color: var(--color-destructive); padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+.auth-foot { text-align: center; margin-top: 24px; font-size: 14px; color: var(--color-neutral-darker); }
+.link { color: var(--color-primary); font-weight: 700; text-decoration: none; }
+.link:hover { text-decoration: underline; }

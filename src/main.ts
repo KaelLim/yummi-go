@@ -41,9 +41,9 @@ function wrap(loader: RouteLoader): RouteLoader {
   });
 }
 
-defRoute('/', wrap(stub('Splash')));
-defRoute('/login', wrap(stub('Login')));
-defRoute('/register', wrap(stub('Register')));
+defRoute('/', () => import('./routes/splash'));
+defRoute('/login', wrap(() => import('./routes/login')));
+defRoute('/register', wrap(() => import('./routes/register')));
 defRoute('/onboarding/oath', wrap(stub('Oath')));
 defRoute('/onboarding/diet-survey', wrap(stub('Diet Survey')));
 defRoute('/onboarding/baseline', wrap(stub('Baseline')));
