@@ -195,3 +195,119 @@ body {
 .auth-foot { text-align: center; margin-top: 24px; font-size: 14px; color: var(--color-neutral-darker); }
 .link { color: var(--color-primary); font-weight: 700; text-decoration: none; }
 .link:hover { text-decoration: underline; }
+
+/* =============================================================================
+ * Onboarding shared
+ * ============================================================================= */
+.onb-screen { padding: 16px 20px 32px; min-height: 100dvh; display: flex; flex-direction: column; }
+.onb-header { display: flex; align-items: center; gap: 12px; height: 44px; }
+.onb-back { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.onb-back:hover { background: var(--color-muted); }
+.onb-progress { flex: 1; display: flex; gap: 4px; }
+.onb-progress-dot { flex: 1; height: 4px; background: var(--color-neutral-light-active); border-radius: 2px; transition: background 0.3s; }
+.onb-progress-dot.done { background: var(--color-primary); }
+
+.onb-body { flex: 1; display: flex; flex-direction: column; padding-top: 16px; gap: 8px; }
+.onb-title { font-size: 28px; font-weight: 800; color: var(--color-primary-dark); margin: 0; line-height: 1.2; letter-spacing: -0.01em; }
+.onb-sub { font-size: 14px; color: var(--color-neutral-darker); margin: 0 0 24px; line-height: 1.55; }
+.onb-options { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
+.choice {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: var(--color-card, #fff);
+  color: var(--color-foreground-alt, #2d2a26);
+  border: 1.5px solid var(--color-neutral-light-active);
+  border-radius: 18px; padding: 14px 18px;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer; text-align: left;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.choice:hover { border-color: var(--color-primary); background: var(--color-primary-light); transform: translateX(2px); }
+.choice.selected { background: var(--color-primary-light); border-color: var(--color-primary); }
+.choice .ch-icon { font-size: 22px; flex-shrink: 0; }
+.choice .ch-text { flex: 1; }
+.choice .ch-arrow { color: var(--color-neutral-dark-hover); }
+
+.onb-footer { padding-top: 16px; }
+.btn-skip { background: none; color: var(--color-neutral-darker); padding: 10px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; width: auto; align-self: center; display: block; margin: 0 auto; }
+
+/* Oath card (Task 41) */
+.oath-card {
+  background: linear-gradient(135deg, var(--color-primary-light), #fff);
+  border-radius: 24px; padding: 32px 24px;
+  text-align: center;
+  margin: 16px 0 24px;
+  box-shadow: 0 4px 16px -4px rgba(29, 89, 55, 0.15);
+}
+.oath-icon { font-size: 64px; margin-bottom: 12px; }
+.oath-text { font-size: 15px; line-height: 1.7; color: var(--color-foreground-alt, #2d2a26); margin: 8px 0; }
+.oath-text.strong { font-size: 18px; font-weight: 800; color: var(--color-primary-dark); margin-top: 16px; }
+.oath-checkbox { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--color-card, #fff); border: 1.5px solid var(--color-neutral-light-active); border-radius: 16px; cursor: pointer; }
+.oath-checkbox input { width: 20px; height: 20px; accent-color: var(--color-primary); cursor: pointer; }
+.oath-cb-label { font-size: 15px; font-weight: 600; }
+.grow { flex: 1; }
+
+/* Baseline sliders (Task 43) */
+.baseline-list { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.baseline-row { background: var(--color-card, #fff); border-radius: 18px; padding: 14px 16px; border: 1.5px solid var(--color-neutral-light-active); }
+.baseline-label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.baseline-emoji { font-size: 22px; }
+.baseline-name { flex: 1; font-weight: 600; font-size: 15px; }
+.baseline-value { font-weight: 700; color: var(--color-primary); font-variant-numeric: tabular-nums; }
+.baseline-slider {
+  width: 100%; -webkit-appearance: none; appearance: none;
+  height: 6px; background: var(--color-neutral-light-active); border-radius: 3px;
+  outline: none;
+}
+.baseline-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--color-primary); cursor: pointer; box-shadow: 0 2px 6px rgba(29,89,55,0.3); }
+.baseline-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--color-primary); cursor: pointer; border: none; }
+.baseline-total { margin-top: 16px; font-size: 14px; font-weight: 600; color: var(--color-foreground-alt, #2d2a26); }
+.baseline-total .muted { color: var(--color-neutral-darker); font-weight: 500; }
+
+/* Challenge level cards (Task 44) */
+.level-choice { padding: 18px 20px; }
+.level-choice .ch-text { display: flex; flex-direction: column; gap: 4px; }
+.level-choice strong { font-size: 17px; color: var(--color-primary-dark); display: inline; }
+.level-tag {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  background: var(--color-secondary-light); color: var(--color-secondary-dark);
+  padding: 2px 8px; border-radius: 999px; margin-left: 8px;
+  vertical-align: middle;
+}
+.level-choice small { font-size: 13px; color: var(--color-neutral-darker); font-weight: 500; line-height: 1.5; }
+
+/* Eat times pickers (Task 45) */
+.meal-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.meal-row { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--color-card, #fff); border: 1.5px solid var(--color-neutral-light-active); border-radius: 16px; }
+.meal-emoji { font-size: 22px; }
+.meal-label { flex: 1; font-weight: 600; }
+.meal-input { font-family: inherit; font-size: 16px; padding: 8px 12px; border: 1.5px solid var(--color-neutral-light-active); border-radius: 12px; background: #fff; }
+
+/* Day-1 hook (Task 46) */
+.day1 { background: linear-gradient(180deg, #2a2a2a, #4a4a4a); color: #fff; }
+.day1 .onb-progress-dot { background: rgba(255,255,255,0.2); }
+.day1 .onb-progress-dot.done { background: #4ade80; }
+.day1-body {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; padding: 32px 24px; gap: 32px;
+}
+.fog-overlay {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(255,255,255,0.05), transparent 50%);
+  pointer-events: none;
+  animation: fog-drift 15s ease-in-out infinite alternate;
+}
+@keyframes fog-drift { 0% { transform: translateX(0); } 100% { transform: translateX(20px); } }
+.day1-egg {
+  font-size: 120px; z-index: 1;
+  filter: drop-shadow(0 0 40px rgba(255, 244, 232, 0.4));
+  animation: egg-wobble 4s ease-in-out infinite;
+}
+@keyframes egg-wobble { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(3deg); } }
+.day1-content { text-align: center; z-index: 1; display: flex; flex-direction: column; gap: 16px; max-width: 320px; }
+.day1-title { font-size: 24px; font-weight: 800; margin: 0; }
+.day1-text { font-size: 15px; line-height: 1.7; opacity: 0.85; margin: 0 0 16px; }
+.day1 .btn-primary { background: linear-gradient(180deg, var(--color-secondary), var(--color-secondary-dark)); }
