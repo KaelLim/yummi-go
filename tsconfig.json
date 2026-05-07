@@ -12,6 +12,7 @@
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "useDefineForClassFields": true,
+    "noEmit": true,
     "paths": { "@/*": ["./src/*"] },
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
