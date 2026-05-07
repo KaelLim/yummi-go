@@ -9,7 +9,20 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@types/leaflet": "^1.9.21",
+    "@vitest/ui": "^4.1.5",
+    "dotenv": "^17.4.2",
+    "jsdom": "^29.1.1",
+    "tsx": "^4.21.0",
     "typescript": "~6.0.2",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.5",
+    "workbox-window": "^7.4.1"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "nanostores": "^1.3.0"
   }
 }
