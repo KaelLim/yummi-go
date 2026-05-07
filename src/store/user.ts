@@ -49,7 +49,13 @@ export function setLoggedInUser(u: authApi.LoggedInUser) {
   $user.set({ id: u.id, username: u.username, displayName: u.displayName });
 }
 
+/**
+ * Clear the local session: forget the stored user id and reset both atoms.
+ * Navigation is intentionally left to the caller (e.g. a UI handler can
+ * `clearUser(); navigate('/login')`).
+ */
 export function clearUser() {
+  authApi.logout();
   $user.set(null);
   $profile.set(null);
 }

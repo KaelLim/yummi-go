@@ -54,6 +54,12 @@ describe('user store', () => {
     expect($profile.get()).toBeNull();
   });
 
+  it('clearUser also calls authApi.logout to drop the stored userId', () => {
+    setLoggedInUser({ id: 2, username: 'b', displayName: 'B' });
+    clearUser();
+    expect(mockedAuth.logout).toHaveBeenCalledTimes(1);
+  });
+
   describe('bootstrapFromStorage', () => {
     it('returns false when no userId in storage', async () => {
       mockedAuth.currentUserId.mockReturnValueOnce(null);
