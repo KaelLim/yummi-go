@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: { enabled: true },
       manifest: {
         name: 'Yummi Go 好味走走',
         short_name: 'Yummi Go',
@@ -21,6 +22,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/tool\.tzuchi-org\.tw\/.*/,
@@ -30,10 +33,14 @@ export default defineConfig({
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/,
             handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts', expiration: { maxAgeSeconds: 60 * 60 * 24 * 30 } },
+            options: {
+              cacheName: 'google-fonts',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
           },
           {
-            urlPattern: /^https:\/\/(a|b|c)\.tile\.openstreetmap\.org\/.*/,
+            urlPattern: /^https:\/\/([abc]\.)?tile\.openstreetmap\.org\/.*/,
             handler: 'CacheFirst',
             options: { cacheName: 'osm-tiles', expiration: { maxAgeSeconds: 60 * 60 * 24 * 30 } },
           },
