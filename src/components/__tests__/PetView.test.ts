@@ -7,38 +7,51 @@ describe('PetView', () => {
     $pet.set(null);
   });
 
-  it('renders .pet-view with default egg + normal classes when $pet is null', () => {
+  it('renders .pet-view with default egg/normal sprite when $pet is null', () => {
     const { el } = createPetView();
+    const img = el.querySelector<HTMLImageElement>('img.pet-frog');
     expect(el.classList.contains('pet-view')).toBe(true);
-    expect(el.classList.contains('pet-stage-egg')).toBe(true);
-    expect(el.classList.contains('pet-mood-normal')).toBe(true);
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute('src')).toBe('/pet/egg/normal.png');
   });
 
-  it('contains shell, frog img, accessory and fog overlay slots', () => {
+  it('contains accessory and fog overlay slots', () => {
     const { el } = createPetView();
-    expect(el.querySelector('.pet-shell')).not.toBeNull();
-    expect(el.querySelector('img.pet-frog')).not.toBeNull();
     expect(el.querySelector('.pet-accessory')).not.toBeNull();
     expect(el.querySelector('.fog-overlay')).not.toBeNull();
   });
 
-  it('reflects $pet stage and mood when mounted', () => {
+  it('updates <img src> to the sprite for current $pet.stage and mood', () => {
     const { el } = createPetView();
     document.body.appendChild(el);
+    const img = el.querySelector<HTMLImageElement>('img.pet-frog')!;
+
     $pet.set({ level: 19, currentXp: 0, accumulatedXp: 1000, stage: 'youth', mood: 'happy' });
-    expect(el.classList.contains('pet-stage-youth')).toBe(true);
-    expect(el.classList.contains('pet-stage-egg')).toBe(false);
-    expect(el.classList.contains('pet-mood-happy')).toBe(true);
-    expect(el.classList.contains('pet-mood-normal')).toBe(false);
+    expect(img.getAttribute('src')).toBe('/pet/youth/happy.png');
+
+    $pet.set({ level: 80, currentXp: 0, accumulatedXp: 9999, stage: 'max', mood: 'evolve' });
+    expect(img.getAttribute('src')).toBe('/pet/max/normal.png');
+
     el.remove();
   });
 
-  it('falls back to egg + normal for unknown stage/mood values', () => {
+  it('falls back to egg/normal for unknown stage values', () => {
     const { el } = createPetView();
     document.body.appendChild(el);
-    $pet.set({ level: 1, currentXp: 0, accumulatedXp: 0, stage: 'bogus' as never, mood: 'whatever' });
-    expect(el.classList.contains('pet-stage-egg')).toBe(true);
-    expect(el.classList.contains('pet-mood-normal')).toBe(true);
+    const img = el.querySelector<HTMLImageElement>('img.pet-frog')!;
+    $pet.set({ level: 1, currentXp: 0, accumulatedXp: 0, stage: 'bogus' as never, mood: 'whatever' as never });
+    expect(img.getAttribute('src')).toBe('/pet/egg/normal.png');
+    el.remove();
+  });
+
+  it('falls back to /pet-frog.png on image load error', () => {
+    const { el } = createPetView();
+    document.body.appendChild(el);
+    const img = el.querySelector<HTMLImageElement>('img.pet-frog')!;
+    $pet.set({ level: 6, currentXp: 0, accumulatedXp: 100, stage: 'baby', mood: 'happy' });
+    expect(img.getAttribute('src')).toBe('/pet/baby/happy.png');
+    img.dispatchEvent(new Event('error'));
+    expect(img.getAttribute('src')).toContain('/pet-frog.png');
     el.remove();
   });
 
