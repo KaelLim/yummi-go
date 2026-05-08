@@ -54,6 +54,7 @@ defRoute('/map/restaurant/:id/review', wrap(() => import('./routes/restaurant-re
 defRoute('/check-in', wrap(() => import('./routes/check-in/capture')));
 defRoute('/check-in/scanning', wrap(() => import('./routes/check-in/scanning')));
 defRoute('/check-in/result', wrap(() => import('./routes/check-in/result')));
+defRoute('/check-in/fail', wrap(() => import('./routes/check-in/fail')));
 defRoute('/check-in/success', wrap(() => import('./routes/check-in/success')));
 defRoute('/tasks', wrap(() => import('./routes/tasks/index')));
 defRoute('/tasks/quiz', wrap(() => import('./routes/tasks/quiz')));
