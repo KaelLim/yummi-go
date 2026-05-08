@@ -4,6 +4,11 @@ import path from 'node:path';
 
 export default defineConfig({
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
+  server: {
+    // Allow the dev server to be reached through any *.trycloudflare.com
+    // quick tunnel. Vite 8 blocks unknown hosts by default.
+    allowedHosts: ['.trycloudflare.com'],
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
