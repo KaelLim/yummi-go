@@ -17,6 +17,7 @@ import { $user, $profile, clearUser } from '@/store/user';
 import { $today, $challenge } from '@/store/today';
 import { $ui } from '@/store/ui';
 import { listCheckIns, type CheckInRow } from '@/api/check-ins';
+import { mealFailCount } from '@/api/profile';
 import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
 import { bind } from '@/lib/lifecycle';
 import { spriteFor } from '@/lib/pet-sprites';
@@ -37,6 +38,19 @@ function formatLongMD(d: Date): string {
   return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
+function describeTolerance(level: number | null | undefined, fails: number): {
+  show: boolean; total: number | null; used: number; broken: boolean; label: string;
+} {
+  if (!level || level === 1) return { show: false, total: null, used: fails, broken: false, label: '' };
+  const total = level === 2 ? 3 : 0;
+  const used = fails;
+  const broken = used > total;
+  const label = total > 0
+    ? `已用 ${Math.min(used, total)} / ${total}`
+    : (used > 0 ? '已失守' : '零容錯');
+  return { show: true, total, used, broken, label };
+}
+
 const DIET_LABEL: Record<string, string> = {
   vegan: 'Vegan 純素',
   vegetarian: '蛋奶素',
@@ -50,6 +64,7 @@ export default function profile(): HTMLElement {
   wrap.innerHTML = `
     <header class="profile-card" id="identity"></header>
     <section class="profile-stats" id="stats"></section>
+    <section class="tolerance-card" id="tolerance" hidden></section>
     <section class="profile-section">
       <div class="profile-section-head">
         <h2 class="profile-section-title">月曆</h2>
@@ -87,6 +102,7 @@ export default function profile(): HTMLElement {
   `;
 
   let serverCheckIns: CheckInRow[] = [];
+  let serverFails = 0;
 
   function renderIdentity() {
     const u = $user.get();
@@ -181,10 +197,27 @@ export default function profile(): HTMLElement {
     }).join('');
   }
 
+  function renderTolerance() {
+    const p = $profile.get();
+    const tol = describeTolerance(p?.challenge_level ?? null, serverFails);
+    const el = wrap.querySelector<HTMLElement>('#tolerance')!;
+    if (!tol.show) { el.hidden = true; return; }
+    el.hidden = false;
+    el.classList.toggle('broken', tol.broken);
+    el.innerHTML = `
+      <div class="tolerance-row">
+        <span class="ms">shield</span>
+        <strong>等級 ${p?.challenge_level} 容錯次數</strong>
+        <span class="tolerance-label">${tol.label}</span>
+      </div>
+    `;
+  }
+
   function renderAll() {
     renderIdentity();
     renderStats();
     renderCalendar();
+    renderTolerance();
   }
 
   bind(wrap, $user, renderAll);
@@ -214,6 +247,12 @@ export default function profile(): HTMLElement {
       renderCalendar();
     } catch (err) {
       console.warn('[profile] listCheckIns failed:', err);
+    }
+    try {
+      serverFails = await mealFailCount(u.id);
+      renderTolerance();
+    } catch {
+      /* soft fail */
     }
   })();
 

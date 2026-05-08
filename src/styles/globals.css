@@ -1466,3 +1466,20 @@ body {
   font-weight: var(--font-weight-extrabold);
   color: var(--color-secondary-dark);
 }
+
+.tolerance-card {
+  background: var(--color-card); padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md); margin-top: var(--space-3);
+  border: 1px solid var(--color-neutral-light-active);
+}
+.tolerance-card.broken { border-color: var(--color-error, #d63b3b); }
+.tolerance-row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-mini-size); }
+.tolerance-label { margin-left: auto; font-weight: var(--font-weight-extrabold); color: var(--color-secondary-dark); }
+.tolerance-card.broken .tolerance-label { color: var(--color-error, #d63b3b); }
+
+.tolerance-pill {
+  background: var(--color-neutral-light-active); padding: 2px 8px; border-radius: var(--radius-pill);
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+  color: var(--color-neutral-darker);
+  margin-left: 6px;
+}

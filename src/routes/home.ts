@@ -14,6 +14,7 @@
 import { navigate } from '@/router';
 import { $pet, type PetStoreShape } from '@/store/pet';
 import { $today, $challenge, type TodayStoreShape } from '@/store/today';
+import { $profile } from '@/store/user';
 import type { ChallengeScript } from '@/api/content';
 import { XP_PER_LEVEL } from '@/lib/pet-evolution';
 import { normalizeLuckyColor } from '@/lib/lucky-color';
@@ -48,6 +49,7 @@ export default function home(): HTMLElement {
       <div class="home-greeting-text" data-bind="greeting">早安，喚醒者</div>
       <div class="home-greeting-day">
         D<span data-bind="day">1</span><span class="home-day-of">/30</span>
+        <span class="tolerance-pill" id="tolerance-pill" hidden></span>
       </div>
     </header>
     <section class="home-hero" data-slot="pet"></section>
@@ -172,9 +174,22 @@ export default function home(): HTMLElement {
     }
   }
 
+  function renderTolerancePill(level: number | null) {
+    const pill = $$('#tolerance-pill');
+    if (!pill) return;
+    if (!level || level === 1) {
+      pill.hidden = true;
+      return;
+    }
+    pill.hidden = false;
+    // Home shows "等級 N" only — Profile is the place for the actual fail count.
+    pill.textContent = `等級 ${level}`;
+  }
+
   bind(wrap, $pet, renderPet);
   bind(wrap, $today, renderToday);
   bind(wrap, $challenge, renderChallenge);
+  bind(wrap, $profile, (p) => renderTolerancePill(p?.challenge_level ?? null));
 
   $$('#lucky-card')?.addEventListener('click', () => navigate('/check-in'));
   $$('#quiz-bubble')?.addEventListener('click', () => {
