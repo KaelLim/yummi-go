@@ -970,7 +970,7 @@ I won't enumerate all 35+ task details here. Each follows the same template. Ref
 **High-level grouping:**
 
 - **Phase 6 — Splash + Auth**: Tasks 36-39 (splash, login, register, logout)
-- **Phase 7 — Onboarding 7 screens**: Tasks 40-46 (oath, diet-survey, baseline, challenge-level, eat-times, day1-hook, completion)
+- **Phase 7 — Onboarding 6 screens**: Tasks 40-45 (oath, diet-survey, baseline, challenge-level, eat-times, day1-hook). The original spec listed a separate "completion" celebration screen (Task 46), but day1-hook's "開始打卡" CTA already serves as the closing beat — it stamps `CHALLENGE_STARTED_AT` and routes straight to /check-in. Task 46 is dropped; Phase 8 still starts at Task 47.
 - **Phase 8 — Home + Pet**: Tasks 47-50 (home layout, PetView component, mood/stage rendering, gray-fog overlay)
 - **Phase 9 — Check-in**: Tasks 51-55 (camera capture, scanning animation, result page with edit, success page with XP burst)
 - **Phase 10 — Map**: Tasks 56-60 (Leaflet init, marker rendering, filter chips, restaurant detail, review form with photo upload)

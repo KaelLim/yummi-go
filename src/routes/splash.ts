@@ -1,16 +1,15 @@
 /**
  * Splash screen — animated logo + auto-redirect.
  *
- * Bootstraps the user session from localStorage, then redirects:
- *   - to /home if a session was restored
+ * The element is returned synchronously so the loader animation is visible
+ * immediately. After a 1.2s hold, redirects:
+ *   - to /home if $user is hydrated (bootstrap already ran in main.ts boot)
  *   - to /login otherwise
- *
- * A 1.2s minimum hold ensures the splash is visible even on a fast restore.
  */
-import { bootstrapFromStorage } from '@/store/user';
+import { $isLoggedIn } from '@/store/user';
 import { navigate } from '@/router';
 
-export default async function splash(): Promise<HTMLElement> {
+export default function splash(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'splash';
   wrap.innerHTML = `
@@ -24,12 +23,9 @@ export default async function splash(): Promise<HTMLElement> {
     </div>
   `;
 
-  // Bootstrap session, then redirect after a 1.2s minimum (so users see the splash).
-  const startedAt = Date.now();
-  const restored = await bootstrapFromStorage();
-  const elapsed = Date.now() - startedAt;
-  await new Promise((r) => setTimeout(r, Math.max(0, 1200 - elapsed)));
-  navigate(restored ? '/home' : '/login');
+  setTimeout(() => {
+    navigate($isLoggedIn.get() ? '/home' : '/login');
+  }, 1200);
 
   return wrap;
 }
