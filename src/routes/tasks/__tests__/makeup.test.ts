@@ -27,6 +27,7 @@ const seedProfile = (gems: number, fragments: number, cards: number): UserFull =
   eat_times: null,
   known_from: null,
   baseline: null,
+  purpose: null,
   level: 1,
   current_xp: 0,
   accumulated_xp: 0,

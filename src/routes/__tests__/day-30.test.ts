@@ -17,6 +17,7 @@ const baseProfile = {
   diet_type: null, challenge_level: null,
   eat_times: null, known_from: null,
   baseline: '{"beef":0.2,"pork":0.3,"lamb":0,"chicken":0.5}',
+  purpose: null,
   level: 12, current_xp: 0, accumulated_xp: 500,
   stage: 'baby', mood: 'happy',
   strikes: 0, poisoned_until: null,

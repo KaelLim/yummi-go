@@ -16,6 +16,7 @@ export interface UserProfile {
   eat_times: string | null; // JSON-encoded
   known_from: string | null;
   baseline: string | null; // JSON-encoded
+  purpose: string | null;
 }
 
 export interface UserFull {
@@ -29,6 +30,7 @@ export interface UserFull {
   eat_times: string | null;
   known_from: string | null;
   baseline: string | null;
+  purpose: string | null;
   level: number;
   current_xp: number;
   accumulated_xp: number;
