@@ -10,6 +10,7 @@ import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { updateProfile } from '@/api/profile';
 import { createProgress } from '@/components/Progress';
+import { requestMealNotificationPermission } from '@/lib/meal-notifier';
 
 const MEALS = [
   { key: 'breakfast', emoji: '🌅', label: '早餐', defaultTime: '08:00' },
@@ -52,6 +53,7 @@ export default function eatTimes(): HTMLElement {
       eatTimes[input.dataset.key!] = input.value;
     });
     try { await updateProfile(u.id, { eat_times: JSON.stringify(eatTimes) }); } catch { /* soft fail */ }
+    void requestMealNotificationPermission();
     navigate('/onboarding/known-from');
   });
 

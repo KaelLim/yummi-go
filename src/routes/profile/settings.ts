@@ -12,6 +12,7 @@ import { drust } from '@/api/drust';
 import { updateProfile } from '@/api/profile';
 import { $ui, setTheme } from '@/store/ui';
 import { bind } from '@/lib/lifecycle';
+import { requestMealNotificationPermission } from '@/lib/meal-notifier';
 
 const MEALS = [
   { key: 'breakfast', label: '早餐', defaultTime: '08:00' },
@@ -48,6 +49,12 @@ export default function settings(): HTMLElement {
             </div>`,
           ).join('')}
         </div>
+      </section>
+
+      <section class="settings-section">
+        <span class="settings-label">推播提醒</span>
+        <button class="btn text-btn-m btn-secondary btn-sm" id="ask-notif">允許用餐前 10 分鐘提醒</button>
+        <span class="settings-hint" id="notif-status"></span>
       </section>
 
       <section class="settings-section">
@@ -153,6 +160,25 @@ export default function settings(): HTMLElement {
       clearUser();
       navigate('/login');
     }
+  });
+
+  const askBtn = wrap.querySelector<HTMLButtonElement>('#ask-notif');
+  const statusEl = wrap.querySelector<HTMLElement>('#notif-status');
+  function reflectPermission() {
+    if (typeof Notification === 'undefined') {
+      if (statusEl) statusEl.textContent = '此瀏覽器不支援';
+      if (askBtn) askBtn.disabled = true;
+    } else if (statusEl) {
+      statusEl.textContent =
+        Notification.permission === 'granted' ? '已開啟' :
+        Notification.permission === 'denied'  ? '已封鎖（請至瀏覽器設定開啟）' :
+        '尚未設定';
+    }
+  }
+  reflectPermission();
+  askBtn?.addEventListener('click', async () => {
+    await requestMealNotificationPermission();
+    reflectPermission();
   });
 
   return wrap;
