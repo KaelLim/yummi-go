@@ -21,7 +21,6 @@ import {
   setVeganType,
   setMeatReplaced,
   setLastResult,
-  resetCheckin,
   type CheckinDraft,
 } from '@/store/checkin';
 import { $user } from '@/store/user';
@@ -195,9 +194,7 @@ export default function result(): HTMLElement {
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/check-in'));
 
   wrap.querySelector('#meat-yes')?.addEventListener('click', () => {
-    resetCheckin();
-    alert('今天的挑戰失敗了，明天再加油！');
-    navigate('/home');
+    navigate('/check-in/fail');
   });
 
   wrap.querySelector('#meat-no')?.addEventListener('click', () => {
@@ -281,6 +278,9 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
       gemsEarned: 0,
     });
     markMissionDone(`meal:${d.mealIndex === 1 ? 'breakfast' : d.mealIndex === 2 ? 'lunch' : 'dinner'}`, xp);
+    if (luckyMatch) {
+      markMissionDone('lucky:hit', 0);
+    }
     try { await awardXp(u.id, xp); } catch { /* server XP soft fail */ }
     setLastResult({ xpEarned: xp, luckyColorMatched: luckyMatch, fogReductionPct });
     navigate('/check-in/success');

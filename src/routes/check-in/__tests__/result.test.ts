@@ -105,18 +105,17 @@ describe('check-in/result route', () => {
     el.remove();
   });
 
-  it('clicking 是 navigates home and resets store', () => {
+  it('clicking 是 routes to /check-in/fail without resetting the draft', () => {
     setScan({
       items: [meat('牛肉片')],
       hasMeat: true,
       scanFailed: false,
     });
     const el = result();
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     el.querySelector<HTMLButtonElement>('#meat-yes')?.click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
-    expect($checkin.get().items).toEqual([]);
-    alertSpy.mockRestore();
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/fail');
+    // draft must NOT be reset — fail.ts needs mealIndex to record the right slot
+    expect($checkin.get().items).not.toEqual([]);
   });
 
   it('confirm posts createCheckIn with correct XP (lucky-match + meal-2 base)', async () => {
