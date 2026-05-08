@@ -25,7 +25,9 @@ const fakeQ = {
   option_a: '蘋果',
   option_b: '萵苣',
   option_c: '雞肉',
-  correct_answer: 'B',
+  // drust stores correct_answer as the matching option text (not the letter),
+  // so the route resolves the letter via option_a/_b/_c label match.
+  correct_answer: '萵苣',
   explanation: '萵苣是葉菜類。',
 };
 
@@ -51,11 +53,13 @@ describe('quiz route', () => {
     const el = quiz();
     document.body.appendChild(el);
     await vi.waitFor(() => expect(el.querySelectorAll('.quiz-opt').length).toBe(3));
+    // option_b text matches correct_answer, so clicking B is correct.
     el.querySelector<HTMLButtonElement>('.quiz-opt[data-value="B"]')?.click();
     await vi.waitFor(() =>
       expect(mockedContent.recordQuizAttempt).toHaveBeenCalledWith(7, 11, 'B', true),
     );
     expect(el.querySelector('.quiz-verdict.right')).not.toBeNull();
+    expect(el.querySelector('.quiz-opt[data-value="B"]')?.classList.contains('correct')).toBe(true);
     expect($today.get().missionsDone).toContain('quiz');
     el.remove();
   });

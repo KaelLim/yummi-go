@@ -69,6 +69,13 @@ function renderQuestion(body: HTMLElement, q: QuizQuestion): void {
     { value: 'C', label: q.option_c },
   ];
 
+  // correct_answer is stored as the full option text (not the letter A/B/C),
+  // so we resolve which letter that maps to. If the answer text doesn't
+  // match any option, treat it as a string answer and let the verdict view
+  // display q.correct_answer directly.
+  const correctOpt = options.find((o) => o.label === q.correct_answer);
+  const correctValue = correctOpt?.value ?? null;
+
   body.innerHTML = `
     <div class="quiz-card">
       <div class="quiz-source">${escapeHtml(q.source)} · ${escapeHtml(q.category)}</div>
@@ -94,7 +101,7 @@ function renderQuestion(body: HTMLElement, q: QuizQuestion): void {
 
   optionsEl.querySelectorAll<HTMLButtonElement>('.quiz-opt').forEach((btn) => {
     btn.addEventListener('click', () => {
-      void onPick(btn, q, optionsEl, resultEl);
+      void onPick(btn, q, correctValue, optionsEl, resultEl);
     });
   });
 }
@@ -102,16 +109,17 @@ function renderQuestion(body: HTMLElement, q: QuizQuestion): void {
 async function onPick(
   picked: HTMLButtonElement,
   q: QuizQuestion,
+  correctValue: string | null,
   optionsEl: HTMLElement,
   resultEl: HTMLElement,
 ): Promise<void> {
   const value = picked.dataset.value!;
-  const correct = value === q.correct_answer;
+  const correct = correctValue !== null && value === correctValue;
 
   optionsEl.querySelectorAll<HTMLButtonElement>('.quiz-opt').forEach((b) => {
     b.disabled = true;
     const v = b.dataset.value!;
-    if (v === q.correct_answer) b.classList.add('correct');
+    if (v === correctValue) b.classList.add('correct');
     else if (v === value) b.classList.add('wrong');
   });
 
@@ -119,10 +127,10 @@ async function onPick(
   resultEl.innerHTML = `
     <div class="quiz-verdict ${correct ? 'right' : 'wrong'}">
       <span class="ms">${correct ? 'verified' : 'info'}</span>
-      <strong>${correct ? '答對了！' : '正解是 ' + q.correct_answer}</strong>
+      <strong>${correct ? '答對了！' : '正解是 ' + escapeHtml(q.correct_answer)}</strong>
       <span class="quiz-xp">+${QUIZ_XP} XP</span>
     </div>
-    <p class="quiz-explanation">${escapeHtml(q.explanation)}</p>
+    ${q.explanation ? `<p class="quiz-explanation">${escapeHtml(q.explanation)}</p>` : ''}
     <div class="quiz-actions">
       <button class="btn btn-secondary btn-l" id="another">再來一題</button>
       <button class="btn btn-primary btn-l" id="back">回任務</button>
