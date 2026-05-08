@@ -84,7 +84,8 @@ describe('content', () => {
       });
       const out = await listChallengeScripts();
       expect(mockedDrust.list).toHaveBeenCalledWith('challenge_scripts', {
-        limit: '50',
+        sort: 'day_number',
+        limit: '100',
       });
       expect(out.map((s) => s.day_number)).toEqual([1, 2, 3]);
     });

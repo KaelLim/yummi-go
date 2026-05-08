@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchesLucky, dailyLuckyColor, COLORS } from '../lucky-color';
+import { matchesLucky, dailyLuckyColor, COLORS, normalizeLuckyColor } from '../lucky-color';
 
 describe('matchesLucky', () => {
   it('matches plain color directly', () => {
@@ -47,5 +47,35 @@ describe('COLORS', () => {
     expect(COLORS.length).toBe(6);
     expect(COLORS).toContain('red');
     expect(COLORS).toContain('black');
+  });
+});
+
+describe('normalizeLuckyColor', () => {
+  it('returns null for empty/null/whitespace', () => {
+    expect(normalizeLuckyColor(null)).toBeNull();
+    expect(normalizeLuckyColor(undefined)).toBeNull();
+    expect(normalizeLuckyColor('')).toBeNull();
+  });
+
+  it('passes through canonical English keys', () => {
+    expect(normalizeLuckyColor('red')).toBe('red');
+    expect(normalizeLuckyColor('Green')).toBe('green');
+    expect(normalizeLuckyColor('  white  ')).toBe('white');
+  });
+
+  it('maps Traditional Chinese to palette keys', () => {
+    expect(normalizeLuckyColor('紅色')).toBe('red');
+    expect(normalizeLuckyColor('黃色')).toBe('yellow');
+    expect(normalizeLuckyColor('橘色')).toBe('yellow');
+    expect(normalizeLuckyColor('黃色/橘色')).toBe('yellow');
+    expect(normalizeLuckyColor('綠色')).toBe('green');
+    expect(normalizeLuckyColor('紫色')).toBe('purple');
+    expect(normalizeLuckyColor('黑色')).toBe('black');
+    expect(normalizeLuckyColor('白色')).toBe('white');
+  });
+
+  it('returns null for unrecognised values', () => {
+    expect(normalizeLuckyColor('rainbow')).toBeNull();
+    expect(normalizeLuckyColor('xyz')).toBeNull();
   });
 });

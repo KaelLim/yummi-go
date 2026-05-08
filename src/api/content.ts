@@ -51,9 +51,16 @@ export async function getDayScript(
   return rows[0] ?? null;
 }
 
+/**
+ * NOTE — drust's list endpoint hard-caps at 20 rows and ignores `offset`,
+ * but does honor `sort`. Passing `sort=day_number` makes the 20 returned
+ * rows deterministic (days 1-20). Full 30-day access for the calendar view
+ * (Phase 12) will need a dedicated RPC like `list_all_scripts`.
+ */
 export async function listChallengeScripts(): Promise<ChallengeScript[]> {
   const result = await drust.list<ChallengeScript>('challenge_scripts', {
-    limit: '50',
+    sort: 'day_number',
+    limit: '100',
   });
   return result.records.sort((a, b) => a.day_number - b.day_number);
 }

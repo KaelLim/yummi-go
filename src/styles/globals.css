@@ -295,10 +295,18 @@ body {
 .fog-overlay {
   position: absolute; inset: 0;
   background:
+    radial-gradient(circle at 30% 30%, rgba(160,160,160,0.4), transparent 55%),
+    radial-gradient(circle at 70% 70%, rgba(120,120,120,0.3), transparent 55%);
+  pointer-events: none;
+  opacity: var(--fog-opacity, 1);
+  transition: opacity 0.4s ease;
+  animation: fog-drift 15s ease-in-out infinite alternate;
+}
+/* Day-1 dark scene uses a softer overlay (lighter highlights instead of mid-grey haze). */
+.day1 .fog-overlay {
+  background:
     radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 50%),
     radial-gradient(circle at 70% 70%, rgba(255,255,255,0.05), transparent 50%);
-  pointer-events: none;
-  animation: fog-drift 15s ease-in-out infinite alternate;
 }
 @keyframes fog-drift { 0% { transform: translateX(0); } 100% { transform: translateX(20px); } }
 .day1-egg {
@@ -311,3 +319,164 @@ body {
 .day1-title { font-size: 24px; font-weight: 800; margin: 0; }
 .day1-text { font-size: 15px; line-height: 1.7; opacity: 0.85; margin: 0 0 16px; }
 .day1 .btn-primary { background: linear-gradient(180deg, var(--color-secondary), var(--color-secondary-dark)); }
+
+/* =============================================================================
+ * Home screen (Phase 8)
+ * ============================================================================= */
+.home-screen { display: flex; flex-direction: column; gap: 14px; padding: 4px 4px 24px; }
+.home-greeting { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; }
+.home-greeting-text { font-size: 17px; font-weight: 700; color: var(--color-primary-dark); line-height: 1.4; flex: 1; }
+.home-greeting-day {
+  font-size: 18px; font-weight: 900; color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  background: var(--color-primary-light); padding: 4px 12px; border-radius: 12px;
+}
+.home-day-of { font-size: 12px; color: var(--color-neutral-darker); margin-left: 2px; font-weight: 600; }
+
+.home-hero {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 240px;
+  background: linear-gradient(180deg, #e8eeeb 0%, var(--color-card) 100%);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.home-bubble.pet-bubble {
+  align-self: center;
+  background: var(--color-card);
+  padding: 12px 18px;
+  border-radius: 18px 18px 18px 4px;
+  font-size: 14px; font-weight: 600;
+  color: var(--color-foreground-alt);
+  max-width: 90%;
+  box-shadow: 0 2px 10px -2px rgba(0,0,0,0.08);
+  margin-top: -8px;
+}
+
+/* PetView */
+.pet-view {
+  position: relative;
+  width: 200px; height: 200px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pet-shell {
+  font-size: 120px; display: none;
+  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.1));
+  animation: egg-wobble 4s ease-in-out infinite;
+}
+.pet-frog {
+  width: 80%; height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: transform 0.4s ease, filter 0.4s ease;
+}
+.pet-accessory { position: absolute; inset: 0; pointer-events: none; }
+
+.pet-stage-egg .pet-shell { display: block; }
+.pet-stage-egg .pet-frog { display: none; }
+.pet-stage-baby .pet-frog { transform: scale(0.6); }
+.pet-stage-youth .pet-frog { transform: scale(1.0); }
+.pet-stage-adult .pet-frog { transform: scale(1.2); }
+.pet-stage-adult .pet-accessory::before {
+  content: '👑'; font-size: 32px;
+  position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+}
+.pet-stage-max .pet-frog { transform: scale(1.4); animation: pet-rainbow 6s linear infinite; }
+@keyframes pet-rainbow {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+.pet-mood-normal .pet-frog { filter: none; }
+.pet-mood-happy .pet-frog { filter: saturate(1.3) brightness(1.05); }
+.pet-mood-weak .pet-frog { filter: saturate(0.5) brightness(0.95); }
+.pet-mood-critical .pet-frog { filter: grayscale(0.8) brightness(0.85); }
+.pet-mood-evolve .pet-frog { filter: drop-shadow(0 0 24px rgba(246, 252, 167, 0.8)); }
+
+/* Level bar */
+.level-bar {
+  background: var(--color-card);
+  padding: 14px 18px; border-radius: 16px;
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.05);
+}
+.level-bar-label {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 8px; font-size: 13px;
+}
+.level-bar-lv { font-weight: 800; color: var(--color-primary-dark); font-size: 15px; }
+.level-bar-xp { color: var(--color-neutral-darker); font-variant-numeric: tabular-nums; font-weight: 600; }
+.level-bar-track {
+  height: 8px;
+  background: var(--color-neutral-light-active);
+  border-radius: 4px; overflow: hidden;
+}
+.level-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  transition: width 0.5s ease;
+  border-radius: 4px;
+}
+
+/* Today card */
+.today-card {
+  background: var(--color-card);
+  padding: 14px 18px; border-radius: 16px;
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.05);
+}
+.today-card-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; font-size: 14px;
+}
+.today-card-label { font-weight: 600; color: var(--color-foreground-alt); }
+.today-card-value { font-weight: 800; color: var(--color-primary); font-variant-numeric: tabular-nums; }
+.meal-dots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.meal-dot {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 6px;
+  background: var(--color-neutral-light-active);
+  border-radius: 12px;
+  transition: background 0.2s, color 0.2s;
+}
+.meal-dot.done { background: var(--color-primary-light); color: var(--color-primary-dark); }
+.meal-dot-tick { font-size: 22px; font-weight: 700; line-height: 1; color: var(--color-neutral-dark); }
+.meal-dot.done .meal-dot-tick { color: var(--color-primary); }
+.meal-dot-label { font-size: 11px; font-weight: 600; }
+
+/* Lucky color card */
+.lucky-card {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--color-card);
+  padding: 14px 18px; border-radius: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.lucky-card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -4px rgba(0,0,0,0.1); }
+.lucky-card:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.lucky-card-emoji {
+  width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  border-radius: 12px;
+  background: var(--color-primary-light);
+}
+.lucky-card-body { flex: 1; }
+.lucky-card-title { font-size: 12px; color: var(--color-neutral-darker); font-weight: 600; }
+.lucky-card-color { font-size: 16px; font-weight: 800; color: var(--color-foreground-alt); }
+.lucky-card-arrow { color: var(--color-neutral-dark); }
+
+/* Quiz bubble */
+.quiz-bubble {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, var(--color-secondary-light), var(--color-secondary-light-hover));
+  padding: 12px 18px; border-radius: 14px;
+  cursor: pointer;
+  border: 1.5px dashed var(--color-secondary);
+  font-family: inherit; font-weight: 700;
+  color: var(--color-secondary-dark);
+}
+.quiz-bubble:hover { background: var(--color-secondary-light-hover); }
+.quiz-bubble:focus-visible { outline: 2px solid var(--color-secondary); outline-offset: 2px; }
+.quiz-bubble-text { flex: 1; font-size: 14px; }
+.quiz-bubble-xp { font-size: 12px; font-weight: 800; }
