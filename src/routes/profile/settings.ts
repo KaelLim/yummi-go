@@ -20,6 +20,15 @@ const MEALS = [
   { key: 'dinner', label: '晚餐', defaultTime: '19:00' },
 ];
 
+function formatBuildTime(): string {
+  try {
+    const d = new Date(__BUILD_TIME__);
+    return d.toLocaleString('zh-TW');
+  } catch {
+    return __BUILD_TIME__;
+  }
+}
+
 export default function settings(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'settings-screen';
@@ -71,6 +80,9 @@ export default function settings(): HTMLElement {
       <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="logout">
         <span class="ms">logout</span>登出
       </button>
+      <footer class="settings-footer">
+        Yummi Go v${__APP_VERSION__} · 建置於 ${formatBuildTime()}
+      </footer>
     </div>
   `;
 
