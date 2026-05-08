@@ -8,19 +8,13 @@
  *   4. Today status card with breakfast/lunch/dinner dots (from $today)
  *   5. Lucky-color card → /map, Quiz bubble → /tasks/quiz
  *
- * Hydration: if $challenge.scripts is empty we listChallengeScripts() then
- * setDay(); otherwise we resync the day number from time.ts whenever it
- * drifts past the stored value (compressed/manual modes can shift it).
- *
- * Reactive sections subscribe via bind() so they auto-cleanup when the route
- * is unmounted.
+ * Day data (currentDay / dayNumber / luckyColor) is kept in sync globally
+ * by store/day-sync; this route only reacts to $today / $challenge / $pet.
  */
 import { navigate } from '@/router';
 import { $pet, type PetStoreShape } from '@/store/pet';
-import { $today, $challenge, setDay, type TodayStoreShape } from '@/store/today';
-import { $ui } from '@/store/ui';
-import { getDayScript, type ChallengeScript } from '@/api/content';
-import { currentDayNumber } from '@/lib/time';
+import { $today, $challenge, type TodayStoreShape } from '@/store/today';
+import type { ChallengeScript } from '@/api/content';
 import { XP_PER_LEVEL } from '@/lib/pet-evolution';
 import { normalizeLuckyColor } from '@/lib/lucky-color';
 import { bind } from '@/lib/lifecycle';
@@ -162,46 +156,10 @@ export default function home(): HTMLElement {
   bind(wrap, $today, renderToday);
   bind(wrap, $challenge, renderChallenge);
 
-  // $ui drives the day computation (timeMode + manualDay). Re-hydrate when
-  // either changes so the dev panel's day slider takes effect immediately.
-  let lastDayKey = '';
-  bind(wrap, $ui, (s) => {
-    const key = `${s.timeMode}|${s.manualDay}|${s.challengeStartedAt}`;
-    if (key !== lastDayKey) {
-      lastDayKey = key;
-      void hydrate();
-    }
-  });
-
   $$('#lucky-card')?.addEventListener('click', () => navigate('/map'));
   $$('#quiz-bubble')?.addEventListener('click', () => navigate('/tasks/quiz'));
 
   return wrap;
-}
-
-/**
- * Fetch the current day's script via the get_day_script RPC and seed the
- * stores. We deliberately use the single-day RPC instead of listing all
- * challenge_scripts because drust's list endpoint caps at 20 rows and may
- * exclude day 1; the RPC is the safe, intentful path for "what's today?".
- */
-async function hydrate(): Promise<void> {
-  const ui = $ui.get();
-  const day = currentDayNumber({
-    mode: ui.timeMode,
-    challengeStartedAt: ui.challengeStartedAt,
-    manualDay: ui.manualDay,
-  });
-  if ($today.get().dayNumber === day && $challenge.get().currentDay !== null) return;
-  try {
-    const script = await getDayScript(day);
-    if (!script) return;
-    const existing = $challenge.get().scripts.filter((s) => s.day_number !== script.day_number);
-    const scripts = [...existing, script].sort((a, b) => a.day_number - b.day_number);
-    setDay(scripts, day);
-  } catch {
-    /* soft fail — keep splash defaults */
-  }
 }
 
 function colorPreview(name: string): string {

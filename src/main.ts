@@ -12,6 +12,7 @@ import { createLayout } from './components/Layout';
 import { setupInstallPrompt } from './components/InstallPrompt';
 import { bootstrapFromStorage } from './store/user';
 import { $ui } from './store/ui';
+import { setupDaySync } from './store/day-sync';
 
 // Reflect the active theme onto <html data-theme="..."> so CSS can pivot
 // the colour tokens. Subscribed once at boot — the atom's initial-value
@@ -63,6 +64,7 @@ defRoute('/challenge/day-30', wrap(() => import('./routes/day-30')));
 
 async function boot() {
   await bootstrapFromStorage();
+  setupDaySync();
   setupInstallPrompt();
   startRouter();
 }

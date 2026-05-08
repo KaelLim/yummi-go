@@ -40,10 +40,18 @@ export function markMissionDone(key: string, xpEarned: number) {
 export function setDay(scripts: ChallengeScript[], dayNumber: number) {
   const cur = scripts.find((s) => s.day_number === dayNumber) ?? null;
   $challenge.set({ scripts, currentDay: cur });
-  $today.set({
-    dayNumber,
-    totalXpToday: 0,
-    missionsDone: [],
-    luckyColor: cur?.lucky_color ?? '',
-  });
+  // Preserve missionsDone / totalXpToday when re-hydrating the SAME day —
+  // otherwise navigating between routes (each of which may trigger a
+  // re-sync) clobbers in-progress state like 'eco' / 'quiz' completions.
+  const prev = $today.get();
+  if (prev.dayNumber === dayNumber) {
+    $today.set({ ...prev, luckyColor: cur?.lucky_color ?? prev.luckyColor });
+  } else {
+    $today.set({
+      dayNumber,
+      totalXpToday: 0,
+      missionsDone: [],
+      luckyColor: cur?.lucky_color ?? '',
+    });
+  }
 }
