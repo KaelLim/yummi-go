@@ -96,6 +96,23 @@ describe('DrustClient', () => {
     });
   });
 
+  describe('get', () => {
+    it('GETs /records/{coll}/{id} and unwraps {record}', async () => {
+      fetchMock.mockResolvedValueOnce(mockResponse({ record: { id: 4, name: 'X' } }));
+      const out = await client.get<{ id: number; name: string }>('restaurants', 4);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe('https://drust.example.com/records/restaurants/4');
+      expect(init?.method).toBeUndefined(); // GET default
+      expect(out).toEqual({ id: 4, name: 'X' });
+    });
+
+    it('returns null when fetch resolves to null (e.g. 204)', async () => {
+      fetchMock.mockResolvedValueOnce(mockResponse(null, 204));
+      const out = await client.get('restaurants', 999);
+      expect(out).toBeNull();
+    });
+  });
+
   describe('list', () => {
     it('builds query string correctly', async () => {
       fetchMock.mockResolvedValueOnce(mockResponse({ records: [{ id: 1 }] }));

@@ -51,9 +51,9 @@ defRoute('/onboarding/challenge-level', wrap(() => import('./routes/onboarding/c
 defRoute('/onboarding/eat-times', wrap(() => import('./routes/onboarding/eat-times')));
 defRoute('/onboarding/day1-hook', wrap(() => import('./routes/onboarding/day1-hook')));
 defRoute('/home', wrap(() => import('./routes/home')));
-defRoute('/map', wrap(stub('Map')));
-defRoute('/map/restaurant/:id', wrap(stub('Restaurant detail')));
-defRoute('/map/restaurant/:id/review', wrap(stub('Review')));
+defRoute('/map', wrap(() => import('./routes/map')));
+defRoute('/map/restaurant/:id', wrap(() => import('./routes/restaurant-detail')));
+defRoute('/map/restaurant/:id/review', wrap(() => import('./routes/restaurant-review')));
 defRoute('/check-in', wrap(() => import('./routes/check-in/capture')));
 defRoute('/check-in/scanning', wrap(() => import('./routes/check-in/scanning')));
 defRoute('/check-in/result', wrap(() => import('./routes/check-in/result')));

@@ -91,8 +91,5 @@ export async function listRestaurants(): Promise<Restaurant[]> {
 }
 
 export async function getRestaurant(id: number): Promise<Restaurant | null> {
-  const result = await drust.list<Restaurant>('restaurants', {
-    id: `eq.${id}`,
-  });
-  return result.records[0] ?? null;
+  return drust.get<Restaurant>('restaurants', id);
 }

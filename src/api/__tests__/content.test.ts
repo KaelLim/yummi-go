@@ -8,6 +8,7 @@ vi.mock('@/api/drust', () => ({
     list: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -26,6 +27,7 @@ const mockedDrust = drust as unknown as {
   rpcRows: ReturnType<typeof vi.fn>;
   list: ReturnType<typeof vi.fn>;
   insert: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
 };
 
 describe('content', () => {
@@ -164,19 +166,15 @@ describe('content', () => {
   });
 
   describe('getRestaurant', () => {
-    it('lists restaurants filtered by id', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [{ id: 7, name: 'Thai Place' }],
-      });
+    it('uses path-based GET (drust.get) instead of list filter', async () => {
+      mockedDrust.get.mockResolvedValueOnce({ id: 7, name: 'Thai Place' });
       const out = await getRestaurant(7);
-      expect(mockedDrust.list).toHaveBeenCalledWith('restaurants', {
-        id: 'eq.7',
-      });
+      expect(mockedDrust.get).toHaveBeenCalledWith('restaurants', 7);
       expect(out?.name).toBe('Thai Place');
     });
 
     it('returns null when missing', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [] });
+      mockedDrust.get.mockResolvedValueOnce(null);
       expect(await getRestaurant(999)).toBeNull();
     });
   });

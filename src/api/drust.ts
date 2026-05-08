@@ -83,6 +83,21 @@ export class DrustClient {
     }) as Promise<{ record: T }>;
   }
 
+  /**
+   * Get a single record by primary key. The path-based form is the only
+   * filter shape drust currently supports — query-string filters
+   * (`?id=eq.X`, `?filter[id]=X`, etc.) are silently ignored and the list
+   * endpoint returns up to 20 records regardless. Use this for any
+   * single-row lookup; for foreign-key lookups (e.g. "profile by user_id")
+   * route through an anon RPC instead.
+   */
+  async get<T = unknown>(collection: string, id: number): Promise<T | null> {
+    const raw = (await this.fetch<{ record: T }>(`/records/${collection}/${id}`)) as
+      | { record: T }
+      | null;
+    return raw?.record ?? null;
+  }
+
   /** Delete a record. */
   async delete(collection: string, id: number): Promise<void> {
     await this.fetch<null>(`/records/${collection}/${id}`, { method: 'DELETE' });
