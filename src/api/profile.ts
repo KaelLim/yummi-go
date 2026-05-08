@@ -83,3 +83,14 @@ export async function setChallengeStartedAt(
 ): Promise<void> {
   await drust.update('users', userId, { challenge_started_at: isoTs });
 }
+
+export async function mealFailCount(userId: number): Promise<number> {
+  try {
+    const result = await drust.rpc('meal_fail_count', { user_id: userId });
+    const rows = drust.rpcRows<{ fails: number }>(result);
+    return rows[0]?.fails ?? 0;
+  } catch (err) {
+    console.warn('[profile] meal_fail_count failed:', err);
+    return 0;
+  }
+}

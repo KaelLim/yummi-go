@@ -18,6 +18,7 @@ import {
   updateProfile,
   signOath,
   setChallengeStartedAt,
+  mealFailCount,    // NEW
 } from '../profile';
 
 const mockedDrust = drust as unknown as {
@@ -150,6 +151,22 @@ describe('profile', () => {
       expect(mockedDrust.update).toHaveBeenCalledWith('users', 5, {
         challenge_started_at: '2026-05-08T10:00:00.000Z',
       });
+    });
+  });
+
+  describe('mealFailCount', () => {
+    it('returns the fails count from meal_fail_count RPC', async () => {
+      mockedDrust.rpc.mockResolvedValueOnce({
+        column_names: ['fails'], rows: [[3]], row_count: 1, truncated: false,
+      });
+      mockedDrust.rpcRows.mockReturnValueOnce([{ fails: 3 }]);
+      expect(await mealFailCount(7)).toBe(3);
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('meal_fail_count', { user_id: 7 });
+    });
+
+    it('returns 0 (and does not throw) on drust error', async () => {
+      mockedDrust.rpc.mockRejectedValueOnce(new Error('boom'));
+      expect(await mealFailCount(7)).toBe(0);
     });
   });
 });
