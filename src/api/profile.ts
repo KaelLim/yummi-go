@@ -43,24 +43,25 @@ export async function getUserFull(userId: number): Promise<UserFull | null> {
   return rows[0] ?? null;
 }
 
-export async function getProfile(userId: number): Promise<UserProfile | null> {
-  const result = await drust.list<UserProfile>('user_profiles', {
-    user_id: `eq.${userId}`,
-  });
-  return result.records[0] ?? null;
+/**
+ * NOTE — drust's list endpoint silently ignores query-string filters
+ * (id=eq.X, user_id=eq.X, filter[*]=X, etc.) and caps at 20 rows. For
+ * foreign-key lookups we fetch all rows and filter client-side. Safe
+ * while user_profiles stays under 20 rows; beyond that this needs a
+ * server-side RPC.
+ */
+export async function getProfile(userId: number): Promise<(UserProfile & { id: number }) | null> {
+  const result = await drust.list<UserProfile & { id: number }>('user_profiles');
+  return result.records.find((p) => p.user_id === userId) ?? null;
 }
 
 export async function updateProfile(
   userId: number,
   patch: Partial<UserProfile>,
 ): Promise<void> {
-  // Find profile row id first (we look up by user_id then PATCH by row id)
-  const existing = await drust.list<{ id: number }>('user_profiles', {
-    user_id: `eq.${userId}`,
-  });
-  const profileId = existing.records[0]?.id;
-  if (!profileId) throw new Error('Profile not found for user ' + userId);
-  await drust.update('user_profiles', profileId, patch);
+  const profile = await getProfile(userId);
+  if (!profile) throw new Error('Profile not found for user ' + userId);
+  await drust.update('user_profiles', profile.id, patch);
 }
 
 export async function signOath(userId: number): Promise<void> {

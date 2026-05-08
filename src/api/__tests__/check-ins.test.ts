@@ -94,22 +94,29 @@ describe('check-ins', () => {
   });
 
   describe('listCheckIns', () => {
-    it('lists check_ins by user_id only', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [{ id: 1 }, { id: 2 }] });
-      const out = await listCheckIns(5);
-      expect(mockedDrust.list).toHaveBeenCalledWith('check_ins', {
-        user_id: 'eq.5',
+    it('client-side filters by user_id', async () => {
+      mockedDrust.list.mockResolvedValueOnce({
+        records: [
+          { id: 1, user_id: 5, day_number: 1 },
+          { id: 2, user_id: 5, day_number: 2 },
+          { id: 3, user_id: 9, day_number: 1 },
+        ],
       });
-      expect(out).toHaveLength(2);
+      const out = await listCheckIns(5);
+      expect(mockedDrust.list).toHaveBeenCalledWith('check_ins');
+      expect(out.map((c) => c.id)).toEqual([1, 2]);
     });
 
-    it('filters by day_number when provided', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [{ id: 1 }] });
-      await listCheckIns(5, 3);
-      expect(mockedDrust.list).toHaveBeenCalledWith('check_ins', {
-        user_id: 'eq.5',
-        day_number: 'eq.3',
+    it('also filters by day_number when provided', async () => {
+      mockedDrust.list.mockResolvedValueOnce({
+        records: [
+          { id: 1, user_id: 5, day_number: 1 },
+          { id: 2, user_id: 5, day_number: 3 },
+          { id: 3, user_id: 5, day_number: 3 },
+        ],
       });
+      const out = await listCheckIns(5, 3);
+      expect(out.map((c) => c.id)).toEqual([2, 3]);
     });
   });
 });

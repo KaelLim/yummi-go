@@ -53,12 +53,19 @@ export async function createCheckIn(
   return result.record;
 }
 
+/**
+ * drust list filters are silently ignored (see api/profile.ts). The 20-row
+ * cap is also a real ceiling here: a fully-played 30-day demo would have
+ * up to 90 check-ins, more than the cap. The Phase 12 calendar work will
+ * need an RPC; this client-side filter is a prototype workaround that's
+ * accurate as long as fewer than 20 check-ins exist across all users.
+ */
 export async function listCheckIns(
   userId: number,
   dayNumber?: number,
 ): Promise<CheckInRow[]> {
-  const filter: Record<string, string> = { user_id: `eq.${userId}` };
-  if (dayNumber !== undefined) filter.day_number = `eq.${dayNumber}`;
-  const result = await drust.list<CheckInRow>('check_ins', filter);
-  return result.records;
+  const result = await drust.list<CheckInRow>('check_ins');
+  return result.records.filter(
+    (c) => c.user_id === userId && (dayNumber === undefined || c.day_number === dayNumber),
+  );
 }

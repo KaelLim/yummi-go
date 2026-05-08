@@ -21,11 +21,14 @@ export interface PetState {
   last_fed_at: string | null;
 }
 
+/**
+ * drust list filters are silently ignored (see api/profile.ts), so we fetch
+ * all pet_states and filter client-side. Holds while pet_states stays under
+ * the 20-row cap; otherwise this needs a server-side RPC.
+ */
 export async function getPet(userId: number): Promise<PetState | null> {
-  const result = await drust.list<PetState>('pet_states', {
-    user_id: `eq.${userId}`,
-  });
-  return result.records[0] ?? null;
+  const result = await drust.list<PetState>('pet_states');
+  return result.records.find((p) => p.user_id === userId) ?? null;
 }
 
 export async function addXp(

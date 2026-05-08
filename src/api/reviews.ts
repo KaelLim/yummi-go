@@ -40,22 +40,24 @@ export async function createReview(args: CreateReviewArgs): Promise<RestaurantRe
   return result.record;
 }
 
+/**
+ * drust list filters are silently ignored (see api/profile.ts), so the
+ * restaurant_id / user_id filter happens client-side after fetching the
+ * up-to-20-row page. Holds while total reviews stay small; needs an RPC
+ * once the prototype expects real review volume.
+ */
 export async function listReviewsForRestaurant(
   restaurantId: number,
 ): Promise<RestaurantReview[]> {
   const result = await drust.list<RestaurantReview>('restaurant_reviews', {
-    restaurant_id: `eq.${restaurantId}`,
     sort: 'id',
-    limit: '100',
   });
-  return result.records;
+  return result.records.filter((r) => r.restaurant_id === restaurantId);
 }
 
 export async function listMyReviews(userId: number): Promise<RestaurantReview[]> {
   const result = await drust.list<RestaurantReview>('restaurant_reviews', {
-    user_id: `eq.${userId}`,
     sort: 'id',
-    limit: '100',
   });
-  return result.records;
+  return result.records.filter((r) => r.user_id === userId);
 }

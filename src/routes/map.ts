@@ -164,21 +164,31 @@ export default function map(): HTMLElement {
 
   // Force Leaflet to re-measure once the layout settles. Otherwise tiles
   // only fill the box the canvas had at L.map() time — typically 0px because
-  // the route mounts before the parent flex chain has computed sizes.
-  requestAnimationFrame(() => leafletMap.invalidateSize());
+  // the route mounts before the parent flex chain has computed sizes. Guard
+  // against navigating away mid-frame, which would call invalidateSize on a
+  // disposed map and throw inside Leaflet's pan calculation.
+  let alive = true;
+  const safeInvalidate = () => {
+    if (alive) leafletMap.invalidateSize();
+  };
+  const rafId = requestAnimationFrame(safeInvalidate);
 
   void (async () => {
     try {
       allRestaurants = await listRestaurants();
-      leafletMap.invalidateSize();
+      if (!alive) return;
+      safeInvalidate();
       renderMarkers();
     } catch (err) {
+      if (!alive) return;
       countEl.textContent = '載入失敗';
       console.error('[map] listRestaurants failed:', err);
     }
   })();
 
   onUnmount(wrap, () => {
+    alive = false;
+    cancelAnimationFrame(rafId);
     leafletMap.remove();
   });
 

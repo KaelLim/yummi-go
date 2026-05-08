@@ -81,42 +81,40 @@ describe('profile', () => {
   });
 
   describe('getProfile', () => {
-    it('lists user_profiles filtered by user_id and returns first', async () => {
+    it('client-side filters fetched profiles by user_id', async () => {
       mockedDrust.list.mockResolvedValueOnce({
         records: [
-          {
-            user_id: 5,
-            diet_type: 'vegan',
-            challenge_level: 2,
-            eat_times: null,
-            known_from: null,
-            baseline: null,
-          },
+          { id: 1, user_id: 1, diet_type: 'omnivore' },
+          { id: 7, user_id: 5, diet_type: 'vegan' },
         ],
       });
       const out = await getProfile(5);
-      expect(mockedDrust.list).toHaveBeenCalledWith('user_profiles', {
-        user_id: 'eq.5',
-      });
+      // No filter args — drust list ignores them, so we fetch all + filter.
+      expect(mockedDrust.list).toHaveBeenCalledWith('user_profiles');
       expect(out?.diet_type).toBe('vegan');
+      expect(out?.id).toBe(7);
     });
 
-    it('returns null when no profile', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [] });
+    it('returns null when no profile matches', async () => {
+      mockedDrust.list.mockResolvedValueOnce({
+        records: [{ id: 1, user_id: 1, diet_type: 'omnivore' }],
+      });
       expect(await getProfile(99)).toBeNull();
     });
   });
 
   describe('updateProfile', () => {
-    it('finds profile id then updates', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [{ id: 11 }] });
+    it('finds profile by user_id then patches by row id', async () => {
+      mockedDrust.list.mockResolvedValueOnce({
+        records: [
+          { id: 11, user_id: 5 },
+          { id: 22, user_id: 9 },
+        ],
+      });
       mockedDrust.update.mockResolvedValueOnce({ record: {} });
 
       await updateProfile(5, { diet_type: 'vegan', challenge_level: 3 });
 
-      expect(mockedDrust.list).toHaveBeenCalledWith('user_profiles', {
-        user_id: 'eq.5',
-      });
       expect(mockedDrust.update).toHaveBeenCalledWith('user_profiles', 11, {
         diet_type: 'vegan',
         challenge_level: 3,

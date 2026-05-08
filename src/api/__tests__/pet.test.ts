@@ -39,17 +39,22 @@ describe('pet', () => {
   });
 
   describe('getPet', () => {
-    it('lists pet_states by user_id and returns first', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [basePet] });
-      const out = await getPet(5);
-      expect(mockedDrust.list).toHaveBeenCalledWith('pet_states', {
-        user_id: 'eq.5',
+    it('client-side filters fetched pets by user_id', async () => {
+      mockedDrust.list.mockResolvedValueOnce({
+        records: [
+          { ...basePet, id: 99, user_id: 1 },
+          basePet,
+        ],
       });
+      const out = await getPet(5);
+      expect(mockedDrust.list).toHaveBeenCalledWith('pet_states');
       expect(out).toEqual(basePet);
     });
 
-    it('returns null when none', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [] });
+    it('returns null when no row matches the user', async () => {
+      mockedDrust.list.mockResolvedValueOnce({
+        records: [{ ...basePet, user_id: 1 }],
+      });
       expect(await getPet(99)).toBeNull();
     });
   });

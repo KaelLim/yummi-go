@@ -52,27 +52,31 @@ describe('reviews api', () => {
   });
 
   describe('listReviewsForRestaurant', () => {
-    it('filters by restaurant_id and sorts by id', async () => {
-      mocked.list.mockResolvedValueOnce({ records: [{ id: 9 }] });
-      const out = await listReviewsForRestaurant(3);
-      expect(mocked.list).toHaveBeenCalledWith('restaurant_reviews', {
-        restaurant_id: 'eq.3',
-        sort: 'id',
-        limit: '100',
+    it('client-side filters fetched reviews by restaurant_id', async () => {
+      mocked.list.mockResolvedValueOnce({
+        records: [
+          { id: 1, restaurant_id: 3, user_id: 5 },
+          { id: 2, restaurant_id: 5, user_id: 5 },
+          { id: 3, restaurant_id: 3, user_id: 9 },
+        ],
       });
-      expect(out).toHaveLength(1);
+      const out = await listReviewsForRestaurant(3);
+      expect(mocked.list).toHaveBeenCalledWith('restaurant_reviews', { sort: 'id' });
+      expect(out.map((r) => r.id)).toEqual([1, 3]);
     });
   });
 
   describe('listMyReviews', () => {
-    it('filters by user_id', async () => {
-      mocked.list.mockResolvedValueOnce({ records: [] });
-      await listMyReviews(7);
-      expect(mocked.list).toHaveBeenCalledWith('restaurant_reviews', {
-        user_id: 'eq.7',
-        sort: 'id',
-        limit: '100',
+    it('client-side filters fetched reviews by user_id', async () => {
+      mocked.list.mockResolvedValueOnce({
+        records: [
+          { id: 1, restaurant_id: 3, user_id: 7 },
+          { id: 2, restaurant_id: 5, user_id: 1 },
+        ],
       });
+      const out = await listMyReviews(7);
+      expect(mocked.list).toHaveBeenCalledWith('restaurant_reviews', { sort: 'id' });
+      expect(out.map((r) => r.id)).toEqual([1]);
     });
   });
 });
