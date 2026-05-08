@@ -4,8 +4,6 @@
  * Every route is registered through wrap() so the loader output is composed
  * inside createLayout — that way the tab bar / chrome stays mounted across
  * navigations, with screens swapping inside <main>.
- *
- * Phases 6–12 will replace each `stub()` with a real screen module.
  */
 import './styles/tokens.css';
 import './styles/globals.css';
@@ -16,19 +14,6 @@ import { bootstrapFromStorage } from './store/user';
 type RouteLoader = () => Promise<{
   default: (params: Record<string, string>) => HTMLElement | Promise<HTMLElement>;
 }>;
-
-/** Stub-screen factory used until each phase fills in its real route. */
-function stub(title: string): RouteLoader {
-  return () =>
-    Promise.resolve({
-      default: () => {
-        const el = document.createElement('div');
-        el.style.padding = '24px';
-        el.innerHTML = `<h1>${title}</h1><p>This route is a stub. Phases 6-12 will implement it.</p>`;
-        return el;
-      },
-    });
-}
 
 /** Compose a route loader so its output is wrapped in createLayout(). */
 function wrap(loader: RouteLoader): RouteLoader {
@@ -61,11 +46,11 @@ defRoute('/check-in/success', wrap(() => import('./routes/check-in/success')));
 defRoute('/tasks', wrap(() => import('./routes/tasks/index')));
 defRoute('/tasks/quiz', wrap(() => import('./routes/tasks/quiz')));
 defRoute('/tasks/makeup', wrap(() => import('./routes/tasks/makeup')));
-defRoute('/profile', wrap(stub('Profile')));
-defRoute('/profile/settings', wrap(stub('Settings')));
-defRoute('/profile/reviews', wrap(stub('My Reviews')));
-defRoute('/profile/baseline', wrap(stub('Baseline Editor')));
-defRoute('/challenge/day-30', wrap(stub('Day 30 Finale')));
+defRoute('/profile', wrap(() => import('./routes/profile/index')));
+defRoute('/profile/settings', wrap(() => import('./routes/profile/settings')));
+defRoute('/profile/reviews', wrap(() => import('./routes/profile/reviews')));
+defRoute('/profile/baseline', wrap(() => import('./routes/profile/baseline')));
+defRoute('/challenge/day-30', wrap(() => import('./routes/day-30')));
 
 async function boot() {
   await bootstrapFromStorage();
