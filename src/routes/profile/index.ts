@@ -15,9 +15,24 @@
 import { navigate } from '@/router';
 import { $user, $profile, clearUser } from '@/store/user';
 import { $today, $challenge } from '@/store/today';
+import { $ui } from '@/store/ui';
 import { listCheckIns, type CheckInRow } from '@/api/check-ins';
 import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
 import { bind } from '@/lib/lifecycle';
+
+const DAY_MS = 86_400_000;
+/** challenge day → calendar Date (day 1 maps to challengeStartedAt) */
+function dateForDay(day: number, startedAt: number): Date {
+  return new Date(startedAt + (day - 1) * DAY_MS);
+}
+/** "5/8" — month/day, used inside the 30 small calendar cells */
+function formatMD(d: Date): string {
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+/** "5月8日" — used for the prominent calendar meta label */
+function formatLongMD(d: Date): string {
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
 
 const DIET_LABEL: Record<string, string> = {
   vegan: 'Vegan 純素',
@@ -132,6 +147,7 @@ export default function profile(): HTMLElement {
 
   function renderCalendar() {
     const today = $today.get().dayNumber;
+    const startedAt = $ui.get().challengeStartedAt;
     const byDay = new Map<number, CheckInRow[]>();
     for (const c of serverCheckIns) {
       const arr = byDay.get(c.day_number) ?? [];
@@ -139,7 +155,7 @@ export default function profile(): HTMLElement {
       byDay.set(c.day_number, arr);
     }
     const meta = wrap.querySelector<HTMLElement>('#cal-meta')!;
-    meta.textContent = `D${today} / 30`;
+    meta.textContent = `${formatLongMD(dateForDay(today, startedAt))} · D${today} / 30`;
 
     const grid = wrap.querySelector<HTMLElement>('#calendar')!;
     grid.innerHTML = Array.from({ length: 30 }, (_, i) => {
@@ -154,7 +170,8 @@ export default function profile(): HTMLElement {
       else cls += ' miss';
       if (day === today) cls += ' today';
       const icon = day > today ? '' : hasLucky ? '★' : hasCheckIn ? '✓' : '·';
-      return `<div class="${cls}" data-day="${day}"><span class="cal-num">${day}</span><span class="cal-icon">${icon}</span></div>`;
+      const md = formatMD(dateForDay(day, startedAt));
+      return `<div class="${cls}" data-day="${day}" title="D${day}"><span class="cal-num">${md}</span><span class="cal-icon">${icon}</span></div>`;
     }).join('');
   }
 

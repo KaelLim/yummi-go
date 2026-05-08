@@ -6,6 +6,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['**/*.test.ts'],
-    exclude: [...configDefaults.exclude, '**/*.test.js'],
+    exclude: [...configDefaults.exclude, '**/*.test.js', '.claude/**'],
   },
 });
