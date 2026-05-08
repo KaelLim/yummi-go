@@ -6,11 +6,16 @@
  * happens to call hydrate() picks up the right day — every other route
  * paints stale (e.g. /tasks header showing D1 while the dev panel slider
  * is at D6).
+ *
+ * After setDay() resets per-day local state, we ask drust whether the user
+ * already submitted today's quiz (or other persisted missions) and silently
+ * re-tag them so the UI doesn't re-prompt across reloads.
  */
 import { $ui } from './ui';
-import { $today, $challenge, setDay } from './today';
+import { $today, $challenge, setDay, markMissionDoneSilent } from './today';
+import { $user } from './user';
 import { currentDayNumber } from '@/lib/time';
-import { getDayScript } from '@/api/content';
+import { getDayScript, hasQuizAttemptForDay } from '@/api/content';
 
 export function setupDaySync(): void {
   let pending: Promise<void> | null = null;
@@ -33,14 +38,38 @@ export function setupDaySync(): void {
 }
 
 async function hydrate(day: number): Promise<void> {
-  if ($today.get().dayNumber === day && $challenge.get().currentDay !== null) return;
+  if (!($today.get().dayNumber === day && $challenge.get().currentDay !== null)) {
+    try {
+      const script = await getDayScript(day);
+      if (script) {
+        const existing = $challenge
+          .get()
+          .scripts.filter((s) => s.day_number !== script.day_number);
+        const scripts = [...existing, script].sort(
+          (a, b) => a.day_number - b.day_number,
+        );
+        setDay(scripts, day);
+      }
+    } catch {
+      /* soft fail — keep whatever was there */
+    }
+  }
+
+  await rehydrateMissions(day);
+}
+
+/**
+ * After setDay clears missionsDone for a new day, restore any flags that
+ * persist server-side. Today: just the daily quiz. As more missions get
+ * a backing table (eco actions, repair tasks…), check them here too.
+ */
+async function rehydrateMissions(day: number): Promise<void> {
+  const u = $user.get();
+  if (!u) return;
   try {
-    const script = await getDayScript(day);
-    if (!script) return;
-    const existing = $challenge.get().scripts.filter((s) => s.day_number !== script.day_number);
-    const scripts = [...existing, script].sort((a, b) => a.day_number - b.day_number);
-    setDay(scripts, day);
+    const did = await hasQuizAttemptForDay(u.id, day);
+    if (did) markMissionDoneSilent('quiz');
   } catch {
-    /* soft fail — keep whatever was there */
+    /* soft fail */
   }
 }

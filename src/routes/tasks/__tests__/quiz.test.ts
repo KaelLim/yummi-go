@@ -56,7 +56,13 @@ describe('quiz route', () => {
     // option_b text matches correct_answer, so clicking B is correct.
     el.querySelector<HTMLButtonElement>('.quiz-opt[data-value="B"]')?.click();
     await vi.waitFor(() =>
-      expect(mockedContent.recordQuizAttempt).toHaveBeenCalledWith(7, 11, 'B', true),
+      expect(mockedContent.recordQuizAttempt).toHaveBeenCalledWith(
+        7,
+        11,
+        'B',
+        true,
+        expect.any(Number),
+      ),
     );
     expect(el.querySelector('.quiz-verdict.right')).not.toBeNull();
     expect(el.querySelector('.quiz-opt[data-value="B"]')?.classList.contains('correct')).toBe(true);

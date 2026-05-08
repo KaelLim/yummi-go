@@ -20,6 +20,7 @@ import {
   recordQuizAttempt,
   listRestaurants,
   getRestaurant,
+  hasQuizAttemptForDay,
 } from '../content';
 
 const mockedDrust = drust as unknown as {
@@ -151,22 +152,51 @@ describe('content', () => {
   });
 
   describe('recordQuizAttempt', () => {
-    it('inserts quiz_attempts with correct=1 when right', async () => {
+    it('inserts quiz_attempts with correct=1 + day_number when right', async () => {
       mockedDrust.insert.mockResolvedValueOnce({ id: 1, record: {} });
-      await recordQuizAttempt(5, 22, 'a', true);
+      await recordQuizAttempt(5, 22, 'a', true, 7);
       expect(mockedDrust.insert).toHaveBeenCalledWith('quiz_attempts', {
         user_id: 5,
         question_id: 22,
         answer: 'a',
         correct: 1,
+        day_number: 7,
       });
     });
 
     it('inserts correct=0 when wrong', async () => {
       mockedDrust.insert.mockResolvedValueOnce({ id: 2, record: {} });
-      await recordQuizAttempt(5, 22, 'b', false);
+      await recordQuizAttempt(5, 22, 'b', false, 12);
       const [, body] = mockedDrust.insert.mock.calls[0];
       expect(body.correct).toBe(0);
+      expect(body.day_number).toBe(12);
+    });
+  });
+
+  describe('hasQuizAttemptForDay', () => {
+    it('returns true when a row matches user_id + day_number', async () => {
+      mockedDrust.list.mockResolvedValueOnce({
+        records: [
+          { user_id: 99, day_number: 7 },
+          { user_id: 5, day_number: 7 },
+        ],
+      });
+      expect(await hasQuizAttemptForDay(5, 7)).toBe(true);
+    });
+
+    it('returns false when no row matches', async () => {
+      mockedDrust.list.mockResolvedValueOnce({
+        records: [
+          { user_id: 5, day_number: 6 },
+          { user_id: 5, day_number: 8 },
+        ],
+      });
+      expect(await hasQuizAttemptForDay(5, 7)).toBe(false);
+    });
+
+    it('returns false (and does not throw) on drust error', async () => {
+      mockedDrust.list.mockRejectedValueOnce(new Error('boom'));
+      expect(await hasQuizAttemptForDay(5, 7)).toBe(false);
     });
   });
 

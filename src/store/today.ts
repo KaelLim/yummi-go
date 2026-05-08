@@ -37,6 +37,18 @@ export function markMissionDone(key: string, xpEarned: number) {
   });
 }
 
+/**
+ * Hydrate-only: tag a mission as done without crediting XP. Used when we
+ * discover at boot/route-load that the backend already has a record (e.g.
+ * a quiz_attempts row from earlier today) — XP was credited at the
+ * original action, so we just want the UI flag.
+ */
+export function markMissionDoneSilent(key: string) {
+  const t = $today.get();
+  if (t.missionsDone.includes(key)) return;
+  $today.set({ ...t, missionsDone: [...t.missionsDone, key] });
+}
+
 /** Dev-only: blank out today's progress without touching the day or scripts. */
 export function resetTodayProgress() {
   const t = $today.get();

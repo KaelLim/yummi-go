@@ -111,6 +111,7 @@ export async function recordQuizAttempt(
   questionId: number,
   answer: string,
   correct: boolean,
+  dayNumber: number,
 ): Promise<void> {
   try {
     await drust.insert('quiz_attempts', {
@@ -118,11 +119,40 @@ export async function recordQuizAttempt(
       question_id: questionId,
       answer,
       correct: correct ? 1 : 0,
+      day_number: dayNumber,
     });
   } catch (err) {
     // Soft-fail: prototype runs without a writeable backend, but the quiz
     // UI shouldn't error out just because we couldn't record an attempt.
     console.warn('[content] recordQuizAttempt soft-failed:', err);
+  }
+}
+
+interface QuizAttemptRow {
+  user_id: number;
+  day_number: number;
+}
+
+/**
+ * Returns true if the user already has at least one quiz_attempts row for
+ * the given day_number. Used by /home to flip the bubble to "已完成" on
+ * hydrate. Soft-fails to false on any drust error so a flaky backend
+ * doesn't lock the user out of taking the quiz.
+ */
+export async function hasQuizAttemptForDay(
+  userId: number,
+  dayNumber: number,
+): Promise<boolean> {
+  try {
+    const result = await drust.list<QuizAttemptRow>('quiz_attempts', {
+      limit: '500',
+    });
+    return result.records.some(
+      (r) => r.user_id === userId && r.day_number === dayNumber,
+    );
+  } catch (err) {
+    console.warn('[content] hasQuizAttemptForDay soft-failed:', err);
+    return false;
   }
 }
 

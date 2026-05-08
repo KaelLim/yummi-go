@@ -10,7 +10,7 @@
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { randomQuiz, recordQuizAttempt, type QuizQuestion } from '@/api/content';
-import { markMissionDone } from '@/store/today';
+import { markMissionDone, $today } from '@/store/today';
 import { awardXp } from '@/store/pet';
 
 const QUIZ_XP = 15;
@@ -146,8 +146,9 @@ async function onPick(
   // Best-effort persistence + XP. Failures don't block the user.
   const u = $user.get();
   if (u) {
+    const dayNumber = $today.get().dayNumber;
     try {
-      await recordQuizAttempt(u.id, q.id, value, correct);
+      await recordQuizAttempt(u.id, q.id, value, correct, dayNumber);
     } catch (err) {
       console.warn('[quiz] recordQuizAttempt failed:', err);
     }
