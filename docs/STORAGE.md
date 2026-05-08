@@ -193,10 +193,10 @@ drust does **not** expose `CREATE INDEX` through MCP — only `unique: true` on 
 
 - All `id` columns are PRIMARY KEY AUTOINCREMENT.
 
-### Should be indexed (deferred — needs a migration tool drust doesn't yet provide)
+### Should be indexed (run during go-live — drust MCP can't issue these)
 
 ```sql
-CREATE UNIQUE INDEX pet_states_user_id          ON pet_states(user_id);
+CREATE UNIQUE INDEX pet_states_user_id           ON pet_states(user_id);
 CREATE UNIQUE INDEX user_profiles_user_id        ON user_profiles(user_id);
 CREATE UNIQUE INDEX gem_balances_user_id         ON gem_balances(user_id);
 CREATE UNIQUE INDEX makeup_cards_user_id         ON makeup_cards(user_id);
@@ -204,18 +204,158 @@ CREATE UNIQUE INDEX daily_progress_user_day      ON daily_progress(user_id, day_
 CREATE UNIQUE INDEX check_ins_user_day_meal      ON check_ins(user_id, day_number, meal_index);
 CREATE        INDEX quiz_attempts_user_day       ON quiz_attempts(user_id, day_number);
 CREATE        INDEX restaurant_reviews_restaurant ON restaurant_reviews(restaurant_id);
-CREATE        INDEX restaurant_reviews_status     ON restaurant_reviews(status);
+CREATE        INDEX restaurant_reviews_status    ON restaurant_reviews(status);
 CREATE UNIQUE INDEX challenge_scripts_day        ON challenge_scripts(day_number);
 ```
 
-When drust grows direct-DDL or an admin endpoint, run the above as the first step of go-live.
+### Ops handover — running the index migration
 
-## Authentication / authorisation
+drust's MCP surface and REST API are both SELECT-only for SQL — neither
+will accept a `CREATE INDEX` statement. The migration has to be applied
+**directly against the tenant's underlying SQLite file**, by someone with
+shell or admin access on the drust host. Below is the runbook.
 
-- Tokens: shared anon bearer (`drust_GaKEqSNtWqoo9fMofnbxZn2ymDZPDVrXFYhfkmDbv3M`). Service token exists but is server-only.
-- `anon_caps` on every collection: `select | insert | update | delete`. **Anyone with the anon token can mutate any row.**
-- We mitigate by always passing `currentUserId()` from the client; a malicious client could still poke other rows.
-- Future hardening (out of scope): per-user JWT issued by `login` RPC; server-side row checks via `auth.user_id() = :user_id` predicate; capability tightening on `users` / `pet_states` / `daily_progress` to `select` only via RPC.
+**Tenant identifier:** `fec8119d-0231-40f7-a7d6-c580ad312e96`
+**Tenant name:** `yummigo`
+
+#### Step 1 — Take a backup before you do anything
+
+```bash
+# On the drust host
+sqlite3 /var/lib/drust/tenants/fec8119d-0231-40f7-a7d6-c580ad312e96.db \
+  ".backup '/tmp/yummigo-pre-index.db'"
+
+# Verify the backup file is non-empty + readable
+ls -lh /tmp/yummigo-pre-index.db
+sqlite3 /tmp/yummigo-pre-index.db 'SELECT count(*) FROM users;'
+```
+
+(Adjust the path if drust stores tenant DBs elsewhere — check the drust
+config for the `tenant_data_dir` setting.)
+
+#### Step 2 — Confirm the current state is unindexed
+
+```bash
+sqlite3 /var/lib/drust/tenants/fec8119d-0231-40f7-a7d6-c580ad312e96.db \
+  "EXPLAIN QUERY PLAN SELECT * FROM pet_states WHERE user_id = 4 LIMIT 1;"
+```
+
+Expected output **before the migration**: `SCAN pet_states`. After the
+migration this should change to `SEARCH pet_states USING INDEX
+pet_states_user_id`.
+
+#### Step 3 — Apply the index migration in a single transaction
+
+Save the SQL block above to `indices.sql`, then:
+
+```bash
+sqlite3 /var/lib/drust/tenants/fec8119d-0231-40f7-a7d6-c580ad312e96.db <<'EOF'
+BEGIN;
+CREATE UNIQUE INDEX pet_states_user_id           ON pet_states(user_id);
+CREATE UNIQUE INDEX user_profiles_user_id        ON user_profiles(user_id);
+CREATE UNIQUE INDEX gem_balances_user_id         ON gem_balances(user_id);
+CREATE UNIQUE INDEX makeup_cards_user_id         ON makeup_cards(user_id);
+CREATE UNIQUE INDEX daily_progress_user_day      ON daily_progress(user_id, day_number);
+CREATE UNIQUE INDEX check_ins_user_day_meal      ON check_ins(user_id, day_number, meal_index);
+CREATE        INDEX quiz_attempts_user_day       ON quiz_attempts(user_id, day_number);
+CREATE        INDEX restaurant_reviews_restaurant ON restaurant_reviews(restaurant_id);
+CREATE        INDEX restaurant_reviews_status    ON restaurant_reviews(status);
+CREATE UNIQUE INDEX challenge_scripts_day        ON challenge_scripts(day_number);
+COMMIT;
+EOF
+```
+
+Notes:
+- The `BEGIN…COMMIT` wraps it as one atomic operation — if any statement
+  fails (e.g. duplicate `(user_id, day_number)` rows in `daily_progress`),
+  none of the indices are created and you're back where you started.
+- If a UNIQUE constraint fails, the data has duplicates that need cleaning
+  before you can index it. Likely culprits: dev/test rows where the same
+  user got two pet_states entries. Either dedupe (keep the row with the
+  highest `id`) or downgrade that one to `CREATE INDEX` (non-unique).
+- SQLite locks the table while it builds the index. At 100k users the
+  `check_ins` index is the slow one — expect 30–60 seconds of write lock.
+  Schedule it during a quiet window.
+
+#### Step 4 — Verify each index landed and is being used
+
+```bash
+sqlite3 /var/lib/drust/tenants/fec8119d-0231-40f7-a7d6-c580ad312e96.db \
+  ".indices pet_states"
+# Expected: pet_states_user_id
+
+sqlite3 /var/lib/drust/tenants/fec8119d-0231-40f7-a7d6-c580ad312e96.db \
+  "EXPLAIN QUERY PLAN SELECT * FROM pet_states WHERE user_id = 4 LIMIT 1;"
+# Expected: SEARCH pet_states USING INDEX pet_states_user_id (user_id=?)
+```
+
+Repeat for each table. Specifically check the high-traffic ones:
+
+```sql
+EXPLAIN QUERY PLAN
+  SELECT * FROM check_ins WHERE user_id = 4 ORDER BY day_number, meal_index;
+-- Expected: SEARCH check_ins USING INDEX check_ins_user_day_meal
+
+EXPLAIN QUERY PLAN
+  SELECT * FROM daily_progress WHERE user_id = 4 AND day_number = 8;
+-- Expected: SEARCH daily_progress USING INDEX daily_progress_user_day
+
+EXPLAIN QUERY PLAN
+  SELECT 1 FROM quiz_attempts WHERE user_id = 4 AND day_number = 8 LIMIT 1;
+-- Expected: SEARCH quiz_attempts USING INDEX quiz_attempts_user_day
+```
+
+If any of these still say `SCAN`, the matching `CREATE INDEX` failed
+silently and needs to be re-run individually.
+
+#### Step 5 — Smoke-test through the app
+
+After the indices land, hit the production frontend and walk through:
+
+- `/home` should paint within ~50 ms (was ~150 ms with SCAN at 100k)
+- `/profile` calendar should render without a visible delay
+- `/challenge/day-30` aggregates should resolve in well under a second
+
+The visible-to-user latency is the only acceptance criterion that
+matters — drust's authorizer timeouts (5 seconds) are the failure mode
+to prevent.
+
+#### Step 6 — Rollback (only if something is badly broken)
+
+Indices are pure read-side; nothing in app data depends on them. Drop
+them individually and the app keeps working, just slowly:
+
+```sql
+DROP INDEX IF EXISTS pet_states_user_id;
+DROP INDEX IF EXISTS check_ins_user_day_meal;
+-- … etc.
+```
+
+If a UNIQUE constraint is masking a real data problem, restore the
+backup from Step 1 instead:
+
+```bash
+sudo systemctl stop drust         # or however drust is run
+cp /tmp/yummigo-pre-index.db \
+   /var/lib/drust/tenants/fec8119d-0231-40f7-a7d6-c580ad312e96.db
+sudo systemctl start drust
+```
+
+## Authentication / authorisation (prototype scope)
+
+The shared anon bearer token is **intentionally** the only auth on the
+client. Per-user JWT, row-level security, and OAuth/SSO are explicitly
+out of scope for the prototype — the goal is for the frontend to look
+real, not to be hardened against a malicious client.
+
+For reference, the current state:
+- Tokens: shared anon bearer + service token (`whoami` MCP shows both)
+- `anon_caps` on every collection: `select | insert | update | delete`
+- The client always passes `currentUserId()` from `$user` so honest
+  clients only ever read/write their own rows
+- A malicious client could still poke other users' rows; this is
+  accepted prototype risk and documented here only so the next
+  reviewer doesn't have to rediscover it
 
 ## Migration history
 
