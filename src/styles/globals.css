@@ -1456,3 +1456,13 @@ body {
 .success-actions { display: flex; gap: var(--space-3); width: 100%; max-width: 360px; }
 .success-actions .btn { flex: 1; }
 .fail-actions .btn { flex: 1; }
+
+.lucky-card.hit {
+  border: 1.5px solid var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(250,146,23,0.2);
+}
+.lucky-card-status {
+  font-size: var(--text-caption-size);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-secondary-dark);
+}

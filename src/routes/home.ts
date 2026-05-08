@@ -81,6 +81,7 @@ export default function home(): HTMLElement {
       <div class="lucky-card-body">
         <div class="lucky-card-title">今日幸運色</div>
         <div class="lucky-card-color" data-bind="lucky-label">未設定</div>
+        <div class="lucky-card-status" data-bind="lucky-status"></div>
       </div>
       <span class="ms lucky-card-arrow">arrow_forward</span>
     </section>
@@ -140,6 +141,12 @@ export default function home(): HTMLElement {
       const tick = dot.querySelector('.meal-dot-tick');
       if (tick) tick.textContent = done ? '✓' : '·';
     }
+
+    const luckyHit = t.missionsDone.includes('lucky:hit');
+    const luckyCard = $$('#lucky-card');
+    if (luckyCard) luckyCard.classList.toggle('hit', luckyHit);
+    const luckyStatusEl = $$('[data-bind="lucky-status"]');
+    if (luckyStatusEl) luckyStatusEl.textContent = luckyHit ? '✓ 已命中 +15 XP' : '';
 
     const quizDone = t.missionsDone.includes('quiz');
     const quizBubble = $$('#quiz-bubble');

@@ -94,4 +94,14 @@ describe('home route', () => {
     expect(mockedRouter.navigate).not.toHaveBeenCalled();
     el.remove();
   });
+
+  it('lucky-card flips to "已命中" state when missionsDone includes lucky:hit', () => {
+    const el = home();
+    document.body.appendChild(el);
+    $today.set({ dayNumber: 1, totalXpToday: 35, missionsDone: ['lucky:hit'], luckyColor: 'red' });
+    const card = el.querySelector<HTMLElement>('#lucky-card')!;
+    expect(card.classList.contains('hit')).toBe(true);
+    expect(card.querySelector('[data-bind="lucky-status"]')?.textContent).toContain('已命中');
+    el.remove();
+  });
 });
