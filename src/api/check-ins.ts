@@ -2,8 +2,10 @@
  * Check-ins module: meal logging.
  *
  * createCheckIn() encodes complex fields (food_items, nutrition) as JSON
- * strings and converts booleans to 0/1 for SQLite. listCheckIns() supports
- * an optional day_number filter for daily aggregations.
+ * strings and converts booleans to 0/1 for SQLite. listCheckIns() routes
+ * through one of two RPCs depending on whether a day_number filter was
+ * supplied — both are bounded queries, replacing the old list+filter that
+ * silently truncated to 20 rows across all users.
  */
 import { drust } from './drust';
 
@@ -53,28 +55,23 @@ export async function createCheckIn(
   return result.record;
 }
 
-/**
- * drust list filters are silently ignored (see api/profile.ts). The 20-row
- * cap is also a real ceiling here: a fully-played 30-day demo would have
- * up to 90 check-ins, more than the cap. The Phase 12 calendar work will
- * need an RPC; this client-side filter is a prototype workaround that's
- * accurate as long as fewer than 20 check-ins exist across all users.
- */
 export async function listCheckIns(
   userId: number,
   dayNumber?: number,
 ): Promise<CheckInRow[]> {
-  const result = await drust.list<CheckInRow>('check_ins');
-  return result.records.filter(
-    (c) => c.user_id === userId && (dayNumber === undefined || c.day_number === dayNumber),
-  );
+  const rpcName =
+    dayNumber === undefined ? 'check_ins_for_user' : 'check_ins_for_user_day';
+  const params: Record<string, unknown> = { user_id: userId };
+  if (dayNumber !== undefined) params.day_number = dayNumber;
+  const result = await drust.rpc(rpcName, params);
+  return drust.rpcRows<CheckInRow>(result);
 }
 
 /**
  * Dev-only: delete every check-in row for a user. drust has no bulk-delete
- * surface, so this fans out one DELETE per row. Same 20-row caveat as
- * listCheckIns — if the user logged more than 20 across the demo this
- * might miss some, but in practice we hit it from a freshly-reset state.
+ * surface, so this fans out one DELETE per row. At prototype scale (≤90
+ * rows per user across the demo) this is acceptable; a real go-live would
+ * want a service-only RPC for batch delete.
  */
 export async function deleteAllCheckIns(userId: number): Promise<number> {
   const rows = await listCheckIns(userId);

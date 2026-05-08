@@ -5,14 +5,16 @@
  * $profile holds the full joined profile (user + profile + pet + gems + cards).
  * $isLoggedIn is a computed derivation.
  *
- * bootstrapFromStorage() restores the session from localStorage on app boot
- * by hydrating both atoms using the stored userId.
+ * bootstrapFromStorage() restores the session from localStorage (just the
+ * user_id session marker) on app boot, then asks drust for the joined
+ * row and seeds every downstream store.
  */
 import { atom, computed } from 'nanostores';
 import * as authApi from '@/api/auth';
 import * as profileApi from '@/api/profile';
 import { $pet } from './pet';
 import { stageFromLevel, type PetStage } from '@/lib/pet-evolution';
+import { bootstrapChallengeStartedAtFromIso } from './ui';
 
 export interface UserStoreShape {
   id: number;
@@ -40,8 +42,7 @@ export async function bootstrapFromStorage(): Promise<boolean> {
       displayName: full.display_name ?? full.username,
     });
     $profile.set(full);
-    // Seed $pet from the joined view so home/PetView paint the real level
-    // immediately. Otherwise we render LV.1 defaults until awardXp fires.
+    bootstrapChallengeStartedAtFromIso(full.challenge_started_at);
     if (typeof full.level === 'number') {
       $pet.set({
         level: full.level,
@@ -49,8 +50,10 @@ export async function bootstrapFromStorage(): Promise<boolean> {
         accumulatedXp: full.accumulated_xp ?? 0,
         stage: ((full.stage as PetStage) ?? stageFromLevel(full.level)) as PetStage,
         mood: full.mood ?? 'normal',
-        strikes: 0,
-        poisonedUntil: null,
+        strikes: full.strikes ?? 0,
+        poisonedUntil: full.poisoned_until
+          ? Date.parse(full.poisoned_until) || null
+          : null,
       });
     }
     return true;

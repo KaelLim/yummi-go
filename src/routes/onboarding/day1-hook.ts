@@ -1,13 +1,15 @@
 /**
  * Onboarding step 6 — Day-1 hook.
  *
- * Closing scene of onboarding: a fog-shrouded egg waiting to be hatched. The
- * single CTA stamps the challenge start timestamp into localStorage and sends
- * the user straight to /check-in to make their first capture.
+ * Closing scene of onboarding: a fog-shrouded egg waiting to be hatched.
+ * The single CTA stamps `users.challenge_started_at` in drust (and mirrors
+ * to $ui.challengeStartedAt for the in-flight session) and sends the user
+ * straight to /check-in to make their first capture.
  */
 import { navigate } from '@/router';
 import { createProgress } from '@/components/Progress';
-import { storage, KEYS } from '@/lib/storage';
+import { setChallengeStartedAt } from '@/store/ui';
+import { $user } from '@/store/user';
 
 export default function day1Hook(): HTMLElement {
   const wrap = document.createElement('div');
@@ -34,7 +36,8 @@ export default function day1Hook(): HTMLElement {
   `;
 
   wrap.querySelector('#enter-btn')?.addEventListener('click', () => {
-    storage.set(KEYS.CHALLENGE_STARTED_AT, Date.now());
+    const u = $user.get();
+    if (u) void setChallengeStartedAt(u.id);
     navigate('/check-in');
   });
 

@@ -12,10 +12,12 @@
  * re-tag them so the UI doesn't re-prompt across reloads.
  */
 import { $ui } from './ui';
-import { $today, $challenge, setDay, markMissionDoneSilent } from './today';
+import { $today, $challenge, setDay, loadDailyProgress } from './today';
 import { $user } from './user';
+import { reloadPet } from './pet';
 import { currentDayNumber } from '@/lib/time';
-import { getDayScript, hasQuizAttemptForDay } from '@/api/content';
+import { getDayScript } from '@/api/content';
+import { getDailyProgress } from '@/api/daily-progress';
 
 export function setupDaySync(): void {
   let pending: Promise<void> | null = null;
@@ -55,21 +57,30 @@ async function hydrate(day: number): Promise<void> {
     }
   }
 
-  await rehydrateMissions(day);
+  await rehydrateForUser(day);
 }
 
 /**
- * After setDay clears missionsDone for a new day, restore any flags that
- * persist server-side. Today: just the daily quiz. As more missions get
- * a backing table (eco actions, repair tasks…), check them here too.
+ * Pull per-user-per-day state from drust:
+ *   - daily_progress row → seed $today.missionsDone / totalXpToday
+ *   - pet_for_user → catch strikes/poison mutations from another device
  */
-async function rehydrateMissions(day: number): Promise<void> {
+async function rehydrateForUser(day: number): Promise<void> {
   const u = $user.get();
   if (!u) return;
+
+  const fallbackLuckyColor = $challenge.get().currentDay?.lucky_color ?? '';
+
   try {
-    const did = await hasQuizAttemptForDay(u.id, day);
-    if (did) markMissionDoneSilent('quiz');
-  } catch {
-    /* soft fail */
+    const row = await getDailyProgress(u.id, day);
+    loadDailyProgress(day, row, fallbackLuckyColor);
+  } catch (err) {
+    console.warn('[day-sync] daily_progress load failed:', err);
+  }
+
+  try {
+    await reloadPet(u.id);
+  } catch (err) {
+    console.warn('[day-sync] reloadPet failed:', err);
   }
 }

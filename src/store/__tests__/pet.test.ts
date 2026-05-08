@@ -24,6 +24,8 @@ describe('pet store', () => {
       stage: 'baby',
       mood: 'happy',
       last_fed_at: null,
+      strikes: 0,
+      poisoned_until: null,
     };
     setPetFromRow(row);
     expect($pet.get()).toEqual({
@@ -47,6 +49,8 @@ describe('pet store', () => {
       stage: null as unknown as string,
       mood: 'normal',
       last_fed_at: null,
+      strikes: 0,
+      poisoned_until: null,
     });
     // level 25 → 'youth' per STAGE_THRESHOLDS
     expect($pet.get()?.stage).toBe('youth');

@@ -17,7 +17,19 @@ import { createCheckIn, listCheckIns } from '../check-ins';
 const mockedDrust = drust as unknown as {
   insert: ReturnType<typeof vi.fn>;
   list: ReturnType<typeof vi.fn>;
+  rpc: ReturnType<typeof vi.fn>;
+  rpcRows: ReturnType<typeof vi.fn>;
 };
+
+function mockListRpc<T>(rows: T[]): void {
+  mockedDrust.rpc.mockResolvedValueOnce({
+    column_names: [],
+    rows: [],
+    row_count: rows.length,
+    truncated: false,
+  });
+  mockedDrust.rpcRows.mockReturnValueOnce(rows);
+}
 
 describe('check-ins', () => {
   beforeEach(() => {
@@ -94,28 +106,28 @@ describe('check-ins', () => {
   });
 
   describe('listCheckIns', () => {
-    it('client-side filters by user_id', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [
-          { id: 1, user_id: 5, day_number: 1 },
-          { id: 2, user_id: 5, day_number: 2 },
-          { id: 3, user_id: 9, day_number: 1 },
-        ],
-      });
+    it('routes through check_ins_for_user RPC when no day given', async () => {
+      mockListRpc([
+        { id: 1, user_id: 5, day_number: 1 },
+        { id: 2, user_id: 5, day_number: 2 },
+      ]);
       const out = await listCheckIns(5);
-      expect(mockedDrust.list).toHaveBeenCalledWith('check_ins');
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('check_ins_for_user', {
+        user_id: 5,
+      });
       expect(out.map((c) => c.id)).toEqual([1, 2]);
     });
 
-    it('also filters by day_number when provided', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [
-          { id: 1, user_id: 5, day_number: 1 },
-          { id: 2, user_id: 5, day_number: 3 },
-          { id: 3, user_id: 5, day_number: 3 },
-        ],
-      });
+    it('routes through check_ins_for_user_day RPC when a day is given', async () => {
+      mockListRpc([
+        { id: 2, user_id: 5, day_number: 3 },
+        { id: 3, user_id: 5, day_number: 3 },
+      ]);
       const out = await listCheckIns(5, 3);
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('check_ins_for_user_day', {
+        user_id: 5,
+        day_number: 3,
+      });
       expect(out.map((c) => c.id)).toEqual([2, 3]);
     });
   });

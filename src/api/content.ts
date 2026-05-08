@@ -128,42 +128,58 @@ export async function recordQuizAttempt(
   }
 }
 
-interface QuizAttemptRow {
-  user_id: number;
-  day_number: number;
-}
-
 /**
  * Returns true if the user already has at least one quiz_attempts row for
  * the given day_number. Used by /home to flip the bubble to "已完成" on
  * hydrate. Soft-fails to false on any drust error so a flaky backend
  * doesn't lock the user out of taking the quiz.
+ *
+ * Routed through the `has_quiz_attempt_for_day` RPC — server-side
+ * existence-check, bounded query, scales to 100k users without scanning
+ * client-side.
  */
 export async function hasQuizAttemptForDay(
   userId: number,
   dayNumber: number,
 ): Promise<boolean> {
   try {
-    const result = await drust.list<QuizAttemptRow>('quiz_attempts', {
-      limit: '500',
+    const result = await drust.rpc('has_quiz_attempt_for_day', {
+      user_id: userId,
+      day_number: dayNumber,
     });
-    return result.records.some(
-      (r) => r.user_id === userId && r.day_number === dayNumber,
-    );
+    return result.row_count > 0;
   } catch (err) {
     console.warn('[content] hasQuizAttemptForDay soft-failed:', err);
     return false;
   }
 }
 
-export async function listRestaurants(): Promise<Restaurant[]> {
+export async function listRestaurants(
+  filter?: { placeType?: string; partnerOnly?: boolean },
+): Promise<Restaurant[]> {
   try {
-    const result = await drust.list<Restaurant>('restaurants', { limit: '100' });
-    if (result.records.length > 0) return result.records;
+    const result = await drust.rpc<Restaurant>('restaurants_filtered', {
+      place_type: filter?.placeType ?? '',
+      partner_only: filter?.partnerOnly ? 1 : 0,
+    });
+    const rows = drust.rpcRows<Restaurant>(result);
+    if (rows.length > 0) return rows;
   } catch (err) {
-    console.warn('[content] list_restaurants failed, using fixture:', err);
+    console.warn('[content] restaurants_filtered failed, using fixture:', err);
   }
-  return [...RESTAURANTS_FIXTURE];
+  return applyFilterToFixture(RESTAURANTS_FIXTURE, filter);
+}
+
+function applyFilterToFixture(
+  rows: ReadonlyArray<Restaurant>,
+  filter: { placeType?: string; partnerOnly?: boolean } | undefined,
+): Restaurant[] {
+  if (!filter) return [...rows];
+  return rows.filter((r) => {
+    if (filter.placeType && r.place_type !== filter.placeType) return false;
+    if (filter.partnerOnly && r.is_partner !== 1) return false;
+    return true;
+  });
 }
 
 export async function getRestaurant(id: number): Promise<Restaurant | null> {

@@ -12,7 +12,7 @@ vi.mock('@/api/drust', () => ({
 }));
 
 import { drust } from '@/api/drust';
-import { getPet, addXp, setMood } from '../pet';
+import { getPet, addXp, setMood, setStrikes, clearStrikes } from '../pet';
 
 const mockedDrust = drust as unknown as {
   rpc: ReturnType<typeof vi.fn>;
@@ -31,7 +31,19 @@ const basePet = {
   stage: 'egg',
   mood: 'normal',
   last_fed_at: null,
+  strikes: 0,
+  poisoned_until: null,
 };
+
+function mockPetRpcReturns(row: Record<string, unknown> | null): void {
+  mockedDrust.rpc.mockResolvedValueOnce({
+    column_names: [],
+    rows: [],
+    row_count: row ? 1 : 0,
+    truncated: false,
+  });
+  mockedDrust.rpcRows.mockReturnValueOnce(row ? [row] : []);
+}
 
 describe('pet', () => {
   beforeEach(() => {
@@ -39,44 +51,33 @@ describe('pet', () => {
   });
 
   describe('getPet', () => {
-    it('client-side filters fetched pets by user_id', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [
-          { ...basePet, id: 99, user_id: 1 },
-          basePet,
-        ],
-      });
+    it('routes through pet_for_user RPC', async () => {
+      mockPetRpcReturns(basePet);
       const out = await getPet(5);
-      expect(mockedDrust.list).toHaveBeenCalledWith('pet_states');
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('pet_for_user', { user_id: 5 });
       expect(out).toEqual(basePet);
     });
 
-    it('returns null when no row matches the user', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [{ ...basePet, user_id: 1 }],
-      });
+    it('returns null when the RPC has no rows', async () => {
+      mockPetRpcReturns(null);
       expect(await getPet(99)).toBeNull();
     });
   });
 
   describe('addXp', () => {
     it('adds xp and updates pet row with new level/stage/timestamps', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [{ ...basePet, accumulated_xp: 0 }],
-      });
+      mockPetRpcReturns({ ...basePet, accumulated_xp: 0 });
       mockedDrust.update.mockResolvedValueOnce({ record: {} });
 
-      // 30 XP -> LV1 fills, advances to LV2 with currentXp=0
       const out = await addXp(5, 30);
 
       const [coll, id, patch] = mockedDrust.update.mock.calls[0];
       expect(coll).toBe('pet_states');
       expect(id).toBe(1);
       expect(patch.accumulated_xp).toBe(30);
-      // LV1 needs 30, so 30 -> level 2, currentXp=0
       expect(patch.level).toBe(2);
       expect(patch.current_xp).toBe(0);
-      expect(patch.stage).toBe('egg'); // levels 1-5 are egg
+      expect(patch.stage).toBe('egg');
       expect(typeof patch.last_fed_at).toBe('string');
 
       expect(out.accumulated_xp).toBe(30);
@@ -84,10 +85,7 @@ describe('pet', () => {
     });
 
     it('crosses to baby stage at level 6', async () => {
-      // levels 1..5 each cost 30 -> 150 to be at start of LV6
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [{ ...basePet, accumulated_xp: 149 }],
-      });
+      mockPetRpcReturns({ ...basePet, accumulated_xp: 149 });
       mockedDrust.update.mockResolvedValueOnce({ record: {} });
 
       const out = await addXp(5, 1);
@@ -100,14 +98,14 @@ describe('pet', () => {
     });
 
     it('throws when no pet exists', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [] });
+      mockPetRpcReturns(null);
       await expect(addXp(99, 10)).rejects.toThrow(/pet not found/i);
     });
   });
 
   describe('setMood', () => {
     it('updates pet mood', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [basePet] });
+      mockPetRpcReturns(basePet);
       mockedDrust.update.mockResolvedValueOnce({ record: {} });
 
       await setMood(5, 'happy');
@@ -118,8 +116,37 @@ describe('pet', () => {
     });
 
     it('throws when no pet', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [] });
+      mockPetRpcReturns(null);
       await expect(setMood(99, 'happy')).rejects.toThrow(/pet not found/i);
+    });
+  });
+
+  describe('setStrikes', () => {
+    it('writes strikes + poisoned_until via update_record', async () => {
+      mockPetRpcReturns(basePet);
+      mockedDrust.update.mockResolvedValueOnce({ record: {} });
+      const future = '2026-05-09T10:00:00.000Z';
+      const out = await setStrikes(5, 3, future);
+      expect(mockedDrust.update).toHaveBeenCalledWith('pet_states', 1, {
+        strikes: 3,
+        poisoned_until: future,
+      });
+      expect(out.strikes).toBe(3);
+      expect(out.poisoned_until).toBe(future);
+    });
+  });
+
+  describe('clearStrikes', () => {
+    it('zeros strikes and poison via update_record', async () => {
+      mockPetRpcReturns({ ...basePet, strikes: 3, poisoned_until: 'x' });
+      mockedDrust.update.mockResolvedValueOnce({ record: {} });
+      const out = await clearStrikes(5);
+      expect(mockedDrust.update).toHaveBeenCalledWith('pet_states', 1, {
+        strikes: 0,
+        poisoned_until: null,
+      });
+      expect(out.strikes).toBe(0);
+      expect(out.poisoned_until).toBeNull();
     });
   });
 });

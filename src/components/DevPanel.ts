@@ -219,13 +219,18 @@ export function createDevPanel(): HTMLElement {
   // Strike chips — drives the 寵物食物中毒 demo
   wrap.querySelectorAll<HTMLButtonElement>('#strike-chips .dev-chip').forEach((c) => {
     c.addEventListener('click', () => {
+      const u = $user.get();
+      if (!u) {
+        flash('請先登入', true);
+        return;
+      }
       if (c.dataset.strike === 'add') {
-        const total = addStrike();
-        if (total >= 3) flash('已觸發中毒：mood=critical 24 小時', true);
-        else flash(`Strike ${total}/3`, false);
+        void addStrike(u.id).then((total) => {
+          if (total >= 3) flash('已觸發中毒：mood=critical 24 小時', true);
+          else flash(`Strike ${total}/3`, false);
+        });
       } else {
-        clearStrikes();
-        flash('已特赦並解毒', false);
+        void clearStrikes(u.id).then(() => flash('已特赦並解毒', false));
       }
     });
   });

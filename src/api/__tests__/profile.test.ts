@@ -12,7 +12,13 @@ vi.mock('@/api/drust', () => ({
 }));
 
 import { drust } from '@/api/drust';
-import { getUserFull, getProfile, updateProfile, signOath } from '../profile';
+import {
+  getUserFull,
+  getProfile,
+  updateProfile,
+  signOath,
+  setChallengeStartedAt,
+} from '../profile';
 
 const mockedDrust = drust as unknown as {
   insert: ReturnType<typeof vi.fn>;
@@ -22,6 +28,16 @@ const mockedDrust = drust as unknown as {
   update: ReturnType<typeof vi.fn>;
 };
 
+function mockRpcReturns<T>(rows: T[]): void {
+  mockedDrust.rpc.mockResolvedValueOnce({
+    column_names: [],
+    rows: [],
+    row_count: rows.length,
+    truncated: false,
+  });
+  mockedDrust.rpcRows.mockReturnValueOnce(rows);
+}
+
 describe('profile', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -29,19 +45,13 @@ describe('profile', () => {
 
   describe('getUserFull', () => {
     it('calls get_user_full RPC and returns first row', async () => {
-      const fakeResult = {
-        column_names: ['id', 'username'],
-        rows: [[5, 'alice']],
-        row_count: 1,
-        truncated: false,
-      };
-      mockedDrust.rpc.mockResolvedValueOnce(fakeResult);
-      mockedDrust.rpcRows.mockReturnValueOnce([
+      mockRpcReturns([
         {
           id: 5,
           username: 'alice',
           display_name: 'Alice',
           oath_signed_at: null,
+          challenge_started_at: null,
           diet_type: null,
           challenge_level: null,
           eat_times: null,
@@ -52,6 +62,8 @@ describe('profile', () => {
           accumulated_xp: 0,
           stage: 'egg',
           mood: 'normal',
+          strikes: 0,
+          poisoned_until: null,
           gems: 0,
           total_earned: 0,
           card_count: 0,
@@ -69,48 +81,33 @@ describe('profile', () => {
     });
 
     it('returns null when no rows', async () => {
-      mockedDrust.rpc.mockResolvedValueOnce({
-        column_names: [],
-        rows: [],
-        row_count: 0,
-        truncated: false,
-      });
-      mockedDrust.rpcRows.mockReturnValueOnce([]);
+      mockRpcReturns([]);
       expect(await getUserFull(99)).toBeNull();
     });
   });
 
   describe('getProfile', () => {
-    it('client-side filters fetched profiles by user_id', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [
-          { id: 1, user_id: 1, diet_type: 'omnivore' },
-          { id: 7, user_id: 5, diet_type: 'vegan' },
-        ],
-      });
+    it('routes through profile_for_user RPC', async () => {
+      mockRpcReturns([
+        { id: 7, user_id: 5, diet_type: 'vegan' },
+      ]);
       const out = await getProfile(5);
-      // No filter args — drust list ignores them, so we fetch all + filter.
-      expect(mockedDrust.list).toHaveBeenCalledWith('user_profiles');
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('profile_for_user', {
+        user_id: 5,
+      });
       expect(out?.diet_type).toBe('vegan');
       expect(out?.id).toBe(7);
     });
 
-    it('returns null when no profile matches', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [{ id: 1, user_id: 1, diet_type: 'omnivore' }],
-      });
+    it('returns null when the RPC has no rows', async () => {
+      mockRpcReturns([]);
       expect(await getProfile(99)).toBeNull();
     });
   });
 
   describe('updateProfile', () => {
     it('finds profile by user_id then patches by row id', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [
-          { id: 11, user_id: 5 },
-          { id: 22, user_id: 9 },
-        ],
-      });
+      mockRpcReturns([{ id: 11, user_id: 5 }]);
       mockedDrust.update.mockResolvedValueOnce({ record: {} });
 
       await updateProfile(5, { diet_type: 'vegan', challenge_level: 3 });
@@ -122,7 +119,7 @@ describe('profile', () => {
     });
 
     it('throws when no profile exists', async () => {
-      mockedDrust.list.mockResolvedValueOnce({ records: [] });
+      mockRpcReturns([]);
       await expect(updateProfile(99, { diet_type: 'vegan' })).rejects.toThrow(
         /not found/i,
       );
@@ -143,6 +140,16 @@ describe('profile', () => {
       const ts = Date.parse(patch.oath_signed_at);
       expect(ts).toBeGreaterThanOrEqual(before);
       expect(ts).toBeLessThanOrEqual(after);
+    });
+  });
+
+  describe('setChallengeStartedAt', () => {
+    it('updates users.challenge_started_at with the given ISO string', async () => {
+      mockedDrust.update.mockResolvedValueOnce({ record: {} });
+      await setChallengeStartedAt(5, '2026-05-08T10:00:00.000Z');
+      expect(mockedDrust.update).toHaveBeenCalledWith('users', 5, {
+        challenge_started_at: '2026-05-08T10:00:00.000Z',
+      });
     });
   });
 });

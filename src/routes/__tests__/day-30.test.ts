@@ -13,11 +13,13 @@ const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> }
 
 const baseProfile = {
   id: 7, username: 'k', display_name: 'k',
-  oath_signed_at: null, diet_type: null, challenge_level: null,
+  oath_signed_at: null, challenge_started_at: null,
+  diet_type: null, challenge_level: null,
   eat_times: null, known_from: null,
   baseline: '{"beef":0.2,"pork":0.3,"lamb":0,"chicken":0.5}',
   level: 12, current_xp: 0, accumulated_xp: 500,
   stage: 'baby', mood: 'happy',
+  strikes: 0, poisoned_until: null,
   gems: 0, total_earned: 0, card_count: 0, fragment_count: 0,
 };
 

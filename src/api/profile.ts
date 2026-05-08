@@ -1,9 +1,11 @@
 /**
- * Profile module: full-user JOIN, profile read/patch, oath signing.
+ * Profile module: full-user JOIN, profile read/patch, oath signing,
+ * challenge-started timestamp.
  *
  * getUserFull() calls the get_user_full RPC and flattens the result.
- * getProfile/updateProfile read & patch user_profiles by user_id (not row id).
- * signOath() stamps the user row with the current ISO timestamp.
+ * getProfile() uses the profile_for_user RPC (replaces list+filter).
+ * setChallengeStartedAt() stamps users.challenge_started_at — drust is
+ * the source of truth for the start timestamp now (was localStorage).
  */
 import { drust } from './drust';
 
@@ -21,6 +23,7 @@ export interface UserFull {
   username: string;
   display_name: string;
   oath_signed_at: string | null;
+  challenge_started_at: string | null;
   diet_type: string | null;
   challenge_level: number | null;
   eat_times: string | null;
@@ -31,6 +34,8 @@ export interface UserFull {
   accumulated_xp: number;
   stage: string;
   mood: string;
+  strikes: number;
+  poisoned_until: string | null;
   gems: number;
   total_earned: number;
   card_count: number;
@@ -43,16 +48,12 @@ export async function getUserFull(userId: number): Promise<UserFull | null> {
   return rows[0] ?? null;
 }
 
-/**
- * NOTE — drust's list endpoint silently ignores query-string filters
- * (id=eq.X, user_id=eq.X, filter[*]=X, etc.) and caps at 20 rows. For
- * foreign-key lookups we fetch all rows and filter client-side. Safe
- * while user_profiles stays under 20 rows; beyond that this needs a
- * server-side RPC.
- */
-export async function getProfile(userId: number): Promise<(UserProfile & { id: number }) | null> {
-  const result = await drust.list<UserProfile & { id: number }>('user_profiles');
-  return result.records.find((p) => p.user_id === userId) ?? null;
+export async function getProfile(
+  userId: number,
+): Promise<(UserProfile & { id: number }) | null> {
+  const result = await drust.rpc('profile_for_user', { user_id: userId });
+  const rows = drust.rpcRows<UserProfile & { id: number }>(result);
+  return rows[0] ?? null;
 }
 
 export async function updateProfile(
@@ -68,4 +69,15 @@ export async function signOath(userId: number): Promise<void> {
   await drust.update('users', userId, {
     oath_signed_at: new Date().toISOString(),
   });
+}
+
+/**
+ * Set users.challenge_started_at — fired by the day-1 hook CTA. ISO 8601.
+ * Single source of truth: drust. localStorage no longer mirrors this.
+ */
+export async function setChallengeStartedAt(
+  userId: number,
+  isoTs: string,
+): Promise<void> {
+  await drust.update('users', userId, { challenge_started_at: isoTs });
 }

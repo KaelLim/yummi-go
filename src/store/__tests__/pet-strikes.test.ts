@@ -1,4 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('@/api/pet', () => ({
+  setStrikes: vi.fn().mockResolvedValue(undefined),
+  clearStrikes: vi.fn().mockResolvedValue(undefined),
+  getPet: vi.fn(),
+  addXp: vi.fn(),
+  setMood: vi.fn(),
+  resetPet: vi.fn(),
+}));
+
 import {
   $pet,
   addStrike,
@@ -9,23 +19,33 @@ import {
   STRIKE_THRESHOLD,
   setPetFromRow,
 } from '../pet';
+import * as petApi from '@/api/pet';
+
+const mockedPetApi = petApi as unknown as {
+  setStrikes: ReturnType<typeof vi.fn>;
+  clearStrikes: ReturnType<typeof vi.fn>;
+};
+
+const TEST_USER_ID = 1;
 
 function seedPet(): void {
   setPetFromRow({
     id: 1,
-    user_id: 1,
+    user_id: TEST_USER_ID,
     level: 5,
     current_xp: 0,
     accumulated_xp: 100,
     stage: 'baby',
     mood: 'happy',
     last_fed_at: null,
+    strikes: 0,
+    poisoned_until: null,
   });
 }
 
 describe('pet strikes', () => {
   beforeEach(() => {
-    localStorage.clear();
+    vi.clearAllMocks();
     $pet.set(null);
   });
 
@@ -36,39 +56,39 @@ describe('pet strikes', () => {
     expect(s?.poisonedUntil).toBeNull();
   });
 
-  it('addStrike increments without poisoning until the threshold', () => {
+  it('addStrike increments without poisoning until the threshold', async () => {
     seedPet();
-    expect(addStrike()).toBe(1);
+    expect(await addStrike(TEST_USER_ID)).toBe(1);
     expect($pet.get()?.poisonedUntil).toBeNull();
-    expect(addStrike()).toBe(2);
+    expect(await addStrike(TEST_USER_ID)).toBe(2);
     expect($pet.get()?.poisonedUntil).toBeNull();
   });
 
-  it('the third strike sets a 24h poisonedUntil window', () => {
+  it('the third strike sets a 24h poisonedUntil window', async () => {
     seedPet();
     const now = 1_700_000_000_000;
-    addStrike(now);
-    addStrike(now);
-    const total = addStrike(now);
+    await addStrike(TEST_USER_ID, now);
+    await addStrike(TEST_USER_ID, now);
+    const total = await addStrike(TEST_USER_ID, now);
     expect(total).toBe(STRIKE_THRESHOLD);
     expect($pet.get()?.poisonedUntil).toBe(now + POISON_DURATION_MS);
   });
 
-  it('caps at 3 — additional strikes do not double the cooldown', () => {
+  it('caps at 3 — additional strikes do not double the cooldown', async () => {
     seedPet();
     const now = 2_000_000_000_000;
-    for (let i = 0; i < 6; i++) addStrike(now);
+    for (let i = 0; i < 6; i++) await addStrike(TEST_USER_ID, now);
     const s = $pet.get();
     expect(s?.strikes).toBe(STRIKE_THRESHOLD);
     expect(s?.poisonedUntil).toBe(now + POISON_DURATION_MS);
   });
 
-  it('effectiveMood returns critical while poisoned, regardless of stored mood', () => {
+  it('effectiveMood returns critical while poisoned, regardless of stored mood', async () => {
     seedPet();
     const now = 3_000_000_000_000;
-    addStrike(now);
-    addStrike(now);
-    addStrike(now);
+    await addStrike(TEST_USER_ID, now);
+    await addStrike(TEST_USER_ID, now);
+    await addStrike(TEST_USER_ID, now);
     // Pet's stored mood is 'happy' from seed; poisoning overrides it.
     expect(effectiveMood($pet.get())).toBe('critical');
   });
@@ -81,33 +101,53 @@ describe('pet strikes', () => {
     expect(effectiveMood($pet.get())).toBe('happy');
   });
 
-  it('clearStrikes wipes both fields and persists', () => {
+  it('clearStrikes wipes both fields and calls drust', async () => {
     seedPet();
-    addStrike();
-    addStrike();
-    addStrike();
-    clearStrikes();
+    await addStrike(TEST_USER_ID);
+    await addStrike(TEST_USER_ID);
+    await addStrike(TEST_USER_ID);
+    await clearStrikes(TEST_USER_ID);
     const s = $pet.get();
     expect(s?.strikes).toBe(0);
     expect(s?.poisonedUntil).toBeNull();
-    expect(localStorage.getItem('yummi.pet.strikes')).toBeNull();
-    expect(localStorage.getItem('yummi.pet.poisonedUntil')).toBeNull();
+    expect(mockedPetApi.clearStrikes).toHaveBeenCalledWith(TEST_USER_ID);
   });
 
-  it('persists strikes to localStorage so a reload keeps the state', () => {
+  it('persists strikes to drust on every increment', async () => {
     seedPet();
-    addStrike();
-    expect(JSON.parse(localStorage.getItem('yummi.pet.strikes') ?? 'null')).toBe(1);
+    await addStrike(TEST_USER_ID);
+    expect(mockedPetApi.setStrikes).toHaveBeenCalledWith(TEST_USER_ID, 1, null);
   });
 
-  it('expired poison auto-clears on next setPetFromRow', () => {
-    // Simulate a stale poisoned window from a previous session.
-    localStorage.setItem('yummi.pet.strikes', JSON.stringify(3));
-    localStorage.setItem('yummi.pet.poisonedUntil', JSON.stringify(Date.now() - 5000));
+  it('persists ISO-string poisoned_until on the threshold strike', async () => {
     seedPet();
+    const now = 4_000_000_000_000;
+    await addStrike(TEST_USER_ID, now);
+    await addStrike(TEST_USER_ID, now);
+    await addStrike(TEST_USER_ID, now);
+    const lastCall = mockedPetApi.setStrikes.mock.calls.at(-1);
+    expect(lastCall?.[0]).toBe(TEST_USER_ID);
+    expect(lastCall?.[1]).toBe(STRIKE_THRESHOLD);
+    expect(lastCall?.[2]).toBe(new Date(now + POISON_DURATION_MS).toISOString());
+  });
+
+  it('setPetFromRow seeds strikes and parses ISO poisoned_until', () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    setPetFromRow({
+      id: 1,
+      user_id: TEST_USER_ID,
+      level: 5,
+      current_xp: 0,
+      accumulated_xp: 100,
+      stage: 'baby',
+      mood: 'happy',
+      last_fed_at: null,
+      strikes: 2,
+      poisoned_until: future,
+    });
     const s = $pet.get();
-    expect(s?.strikes).toBe(0);
-    expect(s?.poisonedUntil).toBeNull();
+    expect(s?.strikes).toBe(2);
+    expect(s?.poisonedUntil).toBe(Date.parse(future));
   });
 
   it('poisonRemainingMs reports time left, 0 once expired', () => {

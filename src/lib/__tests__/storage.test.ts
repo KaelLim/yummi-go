@@ -33,11 +33,12 @@ describe('storage', () => {
     expect(storage.get('k', null)).toBe(null);
   });
 
-  it('exposes namespaced KEYS', () => {
+  it('exposes namespaced KEYS for device-scoped state only', () => {
     expect(KEYS.USER_ID).toBe('yummi.userId');
     expect(KEYS.THEME).toBe('yummi.theme');
     expect(KEYS.TIME_MODE).toBe('yummi.timeMode');
     expect(KEYS.MANUAL_DAY).toBe('yummi.manualDay');
-    expect(KEYS.CHALLENGE_STARTED_AT).toBe('yummi.challengeStartedAt');
+    // CHALLENGE_STARTED_AT moved to drust users.challenge_started_at
+    expect((KEYS as Record<string, string>).CHALLENGE_STARTED_AT).toBeUndefined();
   });
 });

@@ -1,5 +1,9 @@
 /**
  * Typed localStorage wrapper. Falls back gracefully on parse errors or quota exceptions.
+ *
+ * Only device-scoped preferences live here. Per-user state (pet strikes,
+ * challenge start, daily progress) moved to drust as of the
+ * 2026-05-08-drust-as-source-of-truth migration.
  */
 export const storage = {
   get<T>(key: string, fallback: T): T {
@@ -23,5 +27,4 @@ export const KEYS = {
   THEME: 'yummi.theme',
   TIME_MODE: 'yummi.timeMode',
   MANUAL_DAY: 'yummi.manualDay',
-  CHALLENGE_STARTED_AT: 'yummi.challengeStartedAt',
 } as const;

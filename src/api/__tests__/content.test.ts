@@ -174,42 +174,66 @@ describe('content', () => {
   });
 
   describe('hasQuizAttemptForDay', () => {
-    it('returns true when a row matches user_id + day_number', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [
-          { user_id: 99, day_number: 7 },
-          { user_id: 5, day_number: 7 },
-        ],
+    it('returns true when has_quiz_attempt_for_day RPC has a row', async () => {
+      mockedDrust.rpc.mockResolvedValueOnce({
+        column_names: ['hit'],
+        rows: [[1]],
+        row_count: 1,
+        truncated: false,
       });
       expect(await hasQuizAttemptForDay(5, 7)).toBe(true);
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('has_quiz_attempt_for_day', {
+        user_id: 5,
+        day_number: 7,
+      });
     });
 
-    it('returns false when no row matches', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [
-          { user_id: 5, day_number: 6 },
-          { user_id: 5, day_number: 8 },
-        ],
+    it('returns false when the RPC has no rows', async () => {
+      mockedDrust.rpc.mockResolvedValueOnce({
+        column_names: [],
+        rows: [],
+        row_count: 0,
+        truncated: false,
       });
       expect(await hasQuizAttemptForDay(5, 7)).toBe(false);
     });
 
     it('returns false (and does not throw) on drust error', async () => {
-      mockedDrust.list.mockRejectedValueOnce(new Error('boom'));
+      mockedDrust.rpc.mockRejectedValueOnce(new Error('boom'));
       expect(await hasQuizAttemptForDay(5, 7)).toBe(false);
     });
   });
 
   describe('listRestaurants', () => {
-    it('lists with limit=100', async () => {
-      mockedDrust.list.mockResolvedValueOnce({
-        records: [{ id: 1 }, { id: 2 }],
+    it('routes through restaurants_filtered RPC with empty filters', async () => {
+      mockedDrust.rpc.mockResolvedValueOnce({
+        column_names: [],
+        rows: [],
+        row_count: 2,
+        truncated: false,
       });
+      mockedDrust.rpcRows.mockReturnValueOnce([{ id: 1 }, { id: 2 }]);
       const out = await listRestaurants();
-      expect(mockedDrust.list).toHaveBeenCalledWith('restaurants', {
-        limit: '100',
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('restaurants_filtered', {
+        place_type: '',
+        partner_only: 0,
       });
       expect(out).toHaveLength(2);
+    });
+
+    it('passes place_type + partner_only into the RPC', async () => {
+      mockedDrust.rpc.mockResolvedValueOnce({
+        column_names: [],
+        rows: [],
+        row_count: 1,
+        truncated: false,
+      });
+      mockedDrust.rpcRows.mockReturnValueOnce([{ id: 5 }]);
+      await listRestaurants({ placeType: 'thai', partnerOnly: true });
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('restaurants_filtered', {
+        place_type: 'thai',
+        partner_only: 1,
+      });
     });
   });
 
