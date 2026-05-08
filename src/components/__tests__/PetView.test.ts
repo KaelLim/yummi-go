@@ -26,10 +26,10 @@ describe('PetView', () => {
     document.body.appendChild(el);
     const img = el.querySelector<HTMLImageElement>('img.pet-frog')!;
 
-    $pet.set({ level: 19, currentXp: 0, accumulatedXp: 1000, stage: 'youth', mood: 'happy' });
+    $pet.set({ level: 19, currentXp: 0, accumulatedXp: 1000, stage: 'youth', mood: 'happy', strikes: 0, poisonedUntil: null });
     expect(img.getAttribute('src')).toBe('/pet/youth/happy.png');
 
-    $pet.set({ level: 80, currentXp: 0, accumulatedXp: 9999, stage: 'max', mood: 'evolve' });
+    $pet.set({ level: 80, currentXp: 0, accumulatedXp: 9999, stage: 'max', mood: 'evolve', strikes: 0, poisonedUntil: null });
     expect(img.getAttribute('src')).toBe('/pet/max/normal.png');
 
     el.remove();
@@ -39,7 +39,7 @@ describe('PetView', () => {
     const { el } = createPetView();
     document.body.appendChild(el);
     const img = el.querySelector<HTMLImageElement>('img.pet-frog')!;
-    $pet.set({ level: 1, currentXp: 0, accumulatedXp: 0, stage: 'bogus' as never, mood: 'whatever' as never });
+    $pet.set({ level: 1, currentXp: 0, accumulatedXp: 0, stage: 'bogus' as never, mood: 'whatever' as never, strikes: 0, poisonedUntil: null });
     expect(img.getAttribute('src')).toBe('/pet/egg/normal.png');
     el.remove();
   });

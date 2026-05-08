@@ -22,7 +22,13 @@ import {
   type TimeMode,
 } from '@/store/ui';
 import { $user, $profile } from '@/store/user';
-import { awardXp } from '@/store/pet';
+import {
+  $pet,
+  addStrike,
+  awardXp,
+  clearStrikes,
+  poisonRemainingMs,
+} from '@/store/pet';
 import { resetTodayProgress } from '@/store/today';
 import { addGems, addFragments, resetGems, resetMakeup } from '@/api/wallet';
 import { resetPet } from '@/api/pet';
@@ -112,6 +118,17 @@ export function createDevPanel(): HTMLElement {
         </div>
       </section>
 
+      <section class="dev-section">
+        <div class="dev-label-row">
+          <span class="dev-label">違規警告 (3 strikes)</span>
+          <span class="dev-readout" data-bind="strikes">0 / 3</span>
+        </div>
+        <div class="dev-chips" id="strike-chips">
+          <button class="dev-chip" data-strike="add">+1 Strike</button>
+          <button class="dev-chip" data-strike="pardon">特赦 / 解毒</button>
+        </div>
+      </section>
+
       <div class="dev-status" id="dev-status" hidden></div>
 
       <section class="dev-section">
@@ -196,6 +213,20 @@ export function createDevPanel(): HTMLElement {
     c.addEventListener('click', () => {
       const which = c.dataset.reset!;
       void doReset(which);
+    });
+  });
+
+  // Strike chips — drives the 寵物食物中毒 demo
+  wrap.querySelectorAll<HTMLButtonElement>('#strike-chips .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      if (c.dataset.strike === 'add') {
+        const total = addStrike();
+        if (total >= 3) flash('已觸發中毒：mood=critical 24 小時', true);
+        else flash(`Strike ${total}/3`, false);
+      } else {
+        clearStrikes();
+        flash('已特赦並解毒', false);
+      }
     });
   });
 
@@ -314,6 +345,17 @@ export function createDevPanel(): HTMLElement {
     setText('[data-bind="xp"]', p ? `LV.${p.level} · ${p.current_xp} XP` : 'LV.? · 0 XP');
     setText('[data-bind="gems"]', String(p?.gems ?? 0));
     setText('[data-bind="frags"]', `${p?.fragment_count ?? 0} 碎片 · ${p?.card_count ?? 0} 卡`);
+  });
+
+  bind(wrap, $pet, (p) => {
+    const strikes = p?.strikes ?? 0;
+    const remaining = poisonRemainingMs(p);
+    if (remaining > 0) {
+      const hrs = Math.ceil(remaining / 3600_000);
+      setText('[data-bind="strikes"]', `${strikes}/3 · 中毒 ${hrs}h`);
+    } else {
+      setText('[data-bind="strikes"]', `${strikes} / 3`);
+    }
   });
 
   function setText(sel: string, value: string) {

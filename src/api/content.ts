@@ -2,11 +2,24 @@
  * Content module: read-only challenge scripts, quiz Qs, restaurants;
  * plus quiz attempt recording.
  *
- * getDayScript / randomQuiz call drust RPCs (get_day_script / random_quiz).
- * listChallengeScripts sorts client-side because list endpoints don't
- * guarantee order.
+ * Fallback policy: each read function tries drust first; on thrown error or
+ * an empty result it returns the local fixture so the prototype works
+ * without a seeded backend. Mutations (recordQuizAttempt) still go to drust
+ * — fixtures are read-only.
  */
 import { drust } from './drust';
+import {
+  DAY_SCRIPTS_FIXTURE,
+  dayScriptFor,
+} from '@/lib/fixtures/day-scripts';
+import {
+  RESTAURANTS_FIXTURE,
+  restaurantById,
+} from '@/lib/fixtures/restaurants';
+import {
+  QUIZ_BANK_FIXTURE,
+  randomQuizFromFixture,
+} from '@/lib/fixtures/quiz-bank';
 
 export interface ChallengeScript {
   id: number;
@@ -46,29 +59,51 @@ export interface Restaurant {
 export async function getDayScript(
   dayNumber: number,
 ): Promise<ChallengeScript | null> {
-  const result = await drust.rpc('get_day_script', { day_number: dayNumber });
-  const rows = drust.rpcRows<ChallengeScript>(result);
-  return rows[0] ?? null;
+  try {
+    const result = await drust.rpc('get_day_script', { day_number: dayNumber });
+    const rows = drust.rpcRows<ChallengeScript>(result);
+    if (rows[0]) return rows[0];
+  } catch (err) {
+    console.warn('[content] get_day_script failed, using fixture:', err);
+  }
+  return dayScriptFor(dayNumber);
 }
 
 /**
  * NOTE — drust's list endpoint hard-caps at 20 rows and ignores `offset`,
- * but does honor `sort`. Passing `sort=day_number` makes the 20 returned
- * rows deterministic (days 1-20). Full 30-day access for the calendar view
- * (Phase 12) will need a dedicated RPC like `list_all_scripts`.
+ * so a seeded backend with all 30 days will still come back partial. We
+ * splice in fixture entries for any day_number drust didn't return; that
+ * way the calendar always has the full 30-day script.
  */
 export async function listChallengeScripts(): Promise<ChallengeScript[]> {
-  const result = await drust.list<ChallengeScript>('challenge_scripts', {
-    sort: 'day_number',
-    limit: '100',
-  });
-  return result.records.sort((a, b) => a.day_number - b.day_number);
+  let live: ChallengeScript[] = [];
+  try {
+    const result = await drust.list<ChallengeScript>('challenge_scripts', {
+      sort: 'day_number',
+      limit: '100',
+    });
+    live = result.records;
+  } catch (err) {
+    console.warn('[content] list_challenge_scripts failed, using fixture:', err);
+  }
+  if (live.length === 0) return [...DAY_SCRIPTS_FIXTURE];
+  const byDay = new Map<number, ChallengeScript>();
+  for (const s of DAY_SCRIPTS_FIXTURE) byDay.set(s.day_number, s);
+  for (const s of live) byDay.set(s.day_number, s);
+  return Array.from(byDay.values()).sort(
+    (a, b) => a.day_number - b.day_number,
+  );
 }
 
 export async function randomQuiz(): Promise<QuizQuestion | null> {
-  const result = await drust.rpc('random_quiz');
-  const rows = drust.rpcRows<QuizQuestion>(result);
-  return rows[0] ?? null;
+  try {
+    const result = await drust.rpc('random_quiz');
+    const rows = drust.rpcRows<QuizQuestion>(result);
+    if (rows[0]) return rows[0];
+  } catch (err) {
+    console.warn('[content] random_quiz failed, using fixture:', err);
+  }
+  return randomQuizFromFixture();
 }
 
 export async function recordQuizAttempt(
@@ -77,19 +112,41 @@ export async function recordQuizAttempt(
   answer: string,
   correct: boolean,
 ): Promise<void> {
-  await drust.insert('quiz_attempts', {
-    user_id: userId,
-    question_id: questionId,
-    answer,
-    correct: correct ? 1 : 0,
-  });
+  try {
+    await drust.insert('quiz_attempts', {
+      user_id: userId,
+      question_id: questionId,
+      answer,
+      correct: correct ? 1 : 0,
+    });
+  } catch (err) {
+    // Soft-fail: prototype runs without a writeable backend, but the quiz
+    // UI shouldn't error out just because we couldn't record an attempt.
+    console.warn('[content] recordQuizAttempt soft-failed:', err);
+  }
 }
 
 export async function listRestaurants(): Promise<Restaurant[]> {
-  const result = await drust.list<Restaurant>('restaurants', { limit: '100' });
-  return result.records;
+  try {
+    const result = await drust.list<Restaurant>('restaurants', { limit: '100' });
+    if (result.records.length > 0) return result.records;
+  } catch (err) {
+    console.warn('[content] list_restaurants failed, using fixture:', err);
+  }
+  return [...RESTAURANTS_FIXTURE];
 }
 
 export async function getRestaurant(id: number): Promise<Restaurant | null> {
-  return drust.get<Restaurant>('restaurants', id);
+  try {
+    const live = await drust.get<Restaurant>('restaurants', id);
+    if (live) return live;
+  } catch (err) {
+    console.warn('[content] get restaurant failed, using fixture:', err);
+  }
+  return restaurantById(id);
+}
+
+/** Fixture quiz bank exposed for analytics / tests. */
+export function quizBankSize(): number {
+  return QUIZ_BANK_FIXTURE.length;
 }

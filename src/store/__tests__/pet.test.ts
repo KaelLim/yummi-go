@@ -4,6 +4,7 @@ import { $pet, $gems, setPetFromRow } from '../pet';
 
 describe('pet store', () => {
   beforeEach(() => {
+    localStorage.clear();
     $pet.set(null);
     $gems.set({ balance: 0, fragments: 0, makeupCards: 0 });
   });
@@ -31,6 +32,8 @@ describe('pet store', () => {
       accumulatedXp: 200,
       stage: 'baby',
       mood: 'happy',
+      strikes: 0,
+      poisonedUntil: null,
     });
   });
 

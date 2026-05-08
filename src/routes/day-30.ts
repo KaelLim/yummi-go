@@ -10,7 +10,12 @@
 import { navigate } from '@/router';
 import { $user, $profile } from '@/store/user';
 import { listCheckIns } from '@/api/check-ins';
-import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
+import {
+  impactSavedKg,
+  impactSavedLitresWater,
+  impactSavedM2Land,
+  type Baseline,
+} from '@/lib/baseline-impact';
 import { spriteFor } from '@/lib/pet-sprites';
 
 const ACHIEVEMENTS = [
@@ -27,6 +32,13 @@ interface Stats {
   luckyHits: number;
   streak: number;
   co2Saved: number;
+  waterSavedL: number;
+  landSavedM2: number;
+}
+
+/** Compact thousand-separator format. 12345 → "12,345". */
+function fmtInt(n: number): string {
+  return Math.round(n).toLocaleString('en-US');
 }
 
 export default function day30(): HTMLElement {
@@ -107,11 +119,39 @@ async function hydrate(wrap: HTMLElement): Promise<void> {
       /* ignore */
     }
   }
-  const co2Saved = baseline ? impactSavedKg((4 * totalDays) / 7, baseline) : 0;
-  const stats: Stats = { totalDays, totalMeals, luckyHits, streak, co2Saved };
+  const weeklyKg = (4 * totalDays) / 7;
+  const co2Saved = baseline ? impactSavedKg(weeklyKg, baseline) : 0;
+  const waterSavedL = baseline ? impactSavedLitresWater(weeklyKg, baseline) : 0;
+  const landSavedM2 = baseline ? impactSavedM2Land(weeklyKg, baseline) : 0;
+  const stats: Stats = {
+    totalDays,
+    totalMeals,
+    luckyHits,
+    streak,
+    co2Saved,
+    waterSavedL,
+    landSavedM2,
+  };
 
   impactEl.innerHTML = `
     <h2 class="day30-card-title">影響力報告</h2>
+    <div class="impact-hero-grid">
+      <div class="impact-cell impact-highlight">
+        <span class="impact-value">${co2Saved.toFixed(1)}</span>
+        <span class="impact-unit">kg</span>
+        <span class="impact-label">減碳 CO₂e</span>
+      </div>
+      <div class="impact-cell impact-highlight impact-blue">
+        <span class="impact-value">${fmtInt(waterSavedL)}</span>
+        <span class="impact-unit">L</span>
+        <span class="impact-label">省水量</span>
+      </div>
+      <div class="impact-cell impact-highlight impact-brown">
+        <span class="impact-value">${fmtInt(landSavedM2)}</span>
+        <span class="impact-unit">m²</span>
+        <span class="impact-label">省地</span>
+      </div>
+    </div>
     <div class="impact-grid">
       <div class="impact-cell">
         <span class="impact-value">${totalDays}</span>
@@ -121,17 +161,13 @@ async function hydrate(wrap: HTMLElement): Promise<void> {
         <span class="impact-value">${totalMeals}</span>
         <span class="impact-label">蔬食餐次</span>
       </div>
-      <div class="impact-cell impact-highlight">
-        <span class="impact-value">${co2Saved.toFixed(1)}</span>
-        <span class="impact-label">減碳 kg CO₂e</span>
+      <div class="impact-cell">
+        <span class="impact-value">${streak}</span>
+        <span class="impact-label">最長連擊</span>
       </div>
       <div class="impact-cell">
         <span class="impact-value">${luckyHits}</span>
         <span class="impact-label">幸運色命中</span>
-      </div>
-      <div class="impact-cell">
-        <span class="impact-value">${streak}</span>
-        <span class="impact-label">最長連擊</span>
       </div>
       <div class="impact-cell">
         <span class="impact-value">LV.${profile?.level ?? 1}</span>
@@ -147,7 +183,7 @@ async function hydrate(wrap: HTMLElement): Promise<void> {
         .join('')}</div>`
     : '';
 
-  wrap.dataset.summary = `Yummi Go 30 天挑戰：${totalDays} 天 / ${totalMeals} 餐 / 減碳 ${co2Saved.toFixed(1)}kg CO₂e / 連擊 ${streak} 天。`;
+  wrap.dataset.summary = `Yummi Go 30 天挑戰：${totalDays} 天 / ${totalMeals} 餐 / 減碳 ${co2Saved.toFixed(1)} kg CO₂e / 省水 ${fmtInt(waterSavedL)} L / 省地 ${fmtInt(landSavedM2)} m² / 連擊 ${streak} 天。`;
 }
 
 function longestConsecutive(sorted: number[]): number {

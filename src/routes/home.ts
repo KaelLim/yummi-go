@@ -85,9 +85,9 @@ export default function home(): HTMLElement {
       <span class="ms lucky-card-arrow">arrow_forward</span>
     </section>
     <section class="quiz-bubble" id="quiz-bubble" role="button" tabindex="0">
-      <span class="ms">school</span>
-      <span class="quiz-bubble-text">每日小測驗</span>
-      <span class="quiz-bubble-xp">+15 XP</span>
+      <span class="ms" data-bind="quiz-icon">school</span>
+      <span class="quiz-bubble-text" data-bind="quiz-text">每日小測驗</span>
+      <span class="quiz-bubble-xp" data-bind="quiz-xp">+15 XP</span>
     </section>
   `;
 
@@ -140,6 +140,19 @@ export default function home(): HTMLElement {
       const tick = dot.querySelector('.meal-dot-tick');
       if (tick) tick.textContent = done ? '✓' : '·';
     }
+
+    const quizDone = t.missionsDone.includes('quiz');
+    const quizBubble = $$('#quiz-bubble');
+    if (quizBubble) {
+      quizBubble.classList.toggle('done', quizDone);
+      quizBubble.setAttribute('aria-disabled', quizDone ? 'true' : 'false');
+      const icon = quizBubble.querySelector('[data-bind="quiz-icon"]');
+      if (icon) icon.textContent = quizDone ? 'task_alt' : 'school';
+      const text = quizBubble.querySelector('[data-bind="quiz-text"]');
+      if (text) text.textContent = quizDone ? '今日小測驗已完成' : '每日小測驗';
+      const xp = quizBubble.querySelector('[data-bind="quiz-xp"]');
+      if (xp) xp.textContent = quizDone ? '+15 XP ✓' : '+15 XP';
+    }
   }
 
   function renderChallenge(c: { currentDay: ChallengeScript | null }) {
@@ -156,8 +169,11 @@ export default function home(): HTMLElement {
   bind(wrap, $today, renderToday);
   bind(wrap, $challenge, renderChallenge);
 
-  $$('#lucky-card')?.addEventListener('click', () => navigate('/map'));
-  $$('#quiz-bubble')?.addEventListener('click', () => navigate('/tasks/quiz'));
+  $$('#lucky-card')?.addEventListener('click', () => navigate('/check-in'));
+  $$('#quiz-bubble')?.addEventListener('click', () => {
+    if ($today.get().missionsDone.includes('quiz')) return; // 今日已完成，不再 navigate
+    navigate('/tasks/quiz');
+  });
 
   return wrap;
 }

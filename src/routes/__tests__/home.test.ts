@@ -38,7 +38,7 @@ describe('home route', () => {
   it('reflects $pet level/xp into the level bar', () => {
     const el = home();
     document.body.appendChild(el);
-    $pet.set({ level: 5, currentXp: 12, accumulatedXp: 0, stage: 'egg', mood: 'normal' });
+    $pet.set({ level: 5, currentXp: 12, accumulatedXp: 0, stage: 'egg', mood: 'normal', strikes: 0, poisonedUntil: null });
     expect(el.querySelector('[data-bind="level"]')?.textContent).toBe('5');
     expect(el.querySelector('[data-bind="cur-xp"]')?.textContent).toBe('12');
     el.remove();
@@ -60,11 +60,11 @@ describe('home route', () => {
     el.remove();
   });
 
-  it('clicking lucky card navigates to /map', () => {
+  it('clicking lucky card navigates to /check-in', () => {
     const el = home();
     document.body.appendChild(el);
     el.querySelector<HTMLElement>('#lucky-card')?.click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/map');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in');
     el.remove();
   });
 
@@ -73,6 +73,25 @@ describe('home route', () => {
     document.body.appendChild(el);
     el.querySelector<HTMLElement>('#quiz-bubble')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/tasks/quiz');
+    el.remove();
+  });
+
+  it('quiz bubble shows done state once today.missionsDone includes "quiz"', () => {
+    const el = home();
+    document.body.appendChild(el);
+    $today.set({ dayNumber: 1, totalXpToday: 15, missionsDone: ['quiz'], luckyColor: '' });
+    const bubble = el.querySelector<HTMLElement>('#quiz-bubble')!;
+    expect(bubble.classList.contains('done')).toBe(true);
+    expect(bubble.querySelector('[data-bind="quiz-text"]')?.textContent).toContain('已完成');
+    el.remove();
+  });
+
+  it('clicking quiz bubble does not navigate when today already complete', () => {
+    const el = home();
+    document.body.appendChild(el);
+    $today.set({ dayNumber: 1, totalXpToday: 15, missionsDone: ['quiz'], luckyColor: '' });
+    el.querySelector<HTMLElement>('#quiz-bubble')?.click();
+    expect(mockedRouter.navigate).not.toHaveBeenCalled();
     el.remove();
   });
 });

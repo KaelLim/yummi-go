@@ -19,8 +19,9 @@ import { $ui } from '@/store/ui';
 import { listCheckIns, type CheckInRow } from '@/api/check-ins';
 import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
 import { bind } from '@/lib/lifecycle';
-import { spriteFor, type PetMood } from '@/lib/pet-sprites';
+import { spriteFor } from '@/lib/pet-sprites';
 import type { PetStage } from '@/lib/pet-evolution';
+import { $pet, effectiveMood } from '@/store/pet';
 
 const DAY_MS = 86_400_000;
 /** challenge day → calendar Date (day 1 maps to challengeStartedAt) */
@@ -93,7 +94,10 @@ export default function profile(): HTMLElement {
     const ident = wrap.querySelector<HTMLElement>('#identity')!;
     const dietLabel = p?.diet_type ? DIET_LABEL[p.diet_type] ?? p.diet_type : null;
     const stage = (p?.stage ?? 'egg') as PetStage;
-    const mood = (p?.mood ?? 'normal') as PetMood;
+    // Effective mood honours the food-poisoning override; if no $pet state
+    // is loaded yet we fall back to whatever profile.mood says.
+    const petState = $pet.get();
+    const mood = petState ? effectiveMood(petState) : ((p?.mood ?? 'normal') as ReturnType<typeof effectiveMood>);
     ident.innerHTML = `
       <div class="profile-avatar">
         <img class="pet-frog" src="${spriteFor(stage, mood)}" alt="守護者" draggable="false" />
@@ -185,6 +189,7 @@ export default function profile(): HTMLElement {
 
   bind(wrap, $user, renderAll);
   bind(wrap, $profile, renderAll);
+  bind(wrap, $pet, () => renderIdentity());
   bind(wrap, $today, renderCalendar);
   bind(wrap, $challenge, () => {});
 

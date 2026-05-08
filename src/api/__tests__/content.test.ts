@@ -76,12 +76,12 @@ describe('content', () => {
   });
 
   describe('listChallengeScripts', () => {
-    it('lists challenge_scripts and sorts by day_number', async () => {
+    it('merges drust live rows with the fixture so all 30 days are present', async () => {
       mockedDrust.list.mockResolvedValueOnce({
         records: [
-          { id: 3, day_number: 3 },
-          { id: 1, day_number: 1 },
-          { id: 2, day_number: 2 },
+          { id: 999, day_number: 1, lucky_color: 'live-red' },
+          { id: 998, day_number: 2, lucky_color: 'live-yellow' },
+          { id: 997, day_number: 3, lucky_color: 'live-green' },
         ],
       });
       const out = await listChallengeScripts();
@@ -89,7 +89,22 @@ describe('content', () => {
         sort: 'day_number',
         limit: '100',
       });
-      expect(out.map((s) => s.day_number)).toEqual([1, 2, 3]);
+      expect(out).toHaveLength(30);
+      // live rows override fixture for matching day_number
+      expect(out[0].lucky_color).toBe('live-red');
+      expect(out[1].lucky_color).toBe('live-yellow');
+      expect(out[2].lucky_color).toBe('live-green');
+      // fixture fills the rest
+      expect(out[29].day_number).toBe(30);
+    });
+
+    it('returns the full 30-day fixture when drust returns nothing', async () => {
+      mockedDrust.list.mockResolvedValueOnce({ records: [] });
+      const out = await listChallengeScripts();
+      expect(out).toHaveLength(30);
+      expect(out.map((s) => s.day_number)).toEqual(
+        Array.from({ length: 30 }, (_, i) => i + 1),
+      );
     });
   });
 
@@ -120,7 +135,7 @@ describe('content', () => {
       expect(out).toEqual(fakeQ);
     });
 
-    it('returns null when empty', async () => {
+    it('falls back to a fixture question when drust returns empty', async () => {
       mockedDrust.rpc.mockResolvedValueOnce({
         column_names: [],
         rows: [],
@@ -128,7 +143,10 @@ describe('content', () => {
         truncated: false,
       });
       mockedDrust.rpcRows.mockReturnValueOnce([]);
-      expect(await randomQuiz()).toBeNull();
+      const q = await randomQuiz();
+      expect(q).not.toBeNull();
+      expect(q?.question).toBeTruthy();
+      expect(q?.correct_answer).toBeTruthy();
     });
   });
 

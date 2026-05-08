@@ -381,6 +381,17 @@ body {
 }
 .pet-accessory { position: absolute; inset: 0; pointer-events: none; }
 
+/* 寵物食物中毒 — 3 strikes mood=critical, 24h cooldown.
+ * Sickly green hue + slow pulse so it reads as "ill" without flashy alarm. */
+.pet-view.poisoned .pet-frog {
+  filter: hue-rotate(70deg) saturate(1.4) brightness(0.95);
+  animation: pet-poison-pulse 2.4s ease-in-out infinite;
+}
+@keyframes pet-poison-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(0.97) rotate(-1deg); }
+}
+
 /* Level bar */
 .level-bar {
   background: var(--color-card);
@@ -465,6 +476,14 @@ body {
 }
 .quiz-bubble:hover { background: var(--color-secondary-light-hover); }
 .quiz-bubble:focus-visible { outline: 2px solid var(--color-secondary); outline-offset: 2px; }
+.quiz-bubble.done {
+  background: var(--color-neutral-light-active);
+  border-color: var(--color-neutral-darker);
+  color: var(--color-neutral-darker);
+  cursor: default;
+  opacity: 0.7;
+}
+.quiz-bubble.done:hover { background: var(--color-neutral-light-active); }
 .quiz-bubble-text { flex: 1; font-size: var(--text-mini-size); }
 .quiz-bubble-xp { font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold); }
 
@@ -1207,6 +1226,27 @@ body {
   text-align: left;
 }
 .day30-card-title { font-size: var(--text-mini-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); margin: 0 0 var(--space-3); }
+.impact-hero-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-bottom: var(--space-3);
+}
+.impact-hero-grid .impact-cell { gap: 0; align-items: center; text-align: center; padding: var(--space-3) var(--space-2); }
+.impact-hero-grid .impact-value { font-size: var(--text-h2-size); line-height: 1.05; }
+.impact-hero-grid .impact-unit {
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+  color: var(--color-secondary-dark); margin-top: 2px;
+}
+.impact-cell.impact-blue {
+  background: linear-gradient(135deg, #cfe9ff, #a8d4ff);
+}
+.impact-cell.impact-blue .impact-value,
+.impact-cell.impact-blue .impact-unit { color: #1a5fa8; }
+.impact-cell.impact-brown {
+  background: linear-gradient(135deg, #ead7be, #d8b88c);
+}
+.impact-cell.impact-brown .impact-value,
+.impact-cell.impact-brown .impact-unit { color: #6b4a1f; }
+
 .impact-grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
 }

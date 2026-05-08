@@ -1,12 +1,31 @@
 /**
- * CO2 savings calculation per spec 附件三.
- * Compares user's typical meat-eating week against an equivalent plant-based week.
+ * CO2 / water / land savings calculations per spec 附件三 + § Day-30 終曲.
+ *
+ * Compares the user's typical meat-eating week against the equivalent
+ * plant-based week. Water and land use values are sourced from FAO + Water
+ * Footprint Network averages (kg-of-meat → litres / m² of resource).
  */
 export const CO2_KG_PER_KG: Record<string, number> = {
   beef: 99.48,
   pork: 12.31,
   lamb: 39.72,
   chicken: 9.87,
+};
+
+/** litres of water per kg of meat (Water Footprint Network global avg). */
+export const WATER_L_PER_KG: Record<string, number> = {
+  beef: 15400,
+  pork: 6000,
+  lamb: 10400,
+  chicken: 4300,
+};
+
+/** m² of land per kg of meat (FAO + Our World in Data, global avg). */
+export const LAND_M2_PER_KG: Record<string, number> = {
+  beef: 326,
+  pork: 17,
+  lamb: 369,
+  chicken: 12,
 };
 
 export interface Baseline {
@@ -16,15 +35,44 @@ export interface Baseline {
   chicken: number; // ratios summing to <= 1
 }
 
-const PLANT_AVG_CO2 = 1.0; // approx kg CO2e per kg plant food
+const PLANT_AVG_CO2 = 1.0; // kg CO2e per kg plant food
+const PLANT_AVG_WATER = 1000; // litres water per kg plant food
+const PLANT_AVG_LAND = 3; // m² land per kg plant food
+
+function weightedFactor(
+  baseline: Baseline,
+  factors: Record<string, number>,
+): number {
+  return (
+    baseline.beef * factors.beef +
+    baseline.pork * factors.pork +
+    baseline.lamb * factors.lamb +
+    baseline.chicken * factors.chicken
+  );
+}
 
 export function impactSavedKg(weeklyKg: number, baseline: Baseline): number {
-  const meatCo2 =
-    (baseline.beef * CO2_KG_PER_KG.beef +
-      baseline.pork * CO2_KG_PER_KG.pork +
-      baseline.lamb * CO2_KG_PER_KG.lamb +
-      baseline.chicken * CO2_KG_PER_KG.chicken) *
-    weeklyKg;
+  const meatCo2 = weightedFactor(baseline, CO2_KG_PER_KG) * weeklyKg;
   const plantCo2 = weeklyKg * PLANT_AVG_CO2;
   return Math.max(0, meatCo2 - plantCo2);
+}
+
+/** Litres of water saved by replacing weeklyKg of meat with plants. */
+export function impactSavedLitresWater(
+  weeklyKg: number,
+  baseline: Baseline,
+): number {
+  const meatWater = weightedFactor(baseline, WATER_L_PER_KG) * weeklyKg;
+  const plantWater = weeklyKg * PLANT_AVG_WATER;
+  return Math.max(0, meatWater - plantWater);
+}
+
+/** m² of land use avoided by replacing weeklyKg of meat with plants. */
+export function impactSavedM2Land(
+  weeklyKg: number,
+  baseline: Baseline,
+): number {
+  const meatLand = weightedFactor(baseline, LAND_M2_PER_KG) * weeklyKg;
+  const plantLand = weeklyKg * PLANT_AVG_LAND;
+  return Math.max(0, meatLand - plantLand);
 }

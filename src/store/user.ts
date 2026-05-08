@@ -49,6 +49,8 @@ export async function bootstrapFromStorage(): Promise<boolean> {
         accumulatedXp: full.accumulated_xp ?? 0,
         stage: ((full.stage as PetStage) ?? stageFromLevel(full.level)) as PetStage,
         mood: full.mood ?? 'normal',
+        strikes: 0,
+        poisonedUntil: null,
       });
     }
     return true;

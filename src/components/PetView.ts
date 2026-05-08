@@ -3,11 +3,13 @@
  * ($pet.stage, $pet.mood). Resolution is centralized in lib/pet-sprites.
  *
  * Subscribes to $pet via bind() so subscribers auto-cleanup when the
- * element is removed from the DOM (no leaks across navigations).
+ * element is removed from the DOM (no leaks across navigations). When the
+ * pet is in an active poison window the view forces mood='critical' and
+ * adds the .poisoned class so CSS can layer a green sickly tint.
  */
-import { $pet, type PetStoreShape } from '@/store/pet';
+import { $pet, effectiveMood, type PetStoreShape } from '@/store/pet';
 import { bind } from '@/lib/lifecycle';
-import { spriteFor, type PetMood } from '@/lib/pet-sprites';
+import { spriteFor } from '@/lib/pet-sprites';
 import type { PetStage } from '@/lib/pet-evolution';
 
 export interface PetViewHandle {
@@ -28,7 +30,9 @@ export function createPetView(): PetViewHandle {
 
   function applyState(p: PetStoreShape | null) {
     const stage = (p?.stage ?? 'egg') as PetStage;
-    const mood = (p?.mood ?? 'normal') as PetMood;
+    const mood = effectiveMood(p);
+    const poisoned = !!(p?.poisonedUntil && p.poisonedUntil > Date.now());
+    wrap.classList.toggle('poisoned', poisoned);
     img.setAttribute('src', spriteFor(stage, mood));
   }
 
