@@ -102,9 +102,11 @@
    * ========================================================================= */
   --text-title-size:    48px;   /* Title Cover / 文件標題 */
   --text-h1-size:       33px;   /* Heading 1 / 大標題 1（Latin） */
+  --text-display-size: 32px;   /* between h1 and h2 — splash hero, oversized H2 */
   --text-h2-size:       28px;   /* Heading 2 / 大標題 2 */
   --text-h3-size:       24px;   /* Heading 3 / 大標題 3 */
   --text-body-size:     16px;   /* Body text / 內文 */
+  --text-mini-size:    14px;   /* below body — labels, dense UI rows */
   --text-caption-size:  12px;   /* caption / 備註 */
   --text-button-xl-size: 24px;
   --text-button-l-size:  20px;
