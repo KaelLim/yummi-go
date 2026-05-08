@@ -23,8 +23,12 @@ import {
 } from '@/store/ui';
 import { $user, $profile } from '@/store/user';
 import { awardXp } from '@/store/pet';
-import { addGems, addFragments } from '@/api/wallet';
+import { resetTodayProgress } from '@/store/today';
+import { addGems, addFragments, resetGems, resetMakeup } from '@/api/wallet';
+import { resetPet } from '@/api/pet';
+import { deleteAllCheckIns } from '@/api/check-ins';
 import { getUserFull } from '@/api/profile';
+import { setPetFromRow } from '@/store/pet';
 import { navigate } from '@/router';
 import { bind } from '@/lib/lifecycle';
 
@@ -111,6 +115,17 @@ export function createDevPanel(): HTMLElement {
       <div class="dev-status" id="dev-status" hidden></div>
 
       <section class="dev-section">
+        <span class="dev-label">重置</span>
+        <div class="dev-chips" id="reset-chips">
+          <button class="dev-chip" data-reset="today">今日進度</button>
+          <button class="dev-chip" data-reset="pet">寵物 LV1</button>
+          <button class="dev-chip" data-reset="wallet">錢包歸零</button>
+          <button class="dev-chip dev-chip-danger" data-reset="checkins">清空打卡</button>
+          <button class="dev-chip dev-chip-danger" data-reset="all">全部重置</button>
+        </div>
+      </section>
+
+      <section class="dev-section">
         <span class="dev-label">快速跳頁</span>
         <div class="dev-chips" id="route-chips">
           ${ROUTES.map(
@@ -176,6 +191,80 @@ export function createDevPanel(): HTMLElement {
     });
   });
 
+  // Reset chips
+  wrap.querySelectorAll<HTMLButtonElement>('#reset-chips .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      const which = c.dataset.reset!;
+      void doReset(which);
+    });
+  });
+
+  // Two-stage confirm: first click arms the chip (red flash + countdown),
+  // a second click within 4 seconds executes. Avoids native window.confirm
+  // which blocks the runtime and is awkward for automated test flows.
+  let armed: { which: string; timer: number } | null = null;
+
+  function armOrFire(which: string): boolean {
+    const needsConfirm = which === 'pet' || which === 'wallet' || which === 'checkins' || which === 'all';
+    if (!needsConfirm) return true;
+    if (armed && armed.which === which) {
+      window.clearTimeout(armed.timer);
+      armed = null;
+      return true;
+    }
+    if (armed) window.clearTimeout(armed.timer);
+    armed = {
+      which,
+      timer: window.setTimeout(() => {
+        armed = null;
+        flash('已取消重置', false);
+      }, 4000),
+    };
+    flash(`${labelForReset(which)}：再次點擊確認（4 秒內）`, true);
+    return false;
+  }
+
+  async function doReset(which: string): Promise<void> {
+    if (!armOrFire(which)) return;
+    const u = $user.get();
+    if (!u && which !== 'today') {
+      flash('請先登入', true);
+      return;
+    }
+    flash('處理中…', false);
+    try {
+      if (which === 'today') {
+        resetTodayProgress();
+      } else if (which === 'pet' && u) {
+        const next = await resetPet(u.id);
+        setPetFromRow(next);
+      } else if (which === 'wallet' && u) {
+        await resetGems(u.id);
+        await resetMakeup(u.id);
+      } else if (which === 'checkins' && u) {
+        const n = await deleteAllCheckIns(u.id);
+        flash(`已刪除 ${n} 筆打卡`, false);
+      } else if (which === 'all' && u) {
+        const next = await resetPet(u.id);
+        setPetFromRow(next);
+        await resetGems(u.id);
+        await resetMakeup(u.id);
+        const n = await deleteAllCheckIns(u.id);
+        resetTodayProgress();
+        flash(`完全重置（刪 ${n} 筆打卡）`, false);
+      }
+      if (u) {
+        const refreshed = await getUserFull(u.id);
+        if (refreshed) $profile.set(refreshed);
+      }
+      if (!['checkins', 'all'].includes(which)) {
+        flash(`重置完成：${labelForReset(which)}`, false);
+      }
+    } catch (err) {
+      flash((err as Error).message ?? '失敗', true);
+    }
+  }
+
   async function doGrant(kind: string, amount: number): Promise<void> {
     const u = $user.get();
     if (!u) {
@@ -239,4 +328,12 @@ function labelFor(kind: string): string {
   if (kind === 'xp') return 'XP';
   if (kind === 'gems') return '寶石';
   return '碎片';
+}
+
+function labelForReset(which: string): string {
+  if (which === 'today') return '今日進度';
+  if (which === 'pet') return '寵物 LV1';
+  if (which === 'wallet') return '錢包歸零';
+  if (which === 'checkins') return '清空打卡';
+  return '全部';
 }

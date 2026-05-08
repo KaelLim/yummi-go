@@ -1310,6 +1310,11 @@ body {
 }
 .dev-chip:hover { background: var(--color-neutral-light-active); }
 .dev-chip.selected { background: var(--color-primary); color: #fff; border-color: transparent; }
+.dev-chip-danger {
+  border-color: var(--color-destructive);
+  color: var(--color-destructive);
+}
+.dev-chip-danger:hover { background: rgba(232, 93, 117, 0.1); }
 .dev-sheet .baseline-slider { margin-top: 4px; }
 .dev-readout { font-size: 12px; font-weight: 700; color: var(--color-primary); font-variant-numeric: tabular-nums; }
 .dev-status {

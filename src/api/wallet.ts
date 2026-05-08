@@ -113,3 +113,24 @@ export async function addFragments(
   });
   return { fragments: newFragments, cards: newCards };
 }
+
+/** Dev-only: zero out balance + total_earned + total_spent on gem_balances. */
+export async function resetGems(userId: number): Promise<void> {
+  const gem = await getGemBalance(userId);
+  if (!gem) throw new Error('Gem balance not found');
+  await drust.update('gem_balances', gem.id, {
+    balance: 0,
+    total_earned: 0,
+    total_spent: 0,
+  });
+}
+
+/** Dev-only: zero out card_count + fragment_count on makeup_cards. */
+export async function resetMakeup(userId: number): Promise<void> {
+  const mu = await getMakeupCards(userId);
+  if (!mu) throw new Error('Makeup cards row not found');
+  await drust.update('makeup_cards', mu.id, {
+    card_count: 0,
+    fragment_count: 0,
+  });
+}

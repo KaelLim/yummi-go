@@ -63,3 +63,18 @@ export async function setMood(userId: number, mood: string): Promise<void> {
   if (!pet) throw new Error('Pet not found');
   await drust.update('pet_states', pet.id, { mood });
 }
+
+/** Dev-only: roll the pet row back to a freshly-hatched LV1 egg. */
+export async function resetPet(userId: number): Promise<PetState> {
+  const pet = await getPet(userId);
+  if (!pet) throw new Error('Pet not found');
+  const reset = {
+    level: 1,
+    current_xp: 0,
+    accumulated_xp: 0,
+    stage: 'egg',
+    mood: 'normal',
+  };
+  await drust.update('pet_states', pet.id, reset);
+  return { ...pet, ...reset };
+}

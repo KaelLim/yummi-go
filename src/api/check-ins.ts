@@ -69,3 +69,15 @@ export async function listCheckIns(
     (c) => c.user_id === userId && (dayNumber === undefined || c.day_number === dayNumber),
   );
 }
+
+/**
+ * Dev-only: delete every check-in row for a user. drust has no bulk-delete
+ * surface, so this fans out one DELETE per row. Same 20-row caveat as
+ * listCheckIns — if the user logged more than 20 across the demo this
+ * might miss some, but in practice we hit it from a freshly-reset state.
+ */
+export async function deleteAllCheckIns(userId: number): Promise<number> {
+  const rows = await listCheckIns(userId);
+  await Promise.all(rows.map((r) => drust.delete('check_ins', r.id)));
+  return rows.length;
+}

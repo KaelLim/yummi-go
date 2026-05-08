@@ -37,6 +37,12 @@ export function markMissionDone(key: string, xpEarned: number) {
   });
 }
 
+/** Dev-only: blank out today's progress without touching the day or scripts. */
+export function resetTodayProgress() {
+  const t = $today.get();
+  $today.set({ ...t, totalXpToday: 0, missionsDone: [] });
+}
+
 export function setDay(scripts: ChallengeScript[], dayNumber: number) {
   const cur = scripts.find((s) => s.day_number === dayNumber) ?? null;
   $challenge.set({ scripts, currentDay: cur });
