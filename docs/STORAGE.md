@@ -69,6 +69,7 @@ One row per user (1:1 with `users`).
 | eat_times | `get_user_full` | onboarding/eat-times | future push schedule |
 | known_from | `get_user_full` | onboarding/known-from | analytics |
 | baseline | `get_user_full` | onboarding/baseline | impact calculator (CO2/water/land) |
+| purpose | `get_user_full`, `profile_for_user` | `onboarding/purpose` updateProfile | NEW — Body / Environment / Vow / null |
 
 #### `pet_states`
 
@@ -95,6 +96,14 @@ One row per (user_id, day_number). **NEW — populated by this redesign.**
 | total_xp | RPC | upsert (cumulative for the day) |
 | lucky_color | RPC | upsert (memo for sharing flow) |
 | completed_at | RPC | upsert (ISO 8601 once all 3 meals + quiz done) |
+
+**Mission key catalogue (in `missions_done` JSON array):**
+- `meal:breakfast` / `meal:lunch` / `meal:dinner` — successful meal check-in (xp credited)
+- `meal_fail:breakfast` / `meal_fail:lunch` / `meal_fail:dinner` — confirmed-meat fail (no xp)
+- `quiz` — daily quiz answered (15 xp)
+- `lucky:hit` — recorded when a check-in's `lucky_color_matched=1` (no separate xp; the meal mission already includes the +15)
+- `eco` — eco / 5R action checked off in Tasks page
+- `review:{restaurant_id}` — restaurant review submitted (20 xp)
 
 **Replaces** the in-memory `$today` that vanished on reload. Hydrated by `setupDaySync` after every day flip.
 
@@ -168,6 +177,10 @@ Schema: user_id, restaurant_id, rating, text, photo_id, vegan_type, status (pend
 | `yummi.installPromptDismissed` | `InstallPrompt` mount | dismiss / install handlers | per-device install card |
 
 **Removed in 2026-05-08 redesign:** `yummi.pet.strikes`, `yummi.pet.poisonedUntil`, `yummi.challengeStartedAt`. All three now live in drust.
+
+### Browser-managed state
+
+- Notification permission: stored by the browser as `Notification.permission` ('default' | 'granted' | 'denied'). Yummi Go does not mirror this in localStorage. Re-ask flow: `/profile/settings → 推播提醒 → 允許用餐前 10 分鐘提醒`.
 
 ## Query plan at 100k users
 
@@ -366,6 +379,16 @@ For reference, the current state:
   - Removed localStorage keys: `yummi.pet.strikes`, `yummi.pet.poisonedUntil`, `yummi.challengeStartedAt`
   - Replaced every `drust.list(coll)` + client-filter pattern with a server-side RPC
   - Wired `daily_progress` table (was empty, now populated on every mission complete)
+
+- **2026-05-08 (prototype polish):**
+  - Added `user_profiles.purpose` column
+  - Added `meal_fail_count` RPC for tolerance counting
+  - Updated `get_user_full` and `profile_for_user` RPCs to include `purpose`
+  - New mission keys in `daily_progress.missions_done`: `meal_fail:*`, `lucky:hit`
+  - New onboarding screens `/onboarding/purpose` (step 4) and `/onboarding/known-from` (step 7) — flow grew from 6 → 8 steps
+  - New `/check-in/fail` screen replaces an `alert()` for confirmed-meat path
+  - In-tab `meal-notifier` polling for eat_times reminders (uses `Notification` API; tab-only, no service worker)
+  - localStorage map unchanged
 
 ## Known limitations
 
