@@ -2,9 +2,11 @@
  * Bottom tab bar (5 tabs, center-elevated check-in).
  *
  * Subscribes to $route so the active tab visually highlights when the path
- * starts with the tab's href. Each click navigates via the router.
+ * starts with the tab's href. Subscription auto-cleans up via lifecycle.bind
+ * so navigating doesn't leak listeners against detached bar instances.
  */
 import { $route, navigate } from '@/router';
+import { bind } from '@/lib/lifecycle';
 
 interface Tab {
   key: string;
@@ -42,7 +44,6 @@ export function createTabBar(): HTMLElement {
     }
   }
 
-  render();
-  $route.subscribe(() => render());
+  bind(bar, $route, render);
   return bar;
 }

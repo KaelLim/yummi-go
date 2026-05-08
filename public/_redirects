@@ -1,0 +1,4 @@
+# SPA fallback for Netlify-style hosts (Cloudflare Pages also reads this).
+# Hash-based routes still resolve client-side, but a deep link straight to
+# /home or /tasks/quiz needs to land on index.html so the router can take over.
+/*    /index.html    200

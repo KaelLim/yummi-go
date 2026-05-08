@@ -9,6 +9,7 @@ import './styles/tokens.css';
 import './styles/globals.css';
 import { defRoute, startRouter } from './router';
 import { createLayout } from './components/Layout';
+import { setupInstallPrompt } from './components/InstallPrompt';
 import { bootstrapFromStorage } from './store/user';
 
 type RouteLoader = () => Promise<{
@@ -54,6 +55,7 @@ defRoute('/challenge/day-30', wrap(() => import('./routes/day-30')));
 
 async function boot() {
   await bootstrapFromStorage();
+  setupInstallPrompt();
   startRouter();
 }
 void boot();

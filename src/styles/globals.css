@@ -1263,3 +1263,93 @@ body {
 
 .day30-actions { display: flex; gap: 10px; width: 100%; max-width: 360px; }
 .day30-actions .btn { flex: 1; }
+
+/* =============================================================================
+ * Dev panel (Phase 13)
+ * ============================================================================= */
+.dev-panel-host { position: fixed; bottom: 96px; right: 16px; z-index: 1000; }
+.dev-fab {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(29, 89, 55, 0.95);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 16px -4px rgba(29,89,55,0.5);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+}
+.dev-fab:hover { background: var(--color-primary); }
+.dev-fab.open { transform: rotate(45deg); }
+.dev-fab .ms { font-size: 22px; }
+
+.dev-sheet {
+  position: absolute;
+  bottom: 60px; right: 0;
+  width: 280px; max-width: calc(100vw - 32px);
+  background: var(--color-card);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  box-shadow: 0 16px 32px -12px rgba(0,0,0,0.25);
+}
+.dev-sheet-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; color: var(--color-primary-dark);
+}
+.dev-section { display: flex; flex-direction: column; gap: 6px; }
+.dev-label { font-size: 11px; font-weight: 700; color: var(--color-neutral-darker); text-transform: uppercase; letter-spacing: 0.04em; }
+.dev-label-row { display: flex; align-items: baseline; justify-content: space-between; }
+.dev-day-readout { font-size: 13px; font-weight: 800; color: var(--color-primary); font-variant-numeric: tabular-nums; }
+.dev-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.dev-chip {
+  border: 1px solid var(--color-neutral); background: var(--color-card);
+  padding: 4px 10px; border-radius: 999px;
+  font-family: inherit; font-weight: 700; font-size: 12px;
+  color: var(--color-foreground-alt); cursor: pointer;
+}
+.dev-chip:hover { background: var(--color-neutral-light-active); }
+.dev-chip.selected { background: var(--color-primary); color: #fff; border-color: transparent; }
+.dev-sheet .baseline-slider { margin-top: 4px; }
+
+/* =============================================================================
+ * PWA install prompt
+ * ============================================================================= */
+.install-toast {
+  position: fixed; bottom: 96px; left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px); max-width: 420px;
+  background: var(--color-card);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 12px 28px -8px rgba(0,0,0,0.2);
+  z-index: 999;
+  animation: install-rise 0.3s ease-out;
+}
+@keyframes install-rise {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to   { transform: translate(-50%, 0); opacity: 1; }
+}
+.install-toast-icon {
+  color: var(--color-primary); font-size: 28px;
+  flex-shrink: 0;
+}
+.install-toast-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.install-toast-body strong { font-size: 13px; font-weight: 800; color: var(--color-primary-dark); }
+.install-toast-body span { font-size: 11px; color: var(--color-neutral-darker); }
+.install-toast-cta {
+  background: var(--color-primary); color: #fff;
+  border: none; border-radius: 999px;
+  padding: 6px 14px; cursor: pointer;
+  font-family: inherit; font-weight: 800; font-size: 12px;
+  flex-shrink: 0;
+}
+.install-toast-x {
+  border: none; background: none; cursor: pointer;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-neutral-dark);
+  flex-shrink: 0;
+}
+.install-toast-x:hover { color: var(--color-foreground-alt); }
