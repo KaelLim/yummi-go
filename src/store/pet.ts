@@ -69,6 +69,18 @@ export async function awardXp(userId: number, deltaXp: number) {
 }
 
 /**
+ * Strike writes are serialised through this chain so rapid clicks don't
+ * race. Without this, three +Strike clicks in 50ms each launch their own
+ * `getPet → update_record` round-trip; whichever update_record commits
+ * last on the server wins, and the count drifts (saw strikes=2 in drust
+ * after 3 clicks during live verification).
+ *
+ * Each enqueue returns the chain head; the next caller awaits it before
+ * computing its own delta, so reads always see the post-write state.
+ */
+let strikeChain: Promise<unknown> = Promise.resolve();
+
+/**
  * Append one strike to the user's drust row. The third strike triggers a
  * 24-hour mood=critical penalty (寵物食物中毒). Optimistically updates the
  * store to the new count so the UI reacts immediately, then persists; on
@@ -76,34 +88,45 @@ export async function awardXp(userId: number, deltaXp: number) {
  *
  * `now` is injectable for tests. Returns the new total.
  */
-export async function addStrike(
+export function addStrike(
   userId: number,
   now: number = Date.now(),
 ): Promise<number> {
-  const cur = $pet.get();
-  if (!cur) return 0;
-  const strikes = Math.min(STRIKE_THRESHOLD, cur.strikes + 1);
-  const poisonedUntil =
-    strikes >= STRIKE_THRESHOLD ? now + POISON_DURATION_MS : cur.poisonedUntil;
-  $pet.set({ ...cur, strikes, poisonedUntil });
-  try {
-    await petApi.setStrikes(userId, strikes, epochToIso(poisonedUntil));
-  } catch (err) {
-    console.warn('[pet] setStrikes failed:', err);
-  }
-  return strikes;
+  const next = strikeChain.then(async () => {
+    const cur = $pet.get();
+    if (!cur) return 0;
+    const strikes = Math.min(STRIKE_THRESHOLD, cur.strikes + 1);
+    const poisonedUntil =
+      strikes >= STRIKE_THRESHOLD
+        ? now + POISON_DURATION_MS
+        : cur.poisonedUntil;
+    $pet.set({ ...cur, strikes, poisonedUntil });
+    try {
+      await petApi.setStrikes(userId, strikes, epochToIso(poisonedUntil));
+    } catch (err) {
+      console.warn('[pet] setStrikes failed:', err);
+    }
+    return strikes;
+  });
+  // Don't let one failure block subsequent calls from running.
+  strikeChain = next.catch(() => undefined);
+  return next;
 }
 
 /** Dev / admin pardon. Wipes both strike count and active poison window. */
-export async function clearStrikes(userId: number): Promise<void> {
-  const cur = $pet.get();
-  if (!cur) return;
-  $pet.set({ ...cur, strikes: 0, poisonedUntil: null });
-  try {
-    await petApi.clearStrikes(userId);
-  } catch (err) {
-    console.warn('[pet] clearStrikes failed:', err);
-  }
+export function clearStrikes(userId: number): Promise<void> {
+  const next = strikeChain.then(async () => {
+    const cur = $pet.get();
+    if (!cur) return;
+    $pet.set({ ...cur, strikes: 0, poisonedUntil: null });
+    try {
+      await petApi.clearStrikes(userId);
+    } catch (err) {
+      console.warn('[pet] clearStrikes failed:', err);
+    }
+  });
+  strikeChain = next.catch(() => undefined);
+  return next;
 }
 
 /**
