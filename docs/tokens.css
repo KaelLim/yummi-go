@@ -158,6 +158,7 @@
   --radius-sm:    8px;
   --radius-md:   16px;
   --radius-lg:   24px;
+  --radius-xl:   32px;       /* large rounded cards (daily mission, hero pill) */
   --radius-pill: 9999px;
 }
 
