@@ -215,7 +215,7 @@ export default function tasks(): HTMLElement {
           <strong>${gems}</strong>
         </div>
         <p class="makeup-help">每日 XP 滿 100 後，每多 100 XP 換 1 個碎片。4 個碎片合成 1 張補簽卡，可補上錯過的一天打卡。</p>
-        <button class="btn btn-primary btn-l" id="enter-makeup">查看詳情</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="enter-makeup">查看詳情</button>
       </div>
     `;
     body.querySelector('#enter-makeup')?.addEventListener('click', () => navigate('/tasks/makeup'));

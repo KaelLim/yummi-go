@@ -26,8 +26,8 @@ export default function eatTimes(): HTMLElement {
       ${createProgress(5, 6).outerHTML}
     </div>
     <div class="onb-body">
-      <h1 class="onb-title">用餐時間</h1>
-      <p class="onb-sub">我們會在用餐前 10 分鐘提醒你打卡</p>
+      <h1 class="onb-title text-h2">用餐時間</h1>
+      <p class="onb-sub text-mini">我們會在用餐前 10 分鐘提醒你打卡</p>
       <div class="meal-list">
         ${MEALS.map(m => `
           <div class="meal-row">
@@ -38,7 +38,7 @@ export default function eatTimes(): HTMLElement {
         `).join('')}
       </div>
       <div class="grow"></div>
-      <button class="btn btn-primary btn-l" id="continue-btn">繼續</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">繼續</button>
     </div>
   `;
 

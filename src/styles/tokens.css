@@ -223,6 +223,7 @@
 .text-h2       { font-family: var(--font-sans); font-size: var(--text-h2-size);       font-weight: var(--text-h2-weight-cjk); }
 .text-h3       { font-family: var(--font-sans); font-size: var(--text-h3-size);       font-weight: var(--text-h3-weight-cjk); }
 .text-body     { font-family: var(--font-sans); font-size: var(--text-body-size);     font-weight: var(--text-body-weight-cjk); }
+.text-mini     { font-family: var(--font-sans); font-size: var(--text-mini-size);     font-weight: var(--text-body-weight-cjk); }
 .text-caption  { font-family: var(--font-sans); font-size: var(--text-caption-size);  font-weight: var(--text-caption-weight-cjk); }
 .text-btn-xl   { font-family: var(--font-sans); font-size: var(--text-button-xl-size); font-weight: var(--text-button-weight-cjk); }
 .text-btn-l    { font-family: var(--font-sans); font-size: var(--text-button-l-size);  font-weight: var(--text-button-weight-cjk); }
@@ -234,4 +235,5 @@
 .text-h2.is-latin       { font-weight: var(--text-h2-weight-latin); }
 .text-h3.is-latin       { font-weight: var(--text-h3-weight-latin); }
 .text-body.is-latin     { font-weight: var(--text-body-weight-latin); }
+.text-mini.is-latin     { font-weight: var(--text-body-weight-latin); }
 .text-caption.is-latin  { font-weight: var(--text-caption-weight-latin); }

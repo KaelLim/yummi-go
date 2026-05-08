@@ -27,8 +27,8 @@ export default function dietSurvey(): HTMLElement {
       ${createProgress(2, 6).outerHTML}
     </div>
     <div class="onb-body">
-      <h1 class="onb-title">你的飲食習慣是？</h1>
-      <p class="onb-sub">我們會根據你的飲食偏好推薦合適的挑戰</p>
+      <h1 class="onb-title text-h2">你的飲食習慣是？</h1>
+      <p class="onb-sub text-mini">我們會根據你的飲食偏好推薦合適的挑戰</p>
       <div class="onb-options">
         ${OPTIONS.map(o => `
           <button class="choice" data-value="${o.value}">

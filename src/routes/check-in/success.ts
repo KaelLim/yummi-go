@@ -16,7 +16,7 @@ export default function success(): HTMLElement {
     wrap.innerHTML = `
       <div class="checkin-body checkin-fallback">
         <p>沒有可顯示的打卡結果。</p>
-        <button class="btn btn-primary btn-l" id="back">回首頁</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回首頁</button>
       </div>
     `;
     wrap.querySelector('#back')?.addEventListener('click', () => navigate('/home'));
@@ -38,7 +38,7 @@ export default function success(): HTMLElement {
         守護者吸收了 <strong>${r.xpEarned} XP</strong> 的真實能量。<br/>
         灰霧消散 <strong>${r.fogReductionPct}%</strong>。
       </p>
-      <button class="btn btn-primary btn-l" id="next">繼續守護</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="next">繼續守護</button>
     </div>
   `;
 

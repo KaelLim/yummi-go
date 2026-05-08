@@ -49,7 +49,7 @@ export default function quiz(): HTMLElement {
       body.innerHTML = `
         <div class="checkin-fallback">
           <p>暫時拿不到題目。</p>
-          <button class="btn btn-primary btn-l" id="retry">重試</button>
+          <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="retry">重試</button>
         </div>
       `;
       body.querySelector('#retry')?.addEventListener('click', () => navigate('/tasks/quiz'));
@@ -132,8 +132,8 @@ async function onPick(
     </div>
     ${q.explanation ? `<p class="quiz-explanation">${escapeHtml(q.explanation)}</p>` : ''}
     <div class="quiz-actions">
-      <button class="btn btn-secondary btn-l" id="another">再來一題</button>
-      <button class="btn btn-primary btn-l" id="back">回任務</button>
+      <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="another">再來一題</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回任務</button>
     </div>
   `;
 

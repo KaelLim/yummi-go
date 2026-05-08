@@ -95,7 +95,7 @@ export default function map(): HTMLElement {
         <div class="map-card-addr">${escapeHtml(r.address)}</div>
         ${r.partner_discount ? `<div class="map-card-disc">優惠：${escapeHtml(r.partner_discount)}</div>` : ''}
       </div>
-      <button class="btn btn-primary btn-sm" id="card-detail">進詳情</button>
+      <button class="btn text-btn-m btn-primary btn-sm text-mini" id="card-detail">進詳情</button>
     `;
     card.querySelector('#card-detail')?.addEventListener('click', () => {
       navigate(`/map/restaurant/${r.id}`);

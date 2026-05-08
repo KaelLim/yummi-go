@@ -74,7 +74,7 @@ export default function review(params: Record<string, string>): HTMLElement {
       </label>
 
       <div class="review-error" id="error" hidden></div>
-      <button class="btn btn-primary btn-l" type="submit" id="submit">送出評論 (+20 XP)</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出評論 (+20 XP)</button>
     </form>
   `;
 

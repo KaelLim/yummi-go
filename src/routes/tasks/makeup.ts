@@ -50,7 +50,7 @@ export default function makeup(): HTMLElement {
         <h2 class="swap-title">用寶石兌換補簽卡</h2>
         <p class="swap-help">每 ${GEMS_PER_CARD} 寶石換 1 張補簽卡，可補上錯過的一天打卡。</p>
         <div class="swap-error" id="error" hidden></div>
-        <button class="btn btn-primary btn-l" id="swap-btn">
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="swap-btn">
           <span class="ms">swap_horiz</span>
           用 ${GEMS_PER_CARD} 寶石換 1 張
         </button>

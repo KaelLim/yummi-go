@@ -60,8 +60,8 @@ export default function settings(): HTMLElement {
 
       <div class="settings-success" id="ok" hidden>已儲存</div>
       <div class="review-error" id="err" hidden></div>
-      <button class="btn btn-primary btn-l" id="save">儲存變更</button>
-      <button class="btn btn-secondary btn-l" id="logout">
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">儲存變更</button>
+      <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="logout">
         <span class="ms">logout</span>登出
       </button>
     </div>

@@ -24,8 +24,8 @@ export default function challengeLevel(): HTMLElement {
       ${createProgress(4, 6).outerHTML}
     </div>
     <div class="onb-body">
-      <h1 class="onb-title">挑戰難度</h1>
-      <p class="onb-sub">選擇你能堅持 30 天的挑戰</p>
+      <h1 class="onb-title text-h2">挑戰難度</h1>
+      <p class="onb-sub text-mini">選擇你能堅持 30 天的挑戰</p>
       <div class="onb-options">
         ${LEVELS.map(l => `
           <button class="choice level-choice" data-value="${l.value}">

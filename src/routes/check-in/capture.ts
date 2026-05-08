@@ -33,14 +33,14 @@ export default function capture(): HTMLElement {
       </div>
       <input id="file" type="file" accept="image/*" capture="environment" hidden />
       <div class="capture-actions" id="actions">
-        <button class="btn btn-primary btn-l" id="shutter">
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="shutter">
           <span class="ms">photo_camera</span>
           開始拍照
         </button>
       </div>
       <div class="capture-actions" id="confirm-actions" hidden>
-        <button class="btn btn-secondary btn-l" id="retake">重新拍</button>
-        <button class="btn btn-primary btn-l" id="analyze">進行分析</button>
+        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="retake">重新拍</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="analyze">進行分析</button>
       </div>
     </div>
   `;

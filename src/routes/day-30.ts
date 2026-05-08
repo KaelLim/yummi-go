@@ -54,10 +54,10 @@ export default function day30(): HTMLElement {
       <section class="day30-card" id="impact"></section>
       <section class="day30-badges" id="badges"></section>
       <div class="day30-actions">
-        <button class="btn btn-secondary btn-l" id="share">
+        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="share">
           <span class="ms">share</span>分享成果
         </button>
-        <button class="btn btn-primary btn-l" id="restart">
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="restart">
           <span class="ms">replay</span>回首頁
         </button>
       </div>

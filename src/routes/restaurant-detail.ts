@@ -46,7 +46,7 @@ export default function detail(params: Record<string, string>): HTMLElement {
       <section class="reviews">
         <div class="reviews-head">
           <h2 class="reviews-title">評論</h2>
-          <button class="btn btn-primary btn-sm" id="add-review">
+          <button class="btn text-btn-m btn-primary btn-sm text-mini" id="add-review">
             <span class="ms">edit</span>寫評論
           </button>
         </div>

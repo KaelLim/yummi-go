@@ -37,7 +37,7 @@ export default function baselineEditor(): HTMLElement {
       <span></span>
     </header>
     <div class="checkin-body">
-      <p class="onb-sub">調整每種肉的比例，會影響挑戰結束時的減碳估算。</p>
+      <p class="onb-sub text-mini">調整每種肉的比例，會影響挑戰結束時的減碳估算。</p>
       <div class="baseline-list" id="baseline-list">
         ${TYPES.map(
           (t) => `
@@ -58,7 +58,7 @@ export default function baselineEditor(): HTMLElement {
       <div class="review-error" id="error" hidden></div>
     </div>
     <div class="checkin-footer">
-      <button class="btn btn-primary btn-l" id="save">儲存</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">儲存</button>
     </div>
   `;
 

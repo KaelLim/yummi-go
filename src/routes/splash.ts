@@ -15,7 +15,7 @@ export default function splash(): HTMLElement {
   wrap.innerHTML = `
     <div class="splash-logo">
       <div class="splash-logo-mark">🌿</div>
-      <div class="splash-title">Yummi Go</div>
+      <div class="splash-title text-title is-latin">Yummi Go</div>
       <div class="splash-tagline">吃出更好的自己 · 養好你的寵物</div>
     </div>
     <div class="splash-loader">

@@ -25,7 +25,7 @@ export default function day1Hook(): HTMLElement {
           灰霧濃重，蛋殼裡的精靈正等待你<br/>
           請立刻開始你的第一次打卡！
         </p>
-        <button class="btn btn-primary btn-l" id="enter-btn">
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="enter-btn">
           <span class="ms">photo_camera</span>
           開始打卡
         </button>

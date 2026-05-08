@@ -31,8 +31,8 @@ export default function baseline(): HTMLElement {
       ${createProgress(3, 6).outerHTML}
     </div>
     <div class="onb-body">
-      <h1 class="onb-title">原本的肉類飲食</h1>
-      <p class="onb-sub">這是用來計算你的減碳成果。可滑動調整每種肉的比例。</p>
+      <h1 class="onb-title text-h2">原本的肉類飲食</h1>
+      <p class="onb-sub text-mini">這是用來計算你的減碳成果。可滑動調整每種肉的比例。</p>
       <div class="baseline-list" id="baseline-list">
         ${TYPES.map(t => `
           <div class="baseline-row" data-key="${t.key}">
@@ -47,7 +47,7 @@ export default function baseline(): HTMLElement {
       </div>
       <div class="baseline-total">總計：<span id="total-pct">${Math.round(totalPct() * 100)}%</span> <span class="muted">(其他為素食)</span></div>
       <div class="grow"></div>
-      <button class="btn btn-primary btn-l" id="continue-btn">繼續</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">繼續</button>
     </div>
   `;
 

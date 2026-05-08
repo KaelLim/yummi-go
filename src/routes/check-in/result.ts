@@ -50,7 +50,7 @@ export default function result(): HTMLElement {
     wrap.innerHTML = `
       <div class="checkin-body checkin-fallback">
         <p>沒有可確認的辨識結果。</p>
-        <button class="btn btn-primary btn-l" id="back">回到拍照</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回到拍照</button>
       </div>
     `;
     wrap.querySelector('#back')?.addEventListener('click', () => navigate('/check-in'));
@@ -73,8 +73,8 @@ export default function result(): HTMLElement {
           <p id="meat-list"></p>
         </div>
         <div class="meat-banner-actions">
-          <button class="btn btn-sm btn-secondary" id="meat-yes">是</button>
-          <button class="btn btn-sm btn-primary" id="meat-no">否，替代為植物肉</button>
+          <button class="btn text-btn-m btn-sm text-mini btn-secondary" id="meat-yes">是</button>
+          <button class="btn text-btn-m btn-sm text-mini btn-primary" id="meat-no">否，替代為植物肉</button>
         </div>
       </div>
 
@@ -96,7 +96,7 @@ export default function result(): HTMLElement {
       <div class="result-summary" id="summary"></div>
     </div>
     <div class="checkin-footer">
-      <button class="btn btn-primary btn-l" id="confirm-btn">確認打卡</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="confirm-btn">確認打卡</button>
     </div>
   `;
 

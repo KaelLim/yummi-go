@@ -25,7 +25,7 @@ export default function scanning(): HTMLElement {
     wrap.innerHTML = `
       <div class="checkin-body checkin-fallback">
         <p>請先拍下一張餐點照片。</p>
-        <button class="btn btn-primary btn-l" id="back">回到拍照</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回到拍照</button>
       </div>
     `;
     wrap.querySelector('#back')?.addEventListener('click', () => navigate('/check-in'));
@@ -55,7 +55,7 @@ export default function scanning(): HTMLElement {
         status.innerHTML = '<span class="ms">error</span><span>辨識失敗，請重試</span>';
       }
       const retry = document.createElement('button');
-      retry.className = 'btn btn-primary btn-l';
+      retry.className = 'btn text-btn-m btn-primary btn-l text-btn-l';
       retry.textContent = '重新拍照';
       retry.addEventListener('click', () => navigate('/check-in'));
       wrap.querySelector('.checkin-body')?.appendChild(retry);

@@ -18,7 +18,7 @@ export default function oath(): HTMLElement {
       ${createProgress(1, 6).outerHTML}
     </div>
     <div class="onb-body">
-      <h1 class="onb-title">綠色承諾</h1>
+      <h1 class="onb-title text-h2">綠色承諾</h1>
       <div class="oath-card">
         <div class="oath-icon">🌿</div>
         <p class="oath-text">
@@ -35,7 +35,7 @@ export default function oath(): HTMLElement {
         <span class="oath-cb-label">我同意這個承諾</span>
       </label>
       <div class="grow"></div>
-      <button class="btn btn-primary btn-l" id="continue-btn" disabled>繼續</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn" disabled>繼續</button>
     </div>
   `;
 

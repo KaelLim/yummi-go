@@ -18,24 +18,24 @@ export default function register(): HTMLElement {
       <div class="auth-back" id="back-btn"><span class="ms">arrow_back</span></div>
     </div>
     <div class="auth-body">
-      <h1 class="auth-title">建立帳號</h1>
-      <p class="auth-sub">開始你的 30 天蔬食挑戰</p>
+      <h1 class="auth-title text-h1">建立帳號</h1>
+      <p class="auth-sub text-body">開始你的 30 天蔬食挑戰</p>
 
       <form class="auth-form" id="reg-form">
         <label class="field">
-          <span class="field-label">使用者名稱</span>
+          <span class="field-label text-mini">使用者名稱</span>
           <input class="input" type="text" name="username" required minlength="3" />
         </label>
         <label class="field">
-          <span class="field-label">寵物名稱（顯示名）</span>
+          <span class="field-label text-mini">寵物名稱（顯示名）</span>
           <input class="input" type="text" name="display_name" required />
         </label>
         <label class="field">
-          <span class="field-label">密碼</span>
+          <span class="field-label text-mini">密碼</span>
           <input class="input" type="password" name="password" required minlength="6" />
         </label>
         <div class="auth-error" id="reg-error" hidden></div>
-        <button class="btn btn-primary btn-l" type="submit" id="reg-submit">建立帳號</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="reg-submit">建立帳號</button>
       </form>
 
       <p class="auth-foot">

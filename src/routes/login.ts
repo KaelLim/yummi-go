@@ -18,20 +18,20 @@ export default function login(): HTMLElement {
       </div>
     </div>
     <div class="auth-body">
-      <h1 class="auth-title">歡迎回來</h1>
-      <p class="auth-sub">繼續你的蔬食冒險</p>
+      <h1 class="auth-title text-h1">歡迎回來</h1>
+      <p class="auth-sub text-body">繼續你的蔬食冒險</p>
 
       <form class="auth-form" id="login-form">
         <label class="field">
-          <span class="field-label">使用者名稱</span>
+          <span class="field-label text-mini">使用者名稱</span>
           <input class="input" type="text" name="username" autocomplete="username" required />
         </label>
         <label class="field">
-          <span class="field-label">密碼</span>
+          <span class="field-label text-mini">密碼</span>
           <input class="input" type="password" name="password" autocomplete="current-password" required />
         </label>
         <div class="auth-error" id="error-msg" hidden></div>
-        <button class="btn btn-primary btn-l" type="submit" id="submit-btn">登入</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit-btn">登入</button>
       </form>
 
       <p class="auth-foot">
