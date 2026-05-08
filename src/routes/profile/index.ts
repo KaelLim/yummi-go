@@ -96,7 +96,7 @@ export default function profile(): HTMLElement {
     const mood = (p?.mood ?? 'normal') as PetMood;
     ident.innerHTML = `
       <div class="profile-avatar">
-        <img class="pet-frog" src="${spriteFor(stage, mood)}" alt="守護者" draggable="false" onerror="this.onerror=null;this.src='/pet-frog.png'" />
+        <img class="pet-frog" src="${spriteFor(stage, mood)}" alt="守護者" draggable="false" />
       </div>
       <div class="profile-meta">
         <div class="profile-name">${escapeHtml(u?.displayName ?? '訪客')}</div>

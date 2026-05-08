@@ -2,9 +2,6 @@
  * Pet hero view — sprite-driven illustration that swaps art based on
  * ($pet.stage, $pet.mood). Resolution is centralized in lib/pet-sprites.
  *
- * On image load error (e.g., codex hasn't generated that cell yet),
- * falls back to /pet-frog.png so the UI never shows a broken image.
- *
  * Subscribes to $pet via bind() so subscribers auto-cleanup when the
  * element is removed from the DOM (no leaks across navigations).
  */
@@ -28,10 +25,6 @@ export function createPetView(): PetViewHandle {
   `;
 
   const img = wrap.querySelector<HTMLImageElement>('img.pet-frog')!;
-  img.addEventListener('error', () => {
-    if (img.src.endsWith('/pet-frog.png')) return;
-    img.src = '/pet-frog.png';
-  });
 
   function applyState(p: PetStoreShape | null) {
     const stage = (p?.stage ?? 'egg') as PetStage;

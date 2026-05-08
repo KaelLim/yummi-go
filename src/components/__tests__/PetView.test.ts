@@ -44,17 +44,6 @@ describe('PetView', () => {
     el.remove();
   });
 
-  it('falls back to /pet-frog.png on image load error', () => {
-    const { el } = createPetView();
-    document.body.appendChild(el);
-    const img = el.querySelector<HTMLImageElement>('img.pet-frog')!;
-    $pet.set({ level: 6, currentXp: 0, accumulatedXp: 100, stage: 'baby', mood: 'happy' });
-    expect(img.getAttribute('src')).toBe('/pet/baby/happy.png');
-    img.dispatchEvent(new Event('error'));
-    expect(img.getAttribute('src')).toContain('/pet-frog.png');
-    el.remove();
-  });
-
   it('setFogOpacity writes the custom property and clamps to [0,1]', () => {
     const { el, setFogOpacity } = createPetView();
     const fog = el.querySelector<HTMLElement>('.fog-overlay')!;

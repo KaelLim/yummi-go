@@ -373,11 +373,6 @@ body {
   width: 200px; height: 200px;
   display: flex; align-items: center; justify-content: center;
 }
-.pet-shell {
-  font-size: 120px /* emoji icon size — not text */; display: none;
-  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.1));
-  animation: egg-wobble 4s ease-in-out infinite;
-}
 .pet-frog {
   width: 80%; height: auto;
   user-select: none;
@@ -385,27 +380,6 @@ body {
   transition: transform 0.4s ease, filter 0.4s ease;
 }
 .pet-accessory { position: absolute; inset: 0; pointer-events: none; }
-
-.pet-stage-egg .pet-shell { display: block; }
-.pet-stage-egg .pet-frog { display: none; }
-.pet-stage-baby .pet-frog { transform: scale(0.6); }
-.pet-stage-youth .pet-frog { transform: scale(1.0); }
-.pet-stage-adult .pet-frog { transform: scale(1.2); }
-.pet-stage-adult .pet-accessory::before {
-  content: '👑'; font-size: var(--text-display-size);
-  position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
-}
-.pet-stage-max .pet-frog { transform: scale(1.4); animation: pet-rainbow 6s linear infinite; }
-@keyframes pet-rainbow {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
-}
-
-.pet-mood-normal .pet-frog { filter: none; }
-.pet-mood-happy .pet-frog { filter: saturate(1.3) brightness(1.05); }
-.pet-mood-weak .pet-frog { filter: saturate(0.5) brightness(0.95); }
-.pet-mood-critical .pet-frog { filter: grayscale(0.8) brightness(0.85); }
-.pet-mood-evolve .pet-frog { filter: drop-shadow(0 0 24px rgba(246, 252, 167, 0.8)); }
 
 /* Level bar */
 .level-bar {
@@ -1055,9 +1029,6 @@ body {
   display: flex; align-items: center; justify-content: center;
 }
 .profile-avatar .pet-frog { width: 84%; height: auto; user-select: none; -webkit-user-drag: none; }
-.profile-avatar .pet-shell { font-size: 56px /* emoji icon size — not text */; display: none; }
-.profile-avatar.pet-stage-egg .pet-frog { display: none; }
-.profile-avatar.pet-stage-egg .pet-shell { display: block; }
 .profile-meta { flex: 1; min-width: 0; }
 .profile-name { font-size: var(--text-button-l-size); font-weight: var(--font-weight-black); color: var(--color-primary-dark); }
 .profile-tags { display: flex; gap: 6px; margin-top: var(--space-1); flex-wrap: wrap; }

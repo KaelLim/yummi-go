@@ -46,7 +46,7 @@ export default function day30(): HTMLElement {
       </div>
       <div class="day30-pet">
         <div class="pet-view">
-          <img class="pet-frog" src="${spriteFor('max', 'happy')}" alt="守護者" draggable="false" onerror="this.onerror=null;this.src='/pet-frog.png'" />
+          <img class="pet-frog" src="${spriteFor('max', 'happy')}" alt="守護者" draggable="false" />
         </div>
       </div>
       <h1 class="day30-title">守護者的旅途</h1>
