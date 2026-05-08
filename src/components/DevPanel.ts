@@ -1,14 +1,18 @@
 /**
- * Floating dev panel — only mounted when $ui.devMode is true (?dev in URL).
+ * Floating dev panel — only mounted when $ui.devMode is true (?dev in URL
+ * or `npm run dev`).
  *
  * Provides a quick way to:
  *  - swap timeMode between real / compressed / manual
- *  - drag a slider to jump to any of the 30 days (manual mode only)
+ *  - drag a slider to jump to any of the 30 days
  *  - flip theme light/dark
  *  - deep-link to the main 5 routes + day-30
+ *  - mint XP / gems / fragments straight into the active user (skips the
+ *    grind so we can demo levelling, gem swap, makeup-card synthesis)
  *
- * Lives outside the route tree; mounted next to the layout shell so it
- * stays put while routes swap.
+ * Mutations route through the same API helpers production code uses, then
+ * refresh $profile via getUserFull so every bound view paints the new
+ * totals.
  */
 import {
   $ui,
@@ -17,6 +21,10 @@ import {
   setManualDay,
   type TimeMode,
 } from '@/store/ui';
+import { $user, $profile } from '@/store/user';
+import { awardXp } from '@/store/pet';
+import { addGems, addFragments } from '@/api/wallet';
+import { getUserFull } from '@/api/profile';
 import { navigate } from '@/router';
 import { bind } from '@/lib/lifecycle';
 
@@ -28,6 +36,10 @@ const ROUTES: Array<{ label: string; path: string }> = [
   { label: '我的', path: '/profile' },
   { label: 'Day-30', path: '/challenge/day-30' },
 ];
+
+const XP_AMOUNTS = [30, 100, 500];
+const GEM_AMOUNTS = [50, 200, 1000];
+const FRAG_AMOUNTS = [1, 4];
 
 export function createDevPanel(): HTMLElement {
   const wrap = document.createElement('div');
@@ -65,6 +77,39 @@ export function createDevPanel(): HTMLElement {
           <button class="dev-chip" data-theme="dark">深</button>
         </div>
       </section>
+
+      <section class="dev-section">
+        <div class="dev-label-row">
+          <span class="dev-label">XP / 經驗值</span>
+          <span class="dev-readout" data-bind="xp">LV.1 · 0 XP</span>
+        </div>
+        <div class="dev-chips" data-grant="xp">
+          ${XP_AMOUNTS.map((n) => `<button class="dev-chip" data-amount="${n}">+${n}</button>`).join('')}
+        </div>
+      </section>
+
+      <section class="dev-section">
+        <div class="dev-label-row">
+          <span class="dev-label">寶石</span>
+          <span class="dev-readout" data-bind="gems">0</span>
+        </div>
+        <div class="dev-chips" data-grant="gems">
+          ${GEM_AMOUNTS.map((n) => `<button class="dev-chip" data-amount="${n}">+${n}</button>`).join('')}
+        </div>
+      </section>
+
+      <section class="dev-section">
+        <div class="dev-label-row">
+          <span class="dev-label">碎片 / 補簽卡</span>
+          <span class="dev-readout" data-bind="frags">0 碎片 · 0 卡</span>
+        </div>
+        <div class="dev-chips" data-grant="frags">
+          ${FRAG_AMOUNTS.map((n) => `<button class="dev-chip" data-amount="${n}">+${n}</button>`).join('')}
+        </div>
+      </section>
+
+      <div class="dev-status" id="dev-status" hidden></div>
+
       <section class="dev-section">
         <span class="dev-label">快速跳頁</span>
         <div class="dev-chips" id="route-chips">
@@ -80,6 +125,7 @@ export function createDevPanel(): HTMLElement {
   const sheet = wrap.querySelector<HTMLElement>('#sheet')!;
   const slider = wrap.querySelector<HTMLInputElement>('#day-slider')!;
   const readout = wrap.querySelector<HTMLElement>('#day-readout')!;
+  const status = wrap.querySelector<HTMLElement>('#dev-status')!;
 
   fab.addEventListener('click', () => {
     sheet.hidden = !sheet.hidden;
@@ -121,6 +167,48 @@ export function createDevPanel(): HTMLElement {
     });
   });
 
+  // Grant chips (XP / gems / fragments)
+  wrap.querySelectorAll<HTMLButtonElement>('[data-grant] .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      const grant = (c.parentElement as HTMLElement).dataset.grant!;
+      const amount = Number(c.dataset.amount);
+      void doGrant(grant, amount);
+    });
+  });
+
+  async function doGrant(kind: string, amount: number): Promise<void> {
+    const u = $user.get();
+    if (!u) {
+      flash('請先登入', true);
+      return;
+    }
+    flash('處理中…', false);
+    try {
+      if (kind === 'xp') {
+        await awardXp(u.id, amount);
+      } else if (kind === 'gems') {
+        await addGems(u.id, amount);
+      } else if (kind === 'frags') {
+        await addFragments(u.id, amount);
+      }
+      const refreshed = await getUserFull(u.id);
+      if (refreshed) $profile.set(refreshed);
+      flash(`+${amount} ${labelFor(kind)} 已加入`, false);
+    } catch (err) {
+      flash((err as Error).message ?? '失敗', true);
+    }
+  }
+
+  function flash(msg: string, isError: boolean): void {
+    status.hidden = false;
+    status.textContent = msg;
+    status.classList.toggle('error', isError);
+    window.clearTimeout((status as HTMLElement & { _t?: number })._t);
+    (status as HTMLElement & { _t?: number })._t = window.setTimeout(() => {
+      status.hidden = true;
+    }, 1800);
+  }
+
   // Reflect store state
   bind(wrap, $ui, (s) => {
     wrap.querySelectorAll<HTMLButtonElement>('#time-mode-chips .dev-chip').forEach((c) => {
@@ -133,5 +221,22 @@ export function createDevPanel(): HTMLElement {
     readout.textContent = 'D' + s.manualDay;
   });
 
+  bind(wrap, $profile, (p) => {
+    setText('[data-bind="xp"]', p ? `LV.${p.level} · ${p.current_xp} XP` : 'LV.? · 0 XP');
+    setText('[data-bind="gems"]', String(p?.gems ?? 0));
+    setText('[data-bind="frags"]', `${p?.fragment_count ?? 0} 碎片 · ${p?.card_count ?? 0} 卡`);
+  });
+
+  function setText(sel: string, value: string) {
+    const el = wrap.querySelector<HTMLElement>(sel);
+    if (el) el.textContent = value;
+  }
+
   return wrap;
+}
+
+function labelFor(kind: string): string {
+  if (kind === 'xp') return 'XP';
+  if (kind === 'gems') return '寶石';
+  return '碎片';
 }

@@ -77,3 +77,39 @@ export async function spendMakeupCard(userId: number): Promise<{ cards: number }
   });
   return { cards: mu.card_count - 1 };
 }
+
+/**
+ * Mint gems into the user's balance. Used by the dev panel to skip the
+ * grind during demos; production code paths shouldn't call this since gem
+ * accrual goes through the XP-overflow rules in lib/xp-calc.
+ */
+export async function addGems(userId: number, amount: number): Promise<{ balance: number }> {
+  const gem = await getGemBalance(userId);
+  if (!gem) throw new Error('Gem balance not found');
+  const newBalance = gem.balance + amount;
+  await drust.update('gem_balances', gem.id, {
+    balance: newBalance,
+    total_earned: gem.total_earned + Math.max(0, amount),
+  });
+  return { balance: newBalance };
+}
+
+/**
+ * Mint fragments + auto-fold every 4 fragments into a makeup card. Same
+ * dev-only escape hatch as addGems.
+ */
+export async function addFragments(
+  userId: number,
+  amount: number,
+): Promise<{ fragments: number; cards: number }> {
+  const mu = await getMakeupCards(userId);
+  if (!mu) throw new Error('Makeup cards row not found');
+  const total = mu.fragment_count + amount;
+  const newCards = mu.card_count + Math.floor(total / 4);
+  const newFragments = total % 4;
+  await drust.update('makeup_cards', mu.id, {
+    fragment_count: newFragments,
+    card_count: newCards,
+  });
+  return { fragments: newFragments, cards: newCards };
+}

@@ -11,6 +11,8 @@
 import { atom, computed } from 'nanostores';
 import * as authApi from '@/api/auth';
 import * as profileApi from '@/api/profile';
+import { $pet } from './pet';
+import { stageFromLevel, type PetStage } from '@/lib/pet-evolution';
 
 export interface UserStoreShape {
   id: number;
@@ -38,6 +40,17 @@ export async function bootstrapFromStorage(): Promise<boolean> {
       displayName: full.display_name ?? full.username,
     });
     $profile.set(full);
+    // Seed $pet from the joined view so home/PetView paint the real level
+    // immediately. Otherwise we render LV.1 defaults until awardXp fires.
+    if (typeof full.level === 'number') {
+      $pet.set({
+        level: full.level,
+        currentXp: full.current_xp ?? 0,
+        accumulatedXp: full.accumulated_xp ?? 0,
+        stage: ((full.stage as PetStage) ?? stageFromLevel(full.level)) as PetStage,
+        mood: full.mood ?? 'normal',
+      });
+    }
     return true;
   } catch {
     authApi.logout();
@@ -58,4 +71,5 @@ export function clearUser() {
   authApi.logout();
   $user.set(null);
   $profile.set(null);
+  $pet.set(null);
 }
