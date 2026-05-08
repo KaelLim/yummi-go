@@ -1415,4 +1415,44 @@ body {
 .fail-title { font-size: var(--text-h2-size); font-weight: var(--font-weight-black); color: var(--color-error, #d63b3b); margin: 0; }
 .fail-text  { font-size: var(--text-mini-size); color: var(--color-foreground-alt); text-align: center; line-height: 1.7; }
 .fail-actions { display: flex; gap: var(--space-3); width: 100%; max-width: 360px; }
+
+/* ── check-in/success 3-act animation ─────────────────────────────────── */
+.checkin-success .success-body { cursor: pointer; }
+.checkin-success.act-1 .success-progress,
+.checkin-success.act-1 .success-pet,
+.checkin-success.act-1 .success-title,
+.checkin-success.act-1 .success-text,
+.checkin-success.act-1 .success-actions { opacity: 0; transform: translateY(8px); }
+.checkin-success.act-2 .success-progress { opacity: 1; transform: translateY(0); transition: 0.5s ease; }
+.checkin-success.act-2 .success-pet,
+.checkin-success.act-2 .success-title,
+.checkin-success.act-2 .success-text,
+.checkin-success.act-2 .success-actions { opacity: 0; }
+.checkin-success.act-3 .success-pet,
+.checkin-success.act-3 .success-title,
+.checkin-success.act-3 .success-text { opacity: 1; transform: translateY(0); transition: 0.5s ease; animation: pet-glow 1.6s ease-in-out; }
+.checkin-success.act-3 .success-actions { opacity: 0; }
+.checkin-success.settled .success-progress,
+.checkin-success.settled .success-pet,
+.checkin-success.settled .success-title,
+.checkin-success.settled .success-text,
+.checkin-success.settled .success-actions { opacity: 1; transform: translateY(0); transition: 0.4s ease; }
+
+.success-progress {
+  display: grid; grid-template-columns: repeat(30, 1fr); gap: 2px; width: 100%; max-width: 360px;
+}
+.success-progress .seg {
+  height: 6px; border-radius: 3px; background: var(--color-neutral-light-active);
+}
+.success-progress .seg.fill { background: var(--color-primary); }
+.success-progress .seg.now  { background: var(--color-secondary); transform: scaleY(1.6); }
+
+@keyframes pet-glow {
+  0% { filter: drop-shadow(0 0 0 rgba(34,197,94,0)); }
+  50% { filter: drop-shadow(0 0 18px rgba(34,197,94,0.6)); }
+  100% { filter: drop-shadow(0 0 0 rgba(34,197,94,0)); }
+}
+
+.success-actions { display: flex; gap: var(--space-3); width: 100%; max-width: 360px; }
+.success-actions .btn { flex: 1; }
 .fail-actions .btn { flex: 1; }
