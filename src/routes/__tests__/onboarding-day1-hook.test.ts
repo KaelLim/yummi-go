@@ -30,7 +30,7 @@ describe('onboarding/day1-hook', () => {
     expect(el.querySelector('.fog-overlay')).not.toBeNull();
     expect(el.querySelector('.day1-egg')).not.toBeNull();
     expect(el.querySelector('#enter-btn')).not.toBeNull();
-    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(6);
+    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(8);
   });
 
   it('CTA stamps challenge_started_at via drust then navigates to /check-in', async () => {

@@ -16,7 +16,7 @@ export default function day1Hook(): HTMLElement {
   wrap.className = 'onb-screen day1';
   wrap.innerHTML = `
     <div class="onb-header">
-      ${createProgress(6, 6).outerHTML}
+      ${createProgress(8, 8).outerHTML}
     </div>
     <div class="day1-body">
       <div class="fog-overlay"></div>

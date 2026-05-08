@@ -49,6 +49,6 @@ describe('onboarding/challenge-level', () => {
   it('back button navigates to baseline', () => {
     const el = challengeLevel();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/baseline');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/purpose');
   });
 });

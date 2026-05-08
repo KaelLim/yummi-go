@@ -34,7 +34,7 @@ describe('onboarding/oath', () => {
   it('renders progress dots, oath card, checkbox, and disabled continue button', () => {
     const el = oath();
     expect(el.classList.contains('onb-screen')).toBe(true);
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(6);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(8);
     expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(1);
     expect(el.querySelector('#oath-cb')).not.toBeNull();
     const btn = el.querySelector('#continue-btn') as HTMLButtonElement;

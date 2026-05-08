@@ -54,7 +54,7 @@ describe('onboarding/eat-times', () => {
     const parsed = JSON.parse(patch.eat_times);
     expect(parsed.lunch).toBe('13:15');
     expect(parsed.breakfast).toBe('08:00');
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/day1-hook');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/known-from');
     document.body.removeChild(el);
   });
 

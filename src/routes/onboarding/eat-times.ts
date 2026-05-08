@@ -23,7 +23,7 @@ export default function eatTimes(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(5, 6).outerHTML}
+      ${createProgress(6, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">用餐時間</h1>
@@ -52,7 +52,7 @@ export default function eatTimes(): HTMLElement {
       eatTimes[input.dataset.key!] = input.value;
     });
     try { await updateProfile(u.id, { eat_times: JSON.stringify(eatTimes) }); } catch { /* soft fail */ }
-    navigate('/onboarding/day1-hook');
+    navigate('/onboarding/known-from');
   });
 
   return wrap;

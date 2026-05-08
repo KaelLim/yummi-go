@@ -15,7 +15,7 @@ export default function oath(): HTMLElement {
   wrap.className = 'onb-screen';
   wrap.innerHTML = `
     <div class="onb-header">
-      ${createProgress(1, 6).outerHTML}
+      ${createProgress(1, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">綠色承諾</h1>

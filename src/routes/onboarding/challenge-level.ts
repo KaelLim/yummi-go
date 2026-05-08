@@ -21,7 +21,7 @@ export default function challengeLevel(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(4, 6).outerHTML}
+      ${createProgress(5, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">挑戰難度</h1>
@@ -41,7 +41,7 @@ export default function challengeLevel(): HTMLElement {
     </div>
   `;
 
-  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/onboarding/baseline'));
+  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/onboarding/purpose'));
 
   wrap.querySelectorAll<HTMLButtonElement>('.level-choice').forEach(btn => {
     btn.addEventListener('click', async () => {

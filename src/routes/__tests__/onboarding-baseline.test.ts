@@ -60,7 +60,7 @@ describe('onboarding/baseline', () => {
     const parsed = JSON.parse(patch.baseline);
     expect(parsed).toHaveProperty('beef');
     expect(parsed).toHaveProperty('chicken');
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/purpose');
   });
 
   it('back button navigates to diet-survey', () => {
