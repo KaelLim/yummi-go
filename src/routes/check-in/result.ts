@@ -198,9 +198,13 @@ export default function result(): HTMLElement {
   });
 
   wrap.querySelector('#meat-no')?.addEventListener('click', () => {
+    // Confirming "否，替代為植物肉" IS the check-in act — flip every meat
+    // item to plant-based, mark wasMeatReplaced so the success page badges
+    // it, then submit immediately. No second confirmation needed.
     const cur = $checkin.get().items.map((it) => (it.isVeg ? it : { ...it, isVeg: true }));
     setItems(cur);
     setMeatReplaced(true);
+    void submitCheckin(wrap);
   });
 
   wrap.querySelectorAll<HTMLButtonElement>('.vegan-chip').forEach((c) => {

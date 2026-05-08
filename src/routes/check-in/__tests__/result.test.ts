@@ -90,18 +90,24 @@ describe('check-in/result route', () => {
     expect(el.querySelector('#meat-list')?.textContent).toContain('牛肉片');
   });
 
-  it('clicking 否 flips items to veg + sets meat-replaced + hides banner', () => {
+  it('clicking 否 flips items + auto-submits the check-in', async () => {
     setScan({
       items: [meat('牛肉片')],
       hasMeat: true,
       scanFailed: false,
     });
+    mockedCreate.mockResolvedValueOnce({});
     const el = result();
     document.body.appendChild(el);
     el.querySelector<HTMLButtonElement>('#meat-no')?.click();
+    // state mutations land synchronously
     expect($checkin.get().wasMeatReplaced).toBe(true);
     expect($checkin.get().items.every((i) => i.isVeg)).toBe(true);
-    expect(el.querySelector<HTMLElement>('#meat-banner')?.hidden).toBe(true);
+    // submission fires immediately and routes to /check-in/success
+    await vi.waitFor(() =>
+      expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'),
+    );
+    expect(mockedCreate).toHaveBeenCalledTimes(1);
     el.remove();
   });
 
