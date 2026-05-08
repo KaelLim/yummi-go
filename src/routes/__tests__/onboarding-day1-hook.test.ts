@@ -11,7 +11,7 @@ vi.mock('@/api/profile', () => ({
 import day1Hook from '../onboarding/day1-hook';
 import * as router from '@/router';
 import * as profileApi from '@/api/profile';
-import { $user } from '@/store/user';
+import { $user, $profile } from '@/store/user';
 
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
 const mockedProfile = profileApi as unknown as {
@@ -22,6 +22,15 @@ describe('onboarding/day1-hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     $user.set({ id: 7, username: 'k', displayName: 'k' });
+    $profile.set({
+      id: 7, username: 'k', display_name: 'k',
+      oath_signed_at: null, challenge_started_at: null,
+      diet_type: 'vegan', challenge_level: 2,
+      eat_times: null, known_from: null, baseline: null, purpose: 'environment',
+      level: 1, current_xp: 0, accumulated_xp: 0, stage: 'egg', mood: 'normal',
+      strikes: 0, poisoned_until: null,
+      gems: 0, total_earned: 0, card_count: 0, fragment_count: 0,
+    });
   });
 
   it('renders the fog overlay, egg, and CTA', () => {
@@ -53,5 +62,18 @@ describe('onboarding/day1-hook', () => {
     (el.querySelector('#enter-btn') as HTMLButtonElement).click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in');
     expect(mockedProfile.setChallengeStartedAt).not.toHaveBeenCalled();
+  });
+
+  it('shows diet-typed egg + level rule + purpose line', () => {
+    const el = day1Hook();
+    expect(el.querySelector('.day1-egg')?.getAttribute('data-tint')).toBe('vegan');
+    expect(el.textContent).toContain('三餐無肉，3 次容錯');
+    expect(el.textContent).toContain('每替代一公斤肉');
+  });
+
+  it('falls back to neutral content when profile is incomplete', () => {
+    $profile.set(null);
+    const el = day1Hook();
+    expect(el.querySelector('.day1-egg')?.getAttribute('data-tint')).toBe('neutral');
   });
 });
