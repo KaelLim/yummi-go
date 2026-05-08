@@ -11,6 +11,14 @@ import { defRoute, startRouter } from './router';
 import { createLayout } from './components/Layout';
 import { setupInstallPrompt } from './components/InstallPrompt';
 import { bootstrapFromStorage } from './store/user';
+import { $ui } from './store/ui';
+
+// Reflect the active theme onto <html data-theme="..."> so CSS can pivot
+// the colour tokens. Subscribed once at boot — the atom's initial-value
+// fire takes care of the first paint.
+$ui.subscribe((s) => {
+  document.documentElement.dataset.theme = s.theme;
+});
 
 type RouteLoader = () => Promise<{
   default: (params: Record<string, string>) => HTMLElement | Promise<HTMLElement>;

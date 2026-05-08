@@ -162,10 +162,19 @@ export default function home(): HTMLElement {
   bind(wrap, $today, renderToday);
   bind(wrap, $challenge, renderChallenge);
 
+  // $ui drives the day computation (timeMode + manualDay). Re-hydrate when
+  // either changes so the dev panel's day slider takes effect immediately.
+  let lastDayKey = '';
+  bind(wrap, $ui, (s) => {
+    const key = `${s.timeMode}|${s.manualDay}|${s.challengeStartedAt}`;
+    if (key !== lastDayKey) {
+      lastDayKey = key;
+      void hydrate();
+    }
+  });
+
   $$('#lucky-card')?.addEventListener('click', () => navigate('/map'));
   $$('#quiz-bubble')?.addEventListener('click', () => navigate('/tasks/quiz'));
-
-  void hydrate();
 
   return wrap;
 }

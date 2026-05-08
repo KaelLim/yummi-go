@@ -19,9 +19,16 @@ export interface UiStoreShape {
   currentTab: 'home' | 'map' | 'check-in' | 'tasks' | 'profile';
 }
 
+// Dev mode is on whenever the bundle is built in Vite's `dev` mode (i.e.
+// `npm run dev`), or when ?dev is appended to the URL on a production build.
+// This keeps the dev panel a free affordance while iterating, while still
+// hiding it from the deployed bundle by default.
+const devFromUrl = new URLSearchParams(globalThis.location?.search ?? '').has('dev');
+const devFromEnv = Boolean(import.meta.env?.DEV);
+
 const defaults: UiStoreShape = {
   theme: storage.get<Theme>(KEYS.THEME, 'light'),
-  devMode: new URLSearchParams(globalThis.location?.search ?? '').has('dev'),
+  devMode: devFromUrl || devFromEnv,
   timeMode: storage.get<TimeMode>(KEYS.TIME_MODE, 'real'),
   manualDay: storage.get<number>(KEYS.MANUAL_DAY, 1),
   challengeStartedAt: storage.get<number>(KEYS.CHALLENGE_STARTED_AT, Date.now()),

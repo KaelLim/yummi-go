@@ -160,6 +160,59 @@
 }
 
 /* =============================================================================
+ * Dark theme overrides (selected via document.documentElement.dataset.theme).
+ * Inverts only the surface tokens — primary / secondary / accent stay the same
+ * so the brand palette reads correctly on either background.
+ * ============================================================================= */
+:root[data-theme="dark"] {
+  --color-background:              #1c1d1a;
+  --color-foreground:              #ede8d8;
+  --color-foreground-alt:          #ede8d8;
+  --color-card:                    #2a2b27;
+  --color-card-foreground:         #ede8d8;
+  --color-muted:                   #2f3029;
+  --color-muted-foreground:        #c2bea9;
+
+  --color-neutral-light:           #1f201d;
+  --color-neutral-light-hover:     #25261f;
+  --color-neutral-light-active:    #353630;
+  --color-neutral:                 #4a4b44;
+  --color-neutral-hover:           #5a5b52;
+  --color-neutral-active:          #6a6b62;
+  --color-neutral-dark:            #8a8a7e;
+  --color-neutral-dark-hover:      #a4a294;
+  --color-neutral-dark-active:     #b3b0a4;
+  --color-neutral-darker:          #c2bea9;
+
+  /* Brand greens — invert the lightness curve so dark surfaces read with
+   * brighter primaries, while keeping the hue identity. */
+  --color-primary:                 #5fcf85;
+  --color-primary-hover:           #6dd692;
+  --color-primary-active:          #7adda0;
+  --color-primary-dark:            #95eaa8;
+  --color-primary-dark-hover:      #aaf0b6;
+  --color-primary-dark-active:     #c0f5c4;
+  --color-primary-darker:          #d4f9d3;
+
+  --color-primary-light:           #233529;
+  --color-primary-light-hover:     #2c4232;
+  --color-primary-light-active:    #355040;
+
+  /* Brand oranges — same inversion for the secondary palette. */
+  --color-secondary:               #f7a13b;
+  --color-secondary-hover:         #f9b15c;
+  --color-secondary-active:        #fbc07b;
+  --color-secondary-dark:          #fdce96;
+  --color-secondary-dark-hover:    #fedaab;
+  --color-secondary-dark-active:   #ffe6c0;
+  --color-secondary-darker:        #fff0d2;
+
+  --color-secondary-light:         #4a3819;
+  --color-secondary-light-hover:   #5b441e;
+  --color-secondary-light-active:  #6e5325;
+}
+
+/* =============================================================================
  * Utility classes — 文字尺度（含 Latin+CJK 字重切換）
  * 預設用 CJK 字重（中文使用情境較多），Latin-only 內容請手動覆寫。
  * ============================================================================= */

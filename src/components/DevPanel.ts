@@ -97,10 +97,12 @@ export function createDevPanel(): HTMLElement {
     });
   });
 
-  // Manual-day slider
+  // Manual-day slider — also flips into 手動 mode if the user drags from
+  // real/compressed, so the value isn't silently ignored downstream.
   slider.addEventListener('input', () => {
     const day = Number(slider.value);
     setManualDay(day);
+    if ($ui.get().timeMode !== 'manual') setTimeMode('manual');
   });
 
   // Theme chips
@@ -129,7 +131,6 @@ export function createDevPanel(): HTMLElement {
     });
     if (slider.value !== String(s.manualDay)) slider.value = String(s.manualDay);
     readout.textContent = 'D' + s.manualDay;
-    slider.disabled = s.timeMode !== 'manual';
   });
 
   return wrap;
