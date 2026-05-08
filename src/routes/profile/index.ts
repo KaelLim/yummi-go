@@ -19,6 +19,8 @@ import { $ui } from '@/store/ui';
 import { listCheckIns, type CheckInRow } from '@/api/check-ins';
 import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
 import { bind } from '@/lib/lifecycle';
+import { spriteFor, type PetMood } from '@/lib/pet-sprites';
+import type { PetStage } from '@/lib/pet-evolution';
 
 const DAY_MS = 86_400_000;
 /** challenge day → calendar Date (day 1 maps to challengeStartedAt) */
@@ -90,11 +92,11 @@ export default function profile(): HTMLElement {
     const p = $profile.get();
     const ident = wrap.querySelector<HTMLElement>('#identity')!;
     const dietLabel = p?.diet_type ? DIET_LABEL[p.diet_type] ?? p.diet_type : null;
-    const stage = p?.stage ?? 'egg';
+    const stage = (p?.stage ?? 'egg') as PetStage;
+    const mood = (p?.mood ?? 'normal') as PetMood;
     ident.innerHTML = `
-      <div class="profile-avatar pet-stage-${stage} pet-mood-normal">
-        <img class="pet-frog" src="/pet-frog.png" alt="守護者" draggable="false" />
-        <div class="pet-shell" aria-hidden="true">🥚</div>
+      <div class="profile-avatar">
+        <img class="pet-frog" src="${spriteFor(stage, mood)}" alt="守護者" draggable="false" onerror="this.onerror=null;this.src='/pet-frog.png'" />
       </div>
       <div class="profile-meta">
         <div class="profile-name">${escapeHtml(u?.displayName ?? '訪客')}</div>

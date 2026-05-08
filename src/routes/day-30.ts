@@ -11,6 +11,7 @@ import { navigate } from '@/router';
 import { $user, $profile } from '@/store/user';
 import { listCheckIns } from '@/api/check-ins';
 import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
+import { spriteFor } from '@/lib/pet-sprites';
 
 const ACHIEVEMENTS = [
   { key: 'starter', label: '🌱 喚醒者', test: (d: Stats) => d.totalDays >= 1 },
@@ -44,8 +45,8 @@ export default function day30(): HTMLElement {
         <span>🎉</span><span>✨</span><span>🌟</span><span>💎</span><span>🍀</span>
       </div>
       <div class="day30-pet">
-        <div class="pet-view pet-stage-max pet-mood-evolve">
-          <img class="pet-frog" src="/pet-frog.png" alt="守護者" draggable="false" />
+        <div class="pet-view">
+          <img class="pet-frog" src="${spriteFor('max', 'happy')}" alt="守護者" draggable="false" onerror="this.onerror=null;this.src='/pet-frog.png'" />
         </div>
       </div>
       <h1 class="day30-title">守護者的旅途</h1>
