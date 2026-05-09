@@ -159,8 +159,10 @@ export default function home(): HTMLElement {
       if (icon) icon.textContent = quizDone ? 'task_alt' : 'school';
       const text = quizBubble.querySelector('[data-bind="quiz-text"]');
       if (text) text.textContent = quizDone ? '今日小測驗已完成' : '每日小測驗';
+      // Don't claim "+15 XP ✓" because a wrong answer locks the slot at 0 XP.
+      // Only the unanswered state advertises the reward.
       const xp = quizBubble.querySelector('[data-bind="quiz-xp"]');
-      if (xp) xp.textContent = quizDone ? '+15 XP ✓' : '+15 XP';
+      if (xp) xp.textContent = quizDone ? '✓ 已作答' : '答對 +15 XP';
     }
   }
 

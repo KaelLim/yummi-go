@@ -11,11 +11,15 @@ import quiz from '../quiz';
 import { $user } from '@/store/user';
 import { $today, markMissionDone } from '@/store/today';
 import * as content from '@/api/content';
+import * as router from '@/router';
+import * as pet from '@/store/pet';
 
 const mockedContent = content as unknown as {
   randomQuiz: ReturnType<typeof vi.fn>;
   recordQuizAttempt: ReturnType<typeof vi.fn>;
 };
+const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
+const mockedPet = pet as unknown as { awardXp: ReturnType<typeof vi.fn> };
 
 const fakeQ = {
   id: 11,
@@ -67,10 +71,12 @@ describe('quiz route', () => {
     expect(el.querySelector('.quiz-verdict.right')).not.toBeNull();
     expect(el.querySelector('.quiz-opt[data-value="B"]')?.classList.contains('correct')).toBe(true);
     expect($today.get().missionsDone).toContain('quiz');
+    expect($today.get().totalXpToday).toBe(15);
+    expect(mockedPet.awardXp).toHaveBeenCalledWith(7, 15);
     el.remove();
   });
 
-  it('marks wrong option and exposes the correct answer', async () => {
+  it('marks wrong option and exposes the correct answer with 0 XP', async () => {
     mockedContent.randomQuiz.mockResolvedValueOnce(fakeQ);
     const el = quiz();
     document.body.appendChild(el);
@@ -81,7 +87,31 @@ describe('quiz route', () => {
     );
     expect(el.querySelector('.quiz-opt[data-value="B"]')?.classList.contains('correct')).toBe(true);
     expect(el.querySelector('.quiz-opt[data-value="A"]')?.classList.contains('wrong')).toBe(true);
+    // Wrong answer still locks today's slot but earns 0 XP.
+    expect($today.get().missionsDone).toContain('quiz');
+    expect($today.get().totalXpToday).toBe(0);
+    expect(mockedPet.awardXp).not.toHaveBeenCalled();
+    expect(el.querySelector('.quiz-xp')?.textContent).toContain('0 XP');
     el.remove();
+  });
+
+  it('does not offer a re-try button after answering', async () => {
+    mockedContent.randomQuiz.mockResolvedValueOnce(fakeQ);
+    const el = quiz();
+    document.body.appendChild(el);
+    await vi.waitFor(() => expect(el.querySelectorAll('.quiz-opt').length).toBe(3));
+    el.querySelector<HTMLButtonElement>('.quiz-opt[data-value="B"]')?.click();
+    await vi.waitFor(() => expect(el.querySelector('.quiz-verdict')).not.toBeNull());
+    expect(el.querySelector('#another')).toBeNull();
+    el.remove();
+  });
+
+  it('bounces to /tasks if today already answered (route guard)', async () => {
+    markMissionDone('quiz', 15);
+    // No randomQuiz mock — the guard fires before the route asks for a question.
+    quiz();
+    await vi.waitFor(() => expect(mockedRouter.navigate).toHaveBeenCalledWith('/tasks'));
+    expect(mockedContent.randomQuiz).not.toHaveBeenCalled();
   });
 
   it('falls back to a retry CTA when randomQuiz returns null', async () => {
@@ -89,18 +119,5 @@ describe('quiz route', () => {
     const el = quiz();
     await vi.waitFor(() => expect(el.querySelector('.checkin-fallback')).not.toBeNull());
     expect(el.textContent).toContain('暫時拿不到題目');
-  });
-
-  it('does not double-mark mission if already done before clicking', async () => {
-    markMissionDone('quiz', 15);
-    mockedContent.randomQuiz.mockResolvedValueOnce(fakeQ);
-    const el = quiz();
-    document.body.appendChild(el);
-    await vi.waitFor(() => expect(el.querySelectorAll('.quiz-opt').length).toBe(3));
-    el.querySelector<HTMLButtonElement>('.quiz-opt[data-value="B"]')?.click();
-    await vi.waitFor(() => expect(mockedContent.recordQuizAttempt).toHaveBeenCalled());
-    // markMissionDone is idempotent; missionsDone still includes 'quiz' once.
-    expect($today.get().missionsDone.filter((k) => k === 'quiz').length).toBe(1);
-    el.remove();
   });
 });

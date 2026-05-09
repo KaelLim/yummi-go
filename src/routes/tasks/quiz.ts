@@ -1,11 +1,9 @@
 /**
  * Daily quiz — single random question, 3 options, immediate feedback.
  *
- * Picks via random_quiz RPC. After the user picks an option, the right
- * answer + explanation are revealed, and the user gets +15 XP regardless
- * (per spec encouragement model). Recording goes through
- * recordQuizAttempt for analytics; failures are soft so the user always
- * sees feedback.
+ * Picks via random_quiz RPC. The user gets +15 XP only on a correct
+ * answer; a wrong answer locks the day with 0 XP. Once `'quiz'` is in
+ * today's missions_done, re-entering the route bounces back to /tasks.
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
@@ -18,13 +16,23 @@ const QUIZ_XP = 15;
 export default function quiz(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'quiz-screen';
+
+  // Hard guard: today's quiz is one-shot. If it's already been answered,
+  // bounce back to /tasks instead of letting the user grab another XP-able
+  // question. The bubble and tasks page both already disable the CTA, but
+  // a directly-typed URL would otherwise sneak past them.
+  if ($today.get().missionsDone.includes('quiz')) {
+    queueMicrotask(() => navigate('/tasks'));
+    return wrap;
+  }
+
   wrap.innerHTML = `
     <header class="checkin-header">
       <button class="checkin-back" id="back-btn" aria-label="返回">
         <span class="ms">arrow_back</span>
       </button>
       <span class="checkin-title">每日小測驗</span>
-      <span class="checkin-meal">+${QUIZ_XP} XP</span>
+      <span class="checkin-meal">答對 +${QUIZ_XP} XP</span>
     </header>
     <div class="quiz-body" id="body">
       <div class="quiz-loading">
@@ -123,25 +131,26 @@ async function onPick(
     else if (v === value) b.classList.add('wrong');
   });
 
+  const xpEarned = correct ? QUIZ_XP : 0;
+
   resultEl.hidden = false;
   resultEl.innerHTML = `
     <div class="quiz-verdict ${correct ? 'right' : 'wrong'}">
       <span class="ms">${correct ? 'verified' : 'info'}</span>
-      <strong>${correct ? '答對了！' : '正解是 ' + escapeHtml(q.correct_answer)}</strong>
-      <span class="quiz-xp">+${QUIZ_XP} XP</span>
+      <strong>${correct ? '答對了！' : '答錯了，正解是 ' + escapeHtml(q.correct_answer)}</strong>
+      <span class="quiz-xp">${correct ? '+' + QUIZ_XP + ' XP' : '0 XP · 明天再挑戰'}</span>
     </div>
     ${q.explanation ? `<p class="quiz-explanation">${escapeHtml(q.explanation)}</p>` : ''}
     <div class="quiz-actions">
-      <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="another">再來一題</button>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回任務</button>
     </div>
   `;
 
-  resultEl.querySelector('#another')?.addEventListener('click', () => navigate('/tasks/quiz'));
   resultEl.querySelector('#back')?.addEventListener('click', () => navigate('/tasks'));
 
-  // Mark mission immediately — local state shouldn't wait on the server.
-  markMissionDone('quiz', QUIZ_XP);
+  // Mark mission immediately — answered means the daily slot is consumed,
+  // even on a wrong pick. Wrong answer carries 0 XP so totalXpToday stays put.
+  markMissionDone('quiz', xpEarned);
 
   // Best-effort persistence + XP. Failures don't block the user.
   const u = $user.get();
@@ -152,10 +161,12 @@ async function onPick(
     } catch (err) {
       console.warn('[quiz] recordQuizAttempt failed:', err);
     }
-    try {
-      await awardXp(u.id, QUIZ_XP);
-    } catch (err) {
-      console.warn('[quiz] awardXp failed:', err);
+    if (correct) {
+      try {
+        await awardXp(u.id, QUIZ_XP);
+      } catch (err) {
+        console.warn('[quiz] awardXp failed:', err);
+      }
     }
   }
 }
