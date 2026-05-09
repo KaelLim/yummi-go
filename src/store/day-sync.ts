@@ -22,21 +22,50 @@ import { getDailyProgress } from '@/api/daily-progress';
 export function setupDaySync(): void {
   let pending: Promise<void> | null = null;
   let last = '';
+  // `undefined` = not yet seen any user; `null` = logged out; number = userId.
+  // Distinguishes "first boot" from a real user-change so we don't blank a
+  // freshly-bootstrapped session.
+  let lastUserId: number | null | undefined = undefined;
 
-  $ui.subscribe((s) => {
+  function fire(): void {
+    const s = $ui.get();
+    const u = $user.get();
+    const newUserId = u?.id ?? null;
+    const userChanged = lastUserId !== undefined && lastUserId !== newUserId;
     const day = currentDayNumber({
       mode: s.timeMode,
       challengeStartedAt: s.challengeStartedAt,
       manualDay: s.manualDay,
     });
-    const key = `${s.timeMode}|${day}`;
+    const key = `${newUserId ?? 'none'}|${s.timeMode}|${day}`;
+
+    if (userChanged) {
+      // Real user-change (logout, register-new, or switch-account). Blank
+      // $today *immediately* so the next render doesn't see the previous
+      // user's missionsDone before drust answers — this is the fix for
+      // "新帳號顯示今日小測驗已完成".
+      $today.set({
+        dayNumber: day,
+        totalXpToday: 0,
+        missionsDone: [],
+        luckyColor: '',
+      });
+      last = ''; // force re-hydrate even if (timeMode, day) is unchanged
+    }
+    lastUserId = newUserId;
+
     if (key === last) return;
     last = key;
+
+    if (!u) return; // Logged out — nothing to fetch.
     pending = hydrate(day).finally(() => {
       pending = null;
     });
     void pending;
-  });
+  }
+
+  $ui.subscribe(fire);
+  $user.subscribe(fire);
 }
 
 async function hydrate(day: number): Promise<void> {
