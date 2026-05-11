@@ -1,10 +1,12 @@
 /**
- * Onboarding step 3 — Carbon baseline (meat ratios).
+ * Onboarding step 2 — Carbon baseline (meat ratios).
  *
  * Four sliders (beef / pork / lamb / chicken) capture the user's pre-challenge
  * meat habits as fractions of total intake. The remainder is implicitly
- * vegetarian. The serialized JSON is stored in user_profiles.baseline and is
- * later used by lib/baseline-impact to compute carbon savings.
+ * vegetarian. Total is capped at 100% — dragging a slider up is clamped to
+ * the headroom left by the other three; once total is 100% the other bars
+ * can only slide down. The serialized JSON is stored in user_profiles.baseline
+ * and later read by lib/baseline-impact to compute carbon savings.
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
@@ -29,7 +31,7 @@ export default function baseline(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(3, 9).outerHTML}
+      ${createProgress(2, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">原本的肉類飲食</h1>
@@ -54,15 +56,32 @@ export default function baseline(): HTMLElement {
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/onboarding/diet-survey'));
 
+  function sumOthers(exceptKey: string): number {
+    return Object.entries(state)
+      .filter(([k]) => k !== exceptKey)
+      .reduce((a, [, v]) => a + v, 0);
+  }
+
+  function paint(key: string): void {
+    const row = wrap.querySelector(`.baseline-row[data-key="${key}"]`);
+    const valueEl = row?.querySelector('.baseline-value');
+    if (valueEl) valueEl.textContent = Math.round(state[key] * 100) + '%';
+    const slider = row?.querySelector<HTMLInputElement>('.baseline-slider');
+    if (slider) slider.value = String(Math.round(state[key] * 100));
+    const totalEl = wrap.querySelector('#total-pct');
+    if (totalEl) totalEl.textContent = Math.round(totalPct() * 100) + '%';
+  }
+
   wrap.querySelectorAll<HTMLInputElement>('.baseline-slider').forEach(slider => {
     slider.addEventListener('input', () => {
       const key = slider.dataset.key!;
-      state[key] = Number(slider.value) / 100;
-      const row = wrap.querySelector(`.baseline-row[data-key="${key}"]`);
-      const valueEl = row?.querySelector('.baseline-value');
-      if (valueEl) valueEl.textContent = Math.round(state[key] * 100) + '%';
-      const totalEl = wrap.querySelector('#total-pct');
-      if (totalEl) totalEl.textContent = Math.round(totalPct() * 100) + '%';
+      const requested = Number(slider.value) / 100;
+      // Cap at the headroom left by the other three so total never exceeds 100%.
+      // If others already sum to 1.0 the user can only drag this bar down.
+      const maxAllowed = Math.max(0, 1 - sumOthers(key));
+      const next = Math.min(requested, maxAllowed);
+      state[key] = next;
+      paint(key);
     });
   });
 

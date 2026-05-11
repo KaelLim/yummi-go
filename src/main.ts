@@ -40,7 +40,6 @@ function wrap(loader: RouteLoader): RouteLoader {
 defRoute('/', () => import('./routes/splash'));
 defRoute('/login', wrap(() => import('./routes/login')));
 defRoute('/register', wrap(() => import('./routes/register')));
-defRoute('/onboarding/oath', wrap(() => import('./routes/onboarding/oath')));
 defRoute('/onboarding/diet-survey', wrap(() => import('./routes/onboarding/diet-survey')));
 defRoute('/onboarding/baseline', wrap(() => import('./routes/onboarding/baseline')));
 defRoute('/onboarding/purpose', wrap(() => import('./routes/onboarding/purpose')));

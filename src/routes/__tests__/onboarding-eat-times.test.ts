@@ -46,6 +46,7 @@ describe('onboarding/eat-times', () => {
     document.body.appendChild(el);
     const lunchInput = el.querySelector('.meal-input[data-key="lunch"]') as HTMLInputElement;
     lunchInput.value = '13:15';
+    lunchInput.dispatchEvent(new Event('input'));
     (el.querySelector('#continue-btn') as HTMLButtonElement).click();
     await flush();
     expect(mockedProfile.updateProfile).toHaveBeenCalledTimes(1);
@@ -62,5 +63,85 @@ describe('onboarding/eat-times', () => {
     const el = eatTimes();
     (el.querySelector('#back-btn') as HTMLElement).click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+  });
+
+  it('clicking ✕ removes a meal row and excludes it from the JSON', async () => {
+    mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
+    const el = eatTimes();
+    document.body.appendChild(el);
+
+    // Remove breakfast
+    const breakfastRemove = el.querySelector(
+      '.meal-remove[data-key="breakfast"]',
+    ) as HTMLButtonElement;
+    expect(breakfastRemove).not.toBeNull();
+    breakfastRemove.click();
+
+    // Row is now in disabled state — has + button, no time input
+    const breakfastRow = el.querySelector('.meal-row[data-key="breakfast"]')!;
+    expect(breakfastRow.classList.contains('meal-row-off')).toBe(true);
+    expect(breakfastRow.querySelector('.meal-input')).toBeNull();
+    expect(
+      breakfastRow.querySelector('button[data-action="enable"]'),
+    ).not.toBeNull();
+
+    (el.querySelector('#continue-btn') as HTMLButtonElement).click();
+    await flush();
+    const [, patch] = mockedProfile.updateProfile.mock.calls[0];
+    const parsed = JSON.parse(patch.eat_times);
+    expect(parsed).not.toHaveProperty('breakfast');
+    expect(parsed.lunch).toBe('12:30');
+    expect(parsed.dinner).toBe('19:00');
+    document.body.removeChild(el);
+  });
+
+  it('clicking + restores a removed meal with its previous time', () => {
+    const el = eatTimes();
+    document.body.appendChild(el);
+
+    // Change breakfast time first, then remove, then re-add — time should be preserved.
+    const breakfastInput = el.querySelector(
+      '.meal-input[data-key="breakfast"]',
+    ) as HTMLInputElement;
+    breakfastInput.value = '07:30';
+    breakfastInput.dispatchEvent(new Event('input'));
+
+    (
+      el.querySelector('.meal-remove[data-key="breakfast"]') as HTMLButtonElement
+    ).click();
+    (
+      el.querySelector(
+        'button[data-action="enable"][data-key="breakfast"]',
+      ) as HTMLButtonElement
+    ).click();
+
+    const restored = el.querySelector(
+      '.meal-input[data-key="breakfast"]',
+    ) as HTMLInputElement;
+    expect(restored).not.toBeNull();
+    expect(restored.value).toBe('07:30');
+    document.body.removeChild(el);
+  });
+
+  it('hides the ✕ on the last remaining active meal so users cannot disable all 3', () => {
+    const el = eatTimes();
+    document.body.appendChild(el);
+
+    // Remove breakfast then lunch — dinner is now the only active row.
+    (
+      el.querySelector('.meal-remove[data-key="breakfast"]') as HTMLButtonElement
+    ).click();
+    (
+      el.querySelector('.meal-remove[data-key="lunch"]') as HTMLButtonElement
+    ).click();
+
+    expect(
+      el.querySelector('.meal-remove[data-key="dinner"]'),
+    ).toBeNull();
+    // The other two still expose + to bring them back.
+    expect(
+      el.querySelectorAll('button[data-action="enable"]').length,
+    ).toBe(2);
+    document.body.removeChild(el);
   });
 });

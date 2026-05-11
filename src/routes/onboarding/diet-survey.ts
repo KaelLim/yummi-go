@@ -25,7 +25,7 @@ export default function dietSurvey(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(2, 9).outerHTML}
+      ${createProgress(1, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">你的飲食習慣是？</h1>
@@ -41,10 +41,13 @@ export default function dietSurvey(): HTMLElement {
       </div>
       <div class="grow"></div>
       <button class="btn-skip" id="skip-btn">Skip</button>
+      <p class="auth-foot" style="margin-top:12px;text-align:center;">
+        已有帳號？<a href="#/login" class="link">登入</a>
+      </p>
     </div>
   `;
 
-  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/onboarding/oath'));
+  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/'));
   wrap.querySelector('#skip-btn')?.addEventListener('click', () => navigate('/onboarding/baseline'));
 
   wrap.querySelectorAll<HTMLButtonElement>('.choice').forEach(btn => {

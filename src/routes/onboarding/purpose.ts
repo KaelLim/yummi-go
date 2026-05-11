@@ -1,20 +1,17 @@
 /**
- * Onboarding step 4 — Challenge purpose.
+ * Onboarding step 3 — Challenge purpose (required).
  *
- * Body management / Environment protection / Make a vow / Skip.
- * Tap → updateProfile({ purpose }) → /onboarding/challenge-level.
+ * Options are fetched from drust's `challenge_purposes` collection (admin
+ * editable via MCP, no UI). The first render shows a loading row; once the
+ * list resolves we paint the buttons. If drust is unreachable the helper
+ * returns a hardcoded fallback so the user can never get stuck.
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
-import { updateProfile } from '@/api/profile';
+import { updateProfile, type UserProfile } from '@/api/profile';
+import { listChallengePurposes, type ChallengePurpose } from '@/api/content';
 import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
-
-const OPTIONS = [
-  { value: 'body',         emoji: '🏃', label: 'Body management 健康管理' },
-  { value: 'environment',  emoji: '🌱', label: 'Environment protection 環保' },
-  { value: 'vow',          emoji: '🙏', label: 'Make a vow 發願' },
-];
 
 export default function purpose(): HTMLElement {
   const wrap = document.createElement('div');
@@ -22,40 +19,76 @@ export default function purpose(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(4, 9).outerHTML}
+      ${createProgress(3, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">參加挑戰的目的</h1>
       <p class="onb-sub text-mini">挑戰的方向會影響每日的提示文字</p>
-      <div class="onb-options">
-        ${OPTIONS.map((o) => `
-          <button class="choice" data-value="${o.value}">
-            <span class="ch-icon">${o.emoji}</span>
-            <span class="ch-text">${o.label}</span>
-            <span class="ms ch-arrow">arrow_forward</span>
-          </button>
-        `).join('')}
+      <div class="onb-options" id="purpose-options">
+        <div class="quiz-loading">
+          <span class="ms">hourglass_top</span>
+          <span>載入中…</span>
+        </div>
       </div>
       <div class="grow"></div>
-      <button class="btn-skip" id="skip-btn">Skip</button>
     </div>
   `;
 
-  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/onboarding/baseline'));
-  wrap.querySelector('#skip-btn')?.addEventListener('click', () => navigate('/onboarding/challenge-level'));
+  wrap.querySelector('#back-btn')?.addEventListener('click', () =>
+    navigate('/onboarding/baseline'),
+  );
 
-  wrap.querySelectorAll<HTMLButtonElement>('.choice').forEach((btn) => {
+  void (async () => {
+    const purposes = await listChallengePurposes();
+    renderOptions(wrap, purposes);
+  })();
+
+  return wrap;
+}
+
+function renderOptions(wrap: HTMLElement, purposes: ChallengePurpose[]): void {
+  const list = wrap.querySelector<HTMLElement>('#purpose-options');
+  if (!list) return;
+  list.innerHTML = purposes
+    .map(
+      (p) => `
+        <button class="choice" data-value="${escapeAttr(p.key)}">
+          <span class="ch-icon">${escapeHtml(p.emoji ?? '')}</span>
+          <span class="ch-text">${escapeHtml(p.label)}</span>
+          <span class="ms ch-arrow">arrow_forward</span>
+        </button>
+      `,
+    )
+    .join('');
+
+  list.querySelectorAll<HTMLButtonElement>('.choice').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const value = btn.dataset.value!;
       const u = $user.get();
       if (u) {
-        try { await updateProfile(u.id, { purpose: value }); } catch { /* soft fail */ }
+        try {
+          await updateProfile(u.id, { purpose: value } as Partial<UserProfile>);
+        } catch {
+          /* soft fail */
+        }
       } else {
         patchDraft({ purpose: value });
       }
       navigate('/onboarding/challenge-level');
     });
   });
+}
 
-  return wrap;
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    c === '&' ? '&amp;'
+      : c === '<' ? '&lt;'
+      : c === '>' ? '&gt;'
+      : c === '"' ? '&quot;'
+      : '&#39;',
+  );
+}
+
+function escapeAttr(s: string): string {
+  return escapeHtml(s);
 }

@@ -23,7 +23,7 @@ export default function knownFrom(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(7, 9).outerHTML}
+      ${createProgress(6, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">如何得知這個 App？</h1>

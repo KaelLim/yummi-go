@@ -34,11 +34,11 @@ describe('splash route', () => {
     expect(el.querySelector('.splash-title')?.textContent).toBe('Yummi Go');
   });
 
-  it('navigates to /onboarding/oath after 1.2s when not logged in', async () => {
+  it('navigates to /onboarding/diet-survey after 1.2s when not logged in', async () => {
     mockedUser.$isLoggedIn.get.mockReturnValue(false);
     splash();
     await vi.advanceTimersByTimeAsync(1300);
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/oath');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/diet-survey');
   });
 
   it('navigates to /home after 1.2s when logged in', async () => {

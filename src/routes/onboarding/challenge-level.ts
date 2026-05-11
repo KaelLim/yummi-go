@@ -22,7 +22,7 @@ export default function challengeLevel(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(5, 9).outerHTML}
+      ${createProgress(4, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">挑戰難度</h1>

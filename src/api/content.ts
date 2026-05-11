@@ -44,6 +44,44 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+export interface ChallengePurpose {
+  id: number;
+  key: string;
+  emoji: string | null;
+  label: string;
+  sort_order: number;
+  active: number | boolean;
+}
+
+/**
+ * The hardcoded fallback used when drust is unreachable mid-onboarding.
+ * Must stay in sync with what's seeded in challenge_purposes — if someone
+ * edits the table to add a new option, this list lags but the live drust
+ * read takes precedence so users still see the latest.
+ */
+const PURPOSE_FALLBACK: ChallengePurpose[] = [
+  { id: -1, key: 'body',        emoji: '🏃', label: 'Body management 健康管理',      sort_order: 1, active: 1 },
+  { id: -2, key: 'environment', emoji: '🌱', label: 'Environment protection 環保',  sort_order: 2, active: 1 },
+  { id: -3, key: 'vow',         emoji: '🙏', label: 'Make a vow 發願',              sort_order: 3, active: 1 },
+];
+
+export async function listChallengePurposes(): Promise<ChallengePurpose[]> {
+  try {
+    const result = await drust.list<ChallengePurpose>('challenge_purposes', {
+      limit: '100',
+    });
+    // Filter inactive + sort client-side because drust list ignores query
+    // params and `active` is stored as 0/1 via the boolean→integer coercion.
+    const live = result.records
+      .filter((r) => Number(r.active) === 1)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    if (live.length > 0) return live;
+  } catch (err) {
+    console.warn('[content] list challenge_purposes failed, using fallback:', err);
+  }
+  return [...PURPOSE_FALLBACK];
+}
+
 export interface Restaurant {
   id: number;
   name: string;

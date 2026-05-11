@@ -12,7 +12,6 @@ vi.mock('@/store/onboarding-draft', async () => {
   const { atom } = await import('nanostores');
   return {
     $onboardingDraft: atom({
-      oath_signed: false,
       diet_type: null,
       baseline: null,
       purpose: null,
@@ -42,7 +41,6 @@ const mockedUser = userStore as unknown as {
 };
 const mockedDraft = draftStore as unknown as {
   $onboardingDraft: ReturnType<typeof atom<{
-    oath_signed: boolean;
     diet_type: string | null;
     baseline: string | null;
     purpose: string | null;
@@ -61,7 +59,6 @@ function flush() {
 
 function resetDraft() {
   mockedDraft.$onboardingDraft.set({
-    oath_signed: false,
     diet_type: null,
     baseline: null,
     purpose: null,

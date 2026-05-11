@@ -37,10 +37,10 @@ describe('onboarding/diet-survey', () => {
     expect(el.querySelectorAll('.choice').length).toBe(4);
   });
 
-  it('back button navigates to oath', () => {
+  it('back button navigates to splash', () => {
     const el = dietSurvey();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/oath');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/');
   });
 
   it('skip button navigates to baseline without writing profile', () => {

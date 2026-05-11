@@ -37,14 +37,54 @@ describe('onboarding/baseline', () => {
     expect(el.querySelectorAll('.baseline-row').length).toBe(4);
   });
 
-  it('updating slider updates the displayed % and total', () => {
+  it('dragging a slider down within headroom updates the displayed % and total', () => {
+    // Defaults sum to 100 (beef 20 + pork 30 + lamb 0 + chicken 50). Drag
+    // chicken down — total drops, displayed value matches.
+    const el = baseline();
+    document.body.appendChild(el);
+    const chickenSlider = el.querySelector('.baseline-slider[data-key="chicken"]') as HTMLInputElement;
+    chickenSlider.value = '10';
+    chickenSlider.dispatchEvent(new Event('input'));
+    const chickenRow = el.querySelector('.baseline-row[data-key="chicken"]')!;
+    expect(chickenRow.querySelector('.baseline-value')!.textContent).toBe('10%');
+    expect(el.querySelector('#total-pct')!.textContent).toBe('60%');
+    document.body.removeChild(el);
+  });
+
+  it('clamps slider to remaining headroom so total never exceeds 100%', () => {
+    // Defaults already sum to 100 (beef 20 + pork 30 + lamb 0 + chicken 50).
+    // Dragging beef up to 40 should clamp at 20 (no headroom left).
     const el = baseline();
     document.body.appendChild(el);
     const beefSlider = el.querySelector('.baseline-slider[data-key="beef"]') as HTMLInputElement;
     beefSlider.value = '40';
     beefSlider.dispatchEvent(new Event('input'));
     const beefRow = el.querySelector('.baseline-row[data-key="beef"]')!;
-    expect(beefRow.querySelector('.baseline-value')!.textContent).toBe('40%');
+    expect(beefRow.querySelector('.baseline-value')!.textContent).toBe('20%');
+    expect(beefSlider.value).toBe('20'); // visually snaps back to the cap
+    expect(el.querySelector('#total-pct')!.textContent).toBe('100%');
+    document.body.removeChild(el);
+  });
+
+  it('once total is 100%, other bars can only slide down (not up)', () => {
+    const el = baseline();
+    document.body.appendChild(el);
+    // lamb starts at 0 with no headroom; dragging it up should pin at 0.
+    const lambSlider = el.querySelector('.baseline-slider[data-key="lamb"]') as HTMLInputElement;
+    lambSlider.value = '25';
+    lambSlider.dispatchEvent(new Event('input'));
+    const lambRow = el.querySelector('.baseline-row[data-key="lamb"]')!;
+    expect(lambRow.querySelector('.baseline-value')!.textContent).toBe('0%');
+    expect(el.querySelector('#total-pct')!.textContent).toBe('100%');
+
+    // Free up headroom by sliding pork down, then lamb can climb into it.
+    const porkSlider = el.querySelector('.baseline-slider[data-key="pork"]') as HTMLInputElement;
+    porkSlider.value = '10';
+    porkSlider.dispatchEvent(new Event('input'));
+    lambSlider.value = '25';
+    lambSlider.dispatchEvent(new Event('input'));
+    expect(lambRow.querySelector('.baseline-value')!.textContent).toBe('20%');
+    expect(el.querySelector('#total-pct')!.textContent).toBe('100%');
     document.body.removeChild(el);
   });
 

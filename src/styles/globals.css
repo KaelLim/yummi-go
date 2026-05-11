@@ -296,6 +296,10 @@ body {
 .meal-emoji { font-size: var(--text-button-l-size); }
 .meal-label { flex: 1; font-weight: var(--font-weight-semibold); }
 .meal-input { font-family: inherit; font-size: var(--text-body-size); padding: var(--space-2) var(--space-3); border: 1.5px solid var(--color-neutral-light-active); border-radius: var(--radius-md); background: #fff; }
+.meal-remove { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; background: transparent; color: var(--color-neutral-darker); cursor: pointer; border-radius: 50%; padding: 0; }
+.meal-remove:hover { background: var(--color-neutral-light-active); color: #d33; }
+.meal-row-off { border-style: dashed; background: transparent; }
+.meal-row-off .btn-skip { margin-left: auto; }
 
 /* Day-1 hook (Task 46) */
 .day1 { background: linear-gradient(180deg, #2a2a2a, #4a4a4a); color: #fff; }

@@ -1,19 +1,18 @@
 /**
  * Transient onboarding answers, kept in-memory while the user walks the
- * 9-step flow without an account. After /register succeeds, flushDraftToDrust
- * persists the collected fields onto the freshly-created user row + profile,
- * stamps the oath timestamp, and clears the draft.
+ * 8-step flow without an account. After /register succeeds, flushDraftToDrust
+ * persists the collected fields onto the freshly-created user row + profile
+ * and clears the draft.
  *
  * If the user is already logged in (returning users who restart onboarding),
  * each step writes drust directly and the draft stays unused — see each
  * onboarding route for the `if ($user)` branch.
  */
 import { atom } from 'nanostores';
-import { signOath, updateProfile } from '@/api/profile';
+import { updateProfile } from '@/api/profile';
 import { setChallengeStartedAt } from '@/store/ui';
 
 export interface OnboardingDraft {
-  oath_signed: boolean;
   diet_type: string | null;
   baseline: string | null; // JSON-encoded
   purpose: string | null;
@@ -25,7 +24,6 @@ export interface OnboardingDraft {
 
 function emptyDraft(): OnboardingDraft {
   return {
-    oath_signed: false,
     diet_type: null,
     baseline: null,
     purpose: null,
@@ -54,14 +52,6 @@ export function resetDraft(): void {
  */
 export async function flushDraftToDrust(userId: number): Promise<void> {
   const d = $onboardingDraft.get();
-
-  if (d.oath_signed) {
-    try {
-      await signOath(userId);
-    } catch (err) {
-      console.warn('[onboarding-draft] signOath failed:', err);
-    }
-  }
 
   const profilePatch: Record<string, unknown> = {};
   if (d.diet_type !== null) profilePatch.diet_type = d.diet_type;

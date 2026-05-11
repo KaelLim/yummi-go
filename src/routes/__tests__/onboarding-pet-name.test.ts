@@ -11,7 +11,6 @@ const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> }
 
 function emptyDraft() {
   return {
-    oath_signed: false,
     diet_type: null,
     baseline: null,
     purpose: null,
@@ -29,10 +28,10 @@ describe('onboarding/pet-name', () => {
     $onboardingDraft.set(emptyDraft());
   });
 
-  it('renders 9/9 progress, input with default name, and continue button', () => {
+  it('renders 8/8 progress, input with default name, and continue button', () => {
     const el = petName();
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(9);
-    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(9);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(8);
+    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(8);
     const input = el.querySelector('#pet-name-input') as HTMLInputElement;
     expect(input).not.toBeNull();
     expect(input.value).toBe('小綠');

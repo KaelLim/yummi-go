@@ -13,7 +13,6 @@ const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> }
 
 function emptyDraft() {
   return {
-    oath_signed: false,
     diet_type: null,
     baseline: null,
     purpose: null,
@@ -39,14 +38,14 @@ describe('onboarding/day1-hook', () => {
     });
   });
 
-  it('renders the fog overlay, egg, and CTA at step 8 of 9', () => {
+  it('renders the fog overlay, egg, and CTA at step 7 of 8', () => {
     const el = day1Hook();
     expect(el.classList.contains('day1')).toBe(true);
     expect(el.querySelector('.fog-overlay')).not.toBeNull();
     expect(el.querySelector('.day1-egg')).not.toBeNull();
     expect(el.querySelector('#enter-btn')).not.toBeNull();
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(9);
-    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(8);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(8);
+    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(7);
   });
 
   it('CTA navigates to /onboarding/pet-name', () => {

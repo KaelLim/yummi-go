@@ -45,7 +45,7 @@ export default function day1Hook(): HTMLElement {
 
   wrap.innerHTML = `
     <div class="onb-header">
-      ${createProgress(8, 9).outerHTML}
+      ${createProgress(7, 8).outerHTML}
     </div>
     <div class="day1-body">
       <div class="fog-overlay"></div>
