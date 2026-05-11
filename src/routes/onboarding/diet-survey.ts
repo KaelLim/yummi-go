@@ -9,6 +9,7 @@
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { updateProfile } from '@/api/profile';
+import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 
 const OPTIONS = [
@@ -24,7 +25,7 @@ export default function dietSurvey(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(2, 8).outerHTML}
+      ${createProgress(2, 9).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">你的飲食習慣是？</h1>
@@ -50,14 +51,12 @@ export default function dietSurvey(): HTMLElement {
     btn.addEventListener('click', async () => {
       const value = btn.dataset.value!;
       const u = $user.get();
-      if (!u) { navigate('/login'); return; }
-      try {
-        await updateProfile(u.id, { diet_type: value });
-        navigate('/onboarding/baseline');
-      } catch {
-        // soft fail; continue anyway
-        navigate('/onboarding/baseline');
+      if (u) {
+        try { await updateProfile(u.id, { diet_type: value }); } catch { /* soft fail */ }
+      } else {
+        patchDraft({ diet_type: value });
       }
+      navigate('/onboarding/baseline');
     });
   });
 

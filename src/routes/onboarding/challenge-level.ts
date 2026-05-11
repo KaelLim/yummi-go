@@ -7,6 +7,7 @@
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { updateProfile } from '@/api/profile';
+import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 
 const LEVELS = [
@@ -21,7 +22,7 @@ export default function challengeLevel(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(5, 8).outerHTML}
+      ${createProgress(5, 9).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">挑戰難度</h1>
@@ -47,8 +48,11 @@ export default function challengeLevel(): HTMLElement {
     btn.addEventListener('click', async () => {
       const value = Number(btn.dataset.value);
       const u = $user.get();
-      if (!u) { navigate('/login'); return; }
-      try { await updateProfile(u.id, { challenge_level: value }); } catch { /* soft fail */ }
+      if (u) {
+        try { await updateProfile(u.id, { challenge_level: value }); } catch { /* soft fail */ }
+      } else {
+        patchDraft({ challenge_level: value });
+      }
       navigate('/onboarding/eat-times');
     });
   });

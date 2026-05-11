@@ -4,7 +4,9 @@
  * The element is returned synchronously so the loader animation is visible
  * immediately. After a 1.2s hold, redirects:
  *   - to /home if $user is hydrated (bootstrap already ran in main.ts boot)
- *   - to /login otherwise
+ *   - to /onboarding/oath otherwise (new users go through the full setup
+ *     before being asked to create an account; returning users hit /login
+ *     via the link on the register screen)
  */
 import { $isLoggedIn } from '@/store/user';
 import { navigate } from '@/router';
@@ -24,7 +26,7 @@ export default function splash(): HTMLElement {
   `;
 
   setTimeout(() => {
-    navigate($isLoggedIn.get() ? '/home' : '/login');
+    navigate($isLoggedIn.get() ? '/home' : '/onboarding/oath');
   }, 1200);
 
   return wrap;

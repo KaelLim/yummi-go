@@ -7,6 +7,7 @@
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { updateProfile } from '@/api/profile';
+import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 
 const OPTIONS = [
@@ -21,7 +22,7 @@ export default function purpose(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(4, 8).outerHTML}
+      ${createProgress(4, 9).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">參加挑戰的目的</h1>
@@ -49,6 +50,8 @@ export default function purpose(): HTMLElement {
       const u = $user.get();
       if (u) {
         try { await updateProfile(u.id, { purpose: value }); } catch { /* soft fail */ }
+      } else {
+        patchDraft({ purpose: value });
       }
       navigate('/onboarding/challenge-level');
     });

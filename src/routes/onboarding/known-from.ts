@@ -7,6 +7,7 @@
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { updateProfile } from '@/api/profile';
+import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 
 const OPTIONS = [
@@ -22,7 +23,7 @@ export default function knownFrom(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(7, 8).outerHTML}
+      ${createProgress(7, 9).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">如何得知這個 App？</h1>
@@ -50,6 +51,8 @@ export default function knownFrom(): HTMLElement {
       const u = $user.get();
       if (u) {
         try { await updateProfile(u.id, { known_from: value }); } catch { /* soft fail */ }
+      } else {
+        patchDraft({ known_from: value });
       }
       navigate('/onboarding/day1-hook');
     });

@@ -35,7 +35,7 @@ export default function login(): HTMLElement {
       </form>
 
       <p class="auth-foot">
-        還沒有帳號？<a href="#/register" class="link">立即註冊</a>
+        還沒有帳號？<a href="#/onboarding/oath" class="link">立即註冊</a>
       </p>
     </div>
   `;

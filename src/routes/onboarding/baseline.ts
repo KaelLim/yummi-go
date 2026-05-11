@@ -9,6 +9,7 @@
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { updateProfile } from '@/api/profile';
+import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 
 const TYPES = [
@@ -28,7 +29,7 @@ export default function baseline(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(3, 8).outerHTML}
+      ${createProgress(3, 9).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">原本的肉類飲食</h1>
@@ -67,9 +68,12 @@ export default function baseline(): HTMLElement {
 
   wrap.querySelector('#continue-btn')?.addEventListener('click', async () => {
     const u = $user.get();
-    if (!u) { navigate('/login'); return; }
     const baselineJson = JSON.stringify(state);
-    try { await updateProfile(u.id, { baseline: baselineJson }); } catch { /* soft fail */ }
+    if (u) {
+      try { await updateProfile(u.id, { baseline: baselineJson }); } catch { /* soft fail */ }
+    } else {
+      patchDraft({ baseline: baselineJson });
+    }
     navigate('/onboarding/purpose');
   });
 

@@ -27,8 +27,9 @@ describe('onboarding/known-from', () => {
     expect(el.querySelector('#skip-btn')).not.toBeNull();
   });
 
-  it('shows progress 7/8', () => {
+  it('shows progress 7/9', () => {
     const el = knownFrom();
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(9);
     expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(7);
   });
 

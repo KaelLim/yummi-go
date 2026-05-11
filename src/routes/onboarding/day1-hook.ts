@@ -1,14 +1,16 @@
 /**
  * Onboarding step 8 — Day-1 hook.
  *
- * Final scene: tinted egg keyed by diet_type, challenge rule keyed by
- * challenge_level, purpose one-liner keyed by user_profiles.purpose. The
- * CTA stamps users.challenge_started_at via drust and routes to /check-in.
+ * Final scene before pet naming: tinted egg keyed by diet_type, challenge
+ * rule keyed by challenge_level, purpose one-liner keyed by purpose. Reads
+ * the live profile if the user is already logged in (returning flow) or
+ * the in-memory draft otherwise (first-time flow). The CTA advances to the
+ * pet-name step — challenge_started_at is stamped later by the flush.
  */
 import { navigate } from '@/router';
 import { createProgress } from '@/components/Progress';
-import { setChallengeStartedAt } from '@/store/ui';
-import { $user, $profile } from '@/store/user';
+import { $profile } from '@/store/user';
+import { $onboardingDraft } from '@/store/onboarding-draft';
 
 const LEVEL_RULES: Record<number, string> = {
   1: '每天 1 餐無肉就算達標',
@@ -33,13 +35,17 @@ export default function day1Hook(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'onb-screen day1';
   const p = $profile.get();
-  const tint = (p?.diet_type && DIET_TINT[p.diet_type]) ?? 'neutral';
-  const ruleLine = LEVEL_RULES[p?.challenge_level ?? 0] ?? '依你選擇的步調挑戰 30 天。';
-  const purposeLine = PURPOSE_LINES[p?.purpose ?? ''] ?? '跟著精靈一起探索蔬食。';
+  const d = $onboardingDraft.get();
+  const dietType = p?.diet_type ?? d.diet_type;
+  const challengeLevel = p?.challenge_level ?? d.challenge_level;
+  const purpose = p?.purpose ?? d.purpose;
+  const tint = (dietType && DIET_TINT[dietType]) ?? 'neutral';
+  const ruleLine = LEVEL_RULES[challengeLevel ?? 0] ?? '依你選擇的步調挑戰 30 天。';
+  const purposeLine = PURPOSE_LINES[purpose ?? ''] ?? '跟著精靈一起探索蔬食。';
 
   wrap.innerHTML = `
     <div class="onb-header">
-      ${createProgress(8, 8).outerHTML}
+      ${createProgress(8, 9).outerHTML}
     </div>
     <div class="day1-body">
       <div class="fog-overlay"></div>
@@ -53,20 +59,18 @@ export default function day1Hook(): HTMLElement {
         </ul>
         <p class="day1-text">
           灰霧濃重，蛋殼裡的精靈正等待你<br/>
-          請立即開始你的第一次打卡！
+          為這顆蛋取個名字，開始你的旅程
         </p>
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="enter-btn">
-          <span class="ms">photo_camera</span>
-          開始打卡
+          為蛋取名
+          <span class="ms">arrow_forward</span>
         </button>
       </div>
     </div>
   `;
 
   wrap.querySelector('#enter-btn')?.addEventListener('click', () => {
-    const u = $user.get();
-    if (u) void setChallengeStartedAt(u.id);
-    navigate('/check-in');
+    navigate('/onboarding/pet-name');
   });
 
   return wrap;

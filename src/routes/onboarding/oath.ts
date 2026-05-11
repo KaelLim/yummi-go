@@ -8,6 +8,7 @@
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { signOath } from '@/api/profile';
+import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 
 export default function oath(): HTMLElement {
@@ -15,7 +16,7 @@ export default function oath(): HTMLElement {
   wrap.className = 'onb-screen';
   wrap.innerHTML = `
     <div class="onb-header">
-      ${createProgress(1, 8).outerHTML}
+      ${createProgress(1, 9).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">綠色承諾</h1>
@@ -36,6 +37,9 @@ export default function oath(): HTMLElement {
       </label>
       <div class="grow"></div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn" disabled>繼續</button>
+      <p class="auth-foot" style="margin-top:12px;text-align:center;">
+        已有帳號？<a href="#/login" class="link">登入</a>
+      </p>
     </div>
   `;
 
@@ -45,17 +49,21 @@ export default function oath(): HTMLElement {
 
   btn.addEventListener('click', async () => {
     const u = $user.get();
-    if (!u) { navigate('/login'); return; }
     btn.disabled = true;
     btn.textContent = '確認中…';
-    try {
-      await signOath(u.id);
-      navigate('/onboarding/diet-survey');
-    } catch {
-      btn.disabled = false;
-      btn.textContent = '繼續';
-      alert('同步失敗，請稍後再試');
+    if (u) {
+      try {
+        await signOath(u.id);
+      } catch {
+        btn.disabled = false;
+        btn.textContent = '繼續';
+        alert('同步失敗，請稍後再試');
+        return;
+      }
+    } else {
+      patchDraft({ oath_signed: true });
     }
+    navigate('/onboarding/diet-survey');
   });
 
   return wrap;

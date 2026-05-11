@@ -27,9 +27,9 @@ describe('onboarding/purpose', () => {
     expect(el.querySelector('#skip-btn')).not.toBeNull();
   });
 
-  it('shows progress 4/8', () => {
+  it('shows progress 4/9', () => {
     const el = purpose();
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(8);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(9);
     expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(4);
   });
 

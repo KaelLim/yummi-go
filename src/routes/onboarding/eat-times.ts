@@ -9,6 +9,7 @@
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { updateProfile } from '@/api/profile';
+import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 import { requestMealNotificationPermission } from '@/lib/meal-notifier';
 
@@ -24,7 +25,7 @@ export default function eatTimes(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(6, 8).outerHTML}
+      ${createProgress(6, 9).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">用餐時間</h1>
@@ -47,12 +48,16 @@ export default function eatTimes(): HTMLElement {
 
   wrap.querySelector('#continue-btn')?.addEventListener('click', async () => {
     const u = $user.get();
-    if (!u) { navigate('/login'); return; }
     const eatTimes: Record<string, string> = {};
     wrap.querySelectorAll<HTMLInputElement>('.meal-input').forEach(input => {
       eatTimes[input.dataset.key!] = input.value;
     });
-    try { await updateProfile(u.id, { eat_times: JSON.stringify(eatTimes) }); } catch { /* soft fail */ }
+    const eatTimesJson = JSON.stringify(eatTimes);
+    if (u) {
+      try { await updateProfile(u.id, { eat_times: eatTimesJson }); } catch { /* soft fail */ }
+    } else {
+      patchDraft({ eat_times: eatTimesJson });
+    }
     void requestMealNotificationPermission();
     navigate('/onboarding/known-from');
   });
