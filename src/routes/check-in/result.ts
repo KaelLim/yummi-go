@@ -1,18 +1,25 @@
 /**
  * Check-in step 3 — review and confirm scanned ingredients.
  *
- * Three concerns layered onto one screen:
- *   1. Edit list — user can tweak each item's weight, remove an item, or
- *      add a custom one (free-text fallback).
- *   2. Meat-detection branch — if the mock scanner included a meat item,
- *      the top banner asks "這是肉嗎？". 是 routes to a fail message; 否
- *      flips the offending items to plant-based and tags
- *      `wasMeatReplaced=true` (used for the "替代為植物肉" success copy).
- *   3. Submit — picks a meal index, computes XP via xp-calc, lucky-color
- *      match via lucky-color, posts createCheckIn, awards XP, marks the
- *      mission, then routes to /check-in/success.
+ * Three stages keyed off whether the scan contains meat:
+ *   1. `veg`            — no meat detected. Original flow: items list,
+ *                         vegan chips, summary, confirm button all shown.
+ *   2. `meat-pending`   — meat detected, user hasn't answered yet. Only the
+ *                         banner with 是 / 否 is visible; the rest of the UI
+ *                         is hidden to keep the choice in focus.
+ *   3. `meat-replaced`  — user picked 否. Banner hides. An auto-derived
+ *                         nutrition card slides in (animation), the pet
+ *                         pops a speech bubble ("想調整餐點？" + button),
+ *                         and the confirm button surfaces. Tapping 修改餐點
+ *                         reveals the editable list / vegan chips / summary
+ *                         for fine-tuning before submit. The 是 branch still
+ *                         routes straight to /check-in/fail.
  *
- * Pure logic for XP/match lives in the libs; this route is glue + UI.
+ * The "nutrition card" is read-only because it represents what the AI
+ * computed; users only edit it indirectly via 修改餐點 (which lets them
+ * tweak quantities or add items, then recomputes the card on the fly).
+ *
+ * Pure logic for XP / lucky-match lives in the libs; this route is glue.
  */
 import { navigate } from '@/router';
 import {
@@ -41,6 +48,8 @@ const VEGAN_TYPES: Array<NonNullable<CheckinDraft['veganType']>> = [
 
 const MEAL_LABEL: Record<MealIndex, string> = { 1: '早餐', 2: '午餐', 3: '晚餐' };
 
+type Stage = 'veg' | 'meat-pending' | 'meat-replaced';
+
 export default function result(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'checkin-screen checkin-result';
@@ -55,6 +64,10 @@ export default function result(): HTMLElement {
     wrap.querySelector('#back')?.addEventListener('click', () => navigate('/check-in'));
     return wrap;
   }
+
+  // Edit mode opens when the user clicks 修改餐點 inside the meat-replaced
+  // stage. It's screen-local UI state — never persisted, never on $checkin.
+  let editOpen = false;
 
   wrap.innerHTML = `
     <header class="checkin-header">
@@ -73,17 +86,34 @@ export default function result(): HTMLElement {
         </div>
         <div class="meat-banner-actions">
           <button class="btn text-btn-m btn-sm text-mini btn-secondary" id="meat-yes">是</button>
-          <button class="btn text-btn-m btn-sm text-mini btn-primary" id="meat-no">否，替代為植物肉</button>
+          <button class="btn text-btn-m btn-sm text-mini btn-primary" id="meat-no">否</button>
         </div>
       </div>
 
-      <ul class="result-list" id="items-list"></ul>
+      <div class="nutrition-card" id="nutrition-card" hidden>
+        <div class="nutrition-card-head">
+          <span class="ms">auto_awesome</span>
+          <strong>AI 自動分析</strong>
+        </div>
+        <div class="nutrition-card-body" id="nutrition-body"></div>
+        <p class="nutrition-card-hint">由 AI 依替換後的食材自動估算，不需手動編輯</p>
+      </div>
 
-      <button class="result-add" id="add-food">
+      <div class="pet-bubble" id="pet-bubble" hidden>
+        <span class="pet-bubble-pet">🐣</span>
+        <div class="pet-bubble-body">
+          <p>看起來很棒！想再調整餐點嗎？</p>
+          <button class="btn-skip" id="open-edit" type="button">修改餐點</button>
+        </div>
+      </div>
+
+      <ul class="result-list" id="items-list" hidden></ul>
+
+      <button class="result-add" id="add-food" hidden>
         <span class="ms">add</span>新增食物
       </button>
 
-      <div class="result-section">
+      <div class="result-section" id="vegan-section" hidden>
         <span class="result-section-label">素別</span>
         <div class="vegan-chips" id="vegan-chips">
           ${VEGAN_TYPES.map(
@@ -92,12 +122,68 @@ export default function result(): HTMLElement {
         </div>
       </div>
 
-      <div class="result-summary" id="summary"></div>
+      <div class="result-summary" id="summary" hidden></div>
     </div>
     <div class="checkin-footer">
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="confirm-btn">確認打卡</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="confirm-btn" hidden>確認打卡</button>
     </div>
   `;
+
+  function computeStage(d: CheckinDraft): Stage {
+    const hasMeat = d.items.some((i) => !i.isVeg);
+    if (d.wasMeatReplaced) return 'meat-replaced';
+    if (hasMeat) return 'meat-pending';
+    return 'veg';
+  }
+
+  function show(el: HTMLElement | null, visible: boolean): void {
+    if (el) el.hidden = !visible;
+  }
+
+  function setVisibility(stage: Stage): void {
+    const banner = wrap.querySelector<HTMLElement>('#meat-banner');
+    const nutrition = wrap.querySelector<HTMLElement>('#nutrition-card');
+    const petBubble = wrap.querySelector<HTMLElement>('#pet-bubble');
+    const list = wrap.querySelector<HTMLElement>('#items-list');
+    const add = wrap.querySelector<HTMLElement>('#add-food');
+    const veganSection = wrap.querySelector<HTMLElement>('#vegan-section');
+    const summary = wrap.querySelector<HTMLElement>('#summary');
+    const confirm = wrap.querySelector<HTMLElement>('#confirm-btn');
+
+    if (stage === 'veg') {
+      show(banner, false);
+      show(nutrition, false);
+      show(petBubble, false);
+      show(list, true);
+      show(add, true);
+      show(veganSection, true);
+      show(summary, true);
+      show(confirm, true);
+    } else if (stage === 'meat-pending') {
+      show(banner, true);
+      show(nutrition, false);
+      show(petBubble, false);
+      show(list, false);
+      show(add, false);
+      show(veganSection, false);
+      show(summary, false);
+      show(confirm, false);
+    } else {
+      // meat-replaced: card + pet always shown; the edit UI only when opened
+      show(banner, false);
+      show(nutrition, true);
+      show(petBubble, true);
+      show(list, editOpen);
+      show(add, editOpen);
+      show(veganSection, editOpen);
+      show(summary, editOpen);
+      show(confirm, true);
+      // Trigger the slide-in animation once per transition into this stage.
+      if (nutrition && !nutrition.classList.contains('is-revealed')) {
+        nutrition.classList.add('is-revealed');
+      }
+    }
+  }
 
   function renderItems(items: MockFood[]) {
     const ul = wrap.querySelector<HTMLUListElement>('#items-list')!;
@@ -143,16 +229,27 @@ export default function result(): HTMLElement {
     });
   }
 
-  function renderMeatBanner(items: MockFood[], replaced: boolean) {
-    const banner = wrap.querySelector<HTMLElement>('#meat-banner')!;
+  function renderMeatList(items: MockFood[]) {
     const listEl = wrap.querySelector<HTMLElement>('#meat-list')!;
     const meats = items.filter((i) => !i.isVeg);
-    if (meats.length === 0 || replaced) {
-      banner.hidden = true;
-    } else {
-      banner.hidden = false;
+    if (meats.length > 0) {
       listEl.textContent = meats.map((m) => m.name).join('、');
     }
+  }
+
+  function renderNutritionCard(items: MockFood[]) {
+    const body = wrap.querySelector<HTMLElement>('#nutrition-body');
+    if (!body) return;
+    const n = aggregateNutrition(items);
+    body.innerHTML = `
+      <div class="nutrition-grid">
+        <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(n.cal)} kcal</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${n.protein} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${n.carb} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${n.fat} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${n.fiber} g</strong></div>
+      </div>
+    `;
   }
 
   function renderChips(selected: CheckinDraft['veganType']) {
@@ -183,10 +280,13 @@ export default function result(): HTMLElement {
 
   function rerender() {
     const d = $checkin.get();
+    const stage = computeStage(d);
     renderItems(d.items);
-    renderMeatBanner(d.items, d.wasMeatReplaced);
+    renderMeatList(d.items);
+    renderNutritionCard(d.items);
     renderChips(d.veganType);
     renderSummary(d);
+    setVisibility(stage);
   }
 
   bind(wrap, $checkin, rerender);
@@ -198,13 +298,18 @@ export default function result(): HTMLElement {
   });
 
   wrap.querySelector('#meat-no')?.addEventListener('click', () => {
-    // Confirming "否，替代為植物肉" IS the check-in act — flip every meat
-    // item to plant-based, mark wasMeatReplaced so the success page badges
-    // it, then submit immediately. No second confirmation needed.
+    // Pressing 否 used to auto-submit; the new flow flips the meat items
+    // to plant-based, exposes the auto-derived nutrition card, and waits
+    // for the user to confirm so they can review and optionally tweak.
     const cur = $checkin.get().items.map((it) => (it.isVeg ? it : { ...it, isVeg: true }));
     setItems(cur);
     setMeatReplaced(true);
-    void submitCheckin(wrap);
+  });
+
+  wrap.querySelector('#open-edit')?.addEventListener('click', () => {
+    editOpen = true;
+    const d = $checkin.get();
+    setVisibility(computeStage(d));
   });
 
   wrap.querySelectorAll<HTMLButtonElement>('.vegan-chip').forEach((c) => {

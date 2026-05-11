@@ -78,19 +78,88 @@ describe('check-in/result route', () => {
     expect(el.querySelector<HTMLElement>('#meat-banner')?.hidden).toBe(true);
   });
 
-  it('shows meat banner when items contain meat', () => {
+  it('meat-pending stage hides the list/summary/confirm and shows only the banner', () => {
     setScan({
       items: [veg('生菜'), meat('牛肉片')],
       hasMeat: true,
       scanFailed: false,
     });
     const el = result();
-    const banner = el.querySelector<HTMLElement>('#meat-banner');
-    expect(banner?.hidden).toBe(false);
+    expect(el.querySelector<HTMLElement>('#meat-banner')?.hidden).toBe(false);
     expect(el.querySelector('#meat-list')?.textContent).toContain('牛肉片');
+    // The full edit UI is hidden while the user is still answering 是/否.
+    expect(el.querySelector<HTMLElement>('#items-list')?.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>('#vegan-section')?.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>('#summary')?.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>('#confirm-btn')?.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>('#nutrition-card')?.hidden).toBe(true);
   });
 
-  it('clicking 否 flips items + auto-submits the check-in', async () => {
+  it('"否" button label is just "否" (not the old "否，替代為植物肉")', () => {
+    setScan({
+      items: [meat('牛肉片')],
+      hasMeat: true,
+      scanFailed: false,
+    });
+    const el = result();
+    const btn = el.querySelector('#meat-no');
+    expect(btn?.textContent?.trim()).toBe('否');
+  });
+
+  it('clicking 否 flips items + reveals nutrition card + pet bubble + confirm (no auto-submit)', () => {
+    setScan({
+      items: [meat('牛肉片')],
+      hasMeat: true,
+      scanFailed: false,
+    });
+    const el = result();
+    document.body.appendChild(el);
+
+    el.querySelector<HTMLButtonElement>('#meat-no')?.click();
+
+    // State flipped immediately.
+    expect($checkin.get().wasMeatReplaced).toBe(true);
+    expect($checkin.get().items.every((i) => i.isVeg)).toBe(true);
+    // No auto-submit; the network call must wait for the confirm button.
+    expect(mockedCreate).not.toHaveBeenCalled();
+    expect(mockedRouter.navigate).not.toHaveBeenCalledWith('/check-in/success');
+
+    // Banner gone, nutrition card + pet bubble + confirm now visible.
+    expect(el.querySelector<HTMLElement>('#meat-banner')?.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>('#nutrition-card')?.hidden).toBe(false);
+    expect(el.querySelector<HTMLElement>('#nutrition-card')?.classList.contains('is-revealed')).toBe(true);
+    expect(el.querySelector<HTMLElement>('#pet-bubble')?.hidden).toBe(false);
+    expect(el.querySelector<HTMLElement>('#confirm-btn')?.hidden).toBe(false);
+
+    // Edit panels stay hidden until 修改餐點 is pressed.
+    expect(el.querySelector<HTMLElement>('#items-list')?.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>('#vegan-section')?.hidden).toBe(true);
+    expect(el.querySelector<HTMLElement>('#summary')?.hidden).toBe(true);
+
+    el.remove();
+  });
+
+  it('pressing 修改餐點 unveils the editable list / vegan chips / summary', () => {
+    setScan({
+      items: [meat('牛肉片')],
+      hasMeat: true,
+      scanFailed: false,
+    });
+    const el = result();
+    document.body.appendChild(el);
+    el.querySelector<HTMLButtonElement>('#meat-no')?.click();
+    el.querySelector<HTMLButtonElement>('#open-edit')?.click();
+
+    expect(el.querySelector<HTMLElement>('#items-list')?.hidden).toBe(false);
+    expect(el.querySelector<HTMLElement>('#vegan-section')?.hidden).toBe(false);
+    expect(el.querySelector<HTMLElement>('#summary')?.hidden).toBe(false);
+    // Confirm + nutrition card stay visible together.
+    expect(el.querySelector<HTMLElement>('#confirm-btn')?.hidden).toBe(false);
+    expect(el.querySelector<HTMLElement>('#nutrition-card')?.hidden).toBe(false);
+    el.remove();
+  });
+
+  it('after 否, confirm submits the (already-replaced) check-in', async () => {
     setScan({
       items: [meat('牛肉片')],
       hasMeat: true,
@@ -100,14 +169,12 @@ describe('check-in/result route', () => {
     const el = result();
     document.body.appendChild(el);
     el.querySelector<HTMLButtonElement>('#meat-no')?.click();
-    // state mutations land synchronously
-    expect($checkin.get().wasMeatReplaced).toBe(true);
-    expect($checkin.get().items.every((i) => i.isVeg)).toBe(true);
-    // submission fires immediately and routes to /check-in/success
+    el.querySelector<HTMLButtonElement>('#confirm-btn')?.click();
     await vi.waitFor(() =>
       expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'),
     );
-    expect(mockedCreate).toHaveBeenCalledTimes(1);
+    const args = mockedCreate.mock.calls[0][0];
+    expect(args.wasMeatReplaced).toBe(true);
     el.remove();
   });
 

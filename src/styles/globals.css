@@ -642,6 +642,46 @@ body {
 .summary-row { display: flex; justify-content: space-between; color: var(--color-foreground-alt); }
 .summary-row strong { font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); font-variant-numeric: tabular-nums; }
 .summary-row.lucky-hit strong { color: var(--color-secondary-dark); }
+
+/* Check-in: AI-derived nutrition card (meat-replaced stage) */
+.nutrition-card {
+  background: linear-gradient(135deg, #f0fff4, #e6f9ed);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  opacity: 0; transform: translateY(12px);
+}
+.nutrition-card.is-revealed { animation: nutrition-reveal 0.55s ease-out forwards; }
+@keyframes nutrition-reveal {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.nutrition-card-head { display: flex; align-items: center; gap: 6px; color: var(--color-primary-dark); }
+.nutrition-card-head .ms { font-size: var(--text-h2-size); }
+.nutrition-card-head strong { font-weight: var(--font-weight-extrabold); font-size: var(--text-mini-size); }
+.nutrition-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.nutrition-grid > .nutrition-cell:first-child { grid-column: 1 / -1; }
+.nutrition-cell {
+  background: rgba(255,255,255,0.7);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.nutrition-cell-label { font-size: var(--text-mini-size); color: var(--color-foreground-alt); }
+.nutrition-cell strong { font-variant-numeric: tabular-nums; color: var(--color-primary-dark); }
+.nutrition-card-hint { margin: 0; font-size: var(--text-caption-size); color: var(--color-neutral-darker); }
+
+/* Check-in: pet speech bubble inviting edits */
+.pet-bubble {
+  display: grid; grid-template-columns: auto 1fr; gap: 10px;
+  background: var(--color-card); border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: 0 2px 6px -2px rgba(0,0,0,0.08);
+  animation: nutrition-reveal 0.55s 0.15s ease-out backwards;
+}
+.pet-bubble-pet { font-size: 32px; align-self: center; }
+.pet-bubble-body p { margin: 0 0 var(--space-2); font-size: var(--text-mini-size); color: var(--color-foreground-alt); }
 .summary-row.total {
   margin-top: var(--space-1); padding-top: var(--space-2);
   border-top: 1px solid rgba(29, 89, 55, 0.15);
