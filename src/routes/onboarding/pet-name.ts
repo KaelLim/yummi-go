@@ -34,7 +34,6 @@ export default function petName(): HTMLElement {
         <input class="input" id="pet-name-input" type="text" maxlength="20" value="${escapeHtml(initial)}" />
       </label>
       <div class="auth-error" id="pet-name-error" hidden></div>
-      <div class="grow"></div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">下一步</button>
     </div>
   `;

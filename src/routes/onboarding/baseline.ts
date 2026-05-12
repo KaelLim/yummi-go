@@ -49,7 +49,6 @@ export default function baseline(): HTMLElement {
         `).join('')}
       </div>
       <div class="baseline-total">總計：<span id="total-pct">${Math.round(totalPct() * 100)}%</span> <span class="muted">(其他為素食)</span></div>
-      <div class="grow"></div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">繼續</button>
     </div>
   `;

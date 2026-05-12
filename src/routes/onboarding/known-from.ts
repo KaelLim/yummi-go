@@ -37,7 +37,6 @@ export default function knownFrom(): HTMLElement {
           </button>
         `).join('')}
       </div>
-      <div class="grow"></div>
       <button class="btn-skip" id="skip-btn">Skip</button>
     </div>
   `;

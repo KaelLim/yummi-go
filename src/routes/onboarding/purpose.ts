@@ -30,7 +30,6 @@ export default function purpose(): HTMLElement {
           <span>載入中…</span>
         </div>
       </div>
-      <div class="grow"></div>
     </div>
   `;
 

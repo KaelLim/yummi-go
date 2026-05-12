@@ -49,7 +49,6 @@ export default function eatTimes(): HTMLElement {
       <h1 class="onb-title text-h2">用餐時間</h1>
       <p class="onb-sub text-mini">我們會在用餐前 10 分鐘提醒你打卡，不吃某餐可用 ✕ 移除</p>
       <div class="meal-list" id="meal-list"></div>
-      <div class="grow"></div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">繼續</button>
     </div>
   `;
