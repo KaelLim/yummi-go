@@ -7,10 +7,10 @@
  * returns a hardcoded fallback so the user can never get stuck.
  */
 import { navigate } from '@/router';
-import { $user } from '@/store/user';
+import { $user, $profile } from '@/store/user';
 import { updateProfile, type UserProfile } from '@/api/profile';
 import { listChallengePurposes, type ChallengePurpose } from '@/api/content';
-import { patchDraft } from '@/store/onboarding-draft';
+import { patchDraft, $onboardingDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 
 export default function purpose(): HTMLElement {
@@ -33,9 +33,13 @@ export default function purpose(): HTMLElement {
     </div>
   `;
 
-  wrap.querySelector('#back-btn')?.addEventListener('click', () =>
-    navigate('/onboarding/baseline'),
-  );
+  wrap.querySelector('#back-btn')?.addEventListener('click', () => {
+    // Vegan / vegetarian users skipped the meat baseline step on the way in,
+    // so going back should land on diet-survey instead.
+    const diet = $profile.get()?.diet_type ?? $onboardingDraft.get().diet_type;
+    const skipsBaseline = diet === 'vegan' || diet === 'vegetarian';
+    navigate(skipsBaseline ? '/onboarding/diet-survey' : '/onboarding/baseline');
+  });
 
   void (async () => {
     const purposes = await listChallengePurposes();

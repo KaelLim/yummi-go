@@ -20,6 +20,13 @@ export default function baselineEditor(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'baseline-screen';
 
+  // Vegan / vegetarian users don't have a meat baseline — bounce them back.
+  const diet = $profile.get()?.diet_type;
+  if (diet === 'vegan' || diet === 'vegetarian') {
+    queueMicrotask(() => navigate('/profile'));
+    return wrap;
+  }
+
   const initial: Baseline = parseBaseline($profile.get()?.baseline) ?? {
     beef: 0.2,
     pork: 0.3,

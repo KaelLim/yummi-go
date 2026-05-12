@@ -56,7 +56,10 @@ export default function dietSurvey(): HTMLElement {
       } else {
         patchDraft({ diet_type: value });
       }
-      navigate('/onboarding/baseline');
+      // Vegan / vegetarian users don't have a meat baseline to set —
+      // skip straight to the purpose step.
+      const skipsBaseline = value === 'vegan' || value === 'vegetarian';
+      navigate(skipsBaseline ? '/onboarding/purpose' : '/onboarding/baseline');
     });
   });
 

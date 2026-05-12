@@ -236,10 +236,11 @@ body {
 .onb-progress-dot.done { background: var(--color-primary); }
 
 .onb-body { flex: 1; display: flex; flex-direction: column; padding-top: var(--space-4); gap: 8px; }
-/* Anchor whatever sits at the bottom of .onb-body (CTA / skip / "已有帳號" footer)
- * to the screen bottom — replaces the explicit <div class="grow"></div> spacer.
- * Buttons additionally stick when content overflows so the action stays reachable. */
-.onb-body > :last-child { margin-top: auto; }
+/* Footer-style elements (skip link, "已有帳號" auth foot) anchor to the bottom.
+ * Buttons sit naturally below their content; position:sticky keeps them
+ * visible only when the screen actually overflows. */
+.onb-body > .btn-skip:last-child,
+.onb-body > .auth-foot:last-child { margin-top: auto; }
 .onb-body > .btn:last-child,
 .onb-body > .btn-skip:last-child {
   position: sticky;

@@ -83,7 +83,7 @@ export default function profile(): HTMLElement {
         <span>我的評論</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
-      <button class="profile-link" data-route="/profile/baseline">
+      <button class="profile-link" data-route="/profile/baseline" id="baseline-link" hidden>
         <span class="ms">tune</span>
         <span>編輯基準飲食</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
@@ -213,11 +213,19 @@ export default function profile(): HTMLElement {
     `;
   }
 
+  function renderBaselineLink() {
+    const diet = $profile.get()?.diet_type;
+    const skipsBaseline = diet === 'vegan' || diet === 'vegetarian';
+    const link = wrap.querySelector<HTMLElement>('#baseline-link');
+    if (link) link.hidden = skipsBaseline;
+  }
+
   function renderAll() {
     renderIdentity();
     renderStats();
     renderCalendar();
     renderTolerance();
+    renderBaselineLink();
   }
 
   bind(wrap, $user, renderAll);
