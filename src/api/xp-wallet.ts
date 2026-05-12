@@ -61,6 +61,19 @@ export async function getXpBalance(userId: number): Promise<XpBalance | null> {
 }
 
 /**
+ * Read the wallet, lazily bootstrapping if missing. Used by write paths
+ * and by the UI so accounts predating the bootstrap addition heal on
+ * first touch instead of silently swallowing every earn.
+ */
+export async function getOrBootstrapXpBalance(
+  userId: number,
+): Promise<XpBalance> {
+  const existing = await getXpBalance(userId);
+  if (existing) return existing;
+  return bootstrapXpBalance(userId);
+}
+
+/**
  * Credit XP earned from an action into the wallet. Idempotent-ish: each
  * call is one xp_events row, even when refId is null (we don't try to
  * dedupe earn events — that's the caller's responsibility).
@@ -72,12 +85,9 @@ export async function creditXp(
   refId: number | null = null,
 ): Promise<XpBalance> {
   if (amount <= 0) {
-    const cur = await getXpBalance(userId);
-    if (!cur) throw new Error('XP balance not found');
-    return cur;
+    return getOrBootstrapXpBalance(userId);
   }
-  const row = await getXpBalance(userId);
-  if (!row) throw new Error('XP balance not found');
+  const row = await getOrBootstrapXpBalance(userId);
   const next = {
     balance: row.balance + amount,
     total_earned: row.total_earned + amount,
@@ -113,8 +123,7 @@ export async function feedPet(
   userId: number,
   requestedAmount: number = Number.POSITIVE_INFINITY,
 ): Promise<FeedPetResult> {
-  const row = await getXpBalance(userId);
-  if (!row) throw new Error('XP balance not found');
+  const row = await getOrBootstrapXpBalance(userId);
   const today = localDateKey();
   const remainingCap = Math.max(0, PET_DAILY_XP_CAP - row.fed_today);
   const fed = Math.max(0, Math.min(row.balance, remainingCap, requestedAmount));
@@ -163,8 +172,7 @@ export interface ConvertXpToGemsResult {
 export async function convertXpToGems(
   userId: number,
 ): Promise<ConvertXpToGemsResult> {
-  const row = await getXpBalance(userId);
-  if (!row) throw new Error('XP balance not found');
+  const row = await getOrBootstrapXpBalance(userId);
   const converted = row.balance;
   if (converted === 0) {
     return {

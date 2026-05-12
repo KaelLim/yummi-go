@@ -21,6 +21,7 @@ import { $user } from '@/store/user';
 import {
   PET_DAILY_XP_CAP,
   getXpBalance,
+  getOrBootstrapXpBalance,
   feedPet,
   convertXpToGems,
   type XpBalance,
@@ -124,8 +125,7 @@ async function hydrateWallet(wrap: HTMLElement): Promise<void> {
   const u = $user.get();
   if (!u) return;
   try {
-    const row = await getXpBalance(u.id);
-    if (!row) return;
+    const row = await getOrBootstrapXpBalance(u.id);
     renderWallet(wrap, row);
   } catch (err) {
     console.warn('[success] wallet hydrate failed:', err);
