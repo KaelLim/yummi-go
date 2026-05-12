@@ -14,6 +14,9 @@ import {
   levelFromAccumulatedXp,
   stageFromLevel,
 } from '@/lib/pet-evolution';
+import { recordXpEvent, type XpReason } from './events';
+
+export type { XpReason };
 
 export interface PetState {
   id: number;
@@ -37,6 +40,8 @@ export async function getPet(userId: number): Promise<PetState | null> {
 export async function addXp(
   userId: number,
   deltaXp: number,
+  reason: XpReason = 'check_in',
+  refId: number | null = null,
 ): Promise<PetState> {
   const pet = await getPet(userId);
   if (!pet) throw new Error('Pet not found');
@@ -50,6 +55,15 @@ export async function addXp(
     level,
     stage,
     last_fed_at,
+  });
+  void recordXpEvent({
+    userId,
+    deltaXp,
+    reason,
+    refId,
+    levelBefore: pet.level,
+    levelAfter: level,
+    accumulatedXpAfter: newAcc,
   });
   return {
     ...pet,
@@ -105,5 +119,16 @@ export async function resetPet(userId: number): Promise<PetState> {
     poisoned_until: null,
   };
   await drust.update('pet_states', pet.id, reset);
+  if (pet.accumulated_xp !== 0) {
+    void recordXpEvent({
+      userId,
+      deltaXp: -pet.accumulated_xp,
+      reason: 'reset',
+      refId: null,
+      levelBefore: pet.level,
+      levelAfter: 1,
+      accumulatedXpAfter: 0,
+    });
+  }
   return { ...pet, ...reset };
 }

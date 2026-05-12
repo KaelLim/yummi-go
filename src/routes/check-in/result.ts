@@ -374,7 +374,7 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
   }
 
   try {
-    await createCheckIn({
+    const checkInRow = await createCheckIn({
       userId: u.id,
       dayNumber: day,
       mealIndex: d.mealIndex,
@@ -390,7 +390,7 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
     if (luckyMatch) {
       markMissionDone('lucky:hit', 0);
     }
-    try { await awardXp(u.id, xp); } catch { /* server XP soft fail */ }
+    try { await awardXp(u.id, xp, 'check_in', checkInRow.id); } catch { /* server XP soft fail */ }
     setLastResult({ xpEarned: xp, luckyColorMatched: luckyMatch, fogReductionPct });
     navigate('/check-in/success');
   } catch (err) {

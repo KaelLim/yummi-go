@@ -12,6 +12,14 @@
  * surface the error so the caller can refresh and retry.
  */
 import { drust } from './drust';
+import {
+  recordGemEvent,
+  recordMakeupCardEvent,
+  type GemReason,
+  type MakeupCardReason,
+} from './events';
+
+export type { GemReason, MakeupCardReason };
 
 export const GEMS_PER_CARD = 100;
 
@@ -52,15 +60,32 @@ export async function swapGemsForCard(
   if (!mu) throw new Error('Makeup cards row not found');
   if (gem.balance < cost) throw new Error('寶石不足');
 
+  const newBalance = gem.balance - cost;
+  const newCards = mu.card_count + 1;
   await drust.update('gem_balances', gem.id, {
-    balance: gem.balance - cost,
+    balance: newBalance,
     total_spent: gem.total_spent + cost,
   });
   await drust.update('makeup_cards', mu.id, {
-    card_count: mu.card_count + 1,
+    card_count: newCards,
   });
 
-  return { balance: gem.balance - cost, cards: mu.card_count + 1 };
+  void recordGemEvent({
+    userId,
+    delta: -cost,
+    reason: 'swap_card',
+    balanceAfter: newBalance,
+  });
+  void recordMakeupCardEvent({
+    userId,
+    deltaCards: 1,
+    deltaFragments: 0,
+    reason: 'gem_swap',
+    cardsAfter: newCards,
+    fragmentsAfter: mu.fragment_count,
+  });
+
+  return { balance: newBalance, cards: newCards };
 }
 
 /**
@@ -68,14 +93,27 @@ export async function swapGemsForCard(
  * the route is responsible for inserting the back-dated check-in once the
  * card is consumed.
  */
-export async function spendMakeupCard(userId: number): Promise<{ cards: number }> {
+export async function spendMakeupCard(
+  userId: number,
+  refId: number | null = null,
+): Promise<{ cards: number }> {
   const mu = await getMakeupCards(userId);
   if (!mu) throw new Error('Makeup cards row not found');
   if (mu.card_count <= 0) throw new Error('沒有可用的補簽卡');
+  const newCards = mu.card_count - 1;
   await drust.update('makeup_cards', mu.id, {
-    card_count: mu.card_count - 1,
+    card_count: newCards,
   });
-  return { cards: mu.card_count - 1 };
+  void recordMakeupCardEvent({
+    userId,
+    deltaCards: -1,
+    deltaFragments: 0,
+    reason: 'spend',
+    cardsAfter: newCards,
+    fragmentsAfter: mu.fragment_count,
+    refId,
+  });
+  return { cards: newCards };
 }
 
 /**
@@ -83,13 +121,23 @@ export async function spendMakeupCard(userId: number): Promise<{ cards: number }
  * grind during demos; production code paths shouldn't call this since gem
  * accrual goes through the XP-overflow rules in lib/xp-calc.
  */
-export async function addGems(userId: number, amount: number): Promise<{ balance: number }> {
+export async function addGems(
+  userId: number,
+  amount: number,
+  reason: GemReason = 'devpanel_add',
+): Promise<{ balance: number }> {
   const gem = await getGemBalance(userId);
   if (!gem) throw new Error('Gem balance not found');
   const newBalance = gem.balance + amount;
   await drust.update('gem_balances', gem.id, {
     balance: newBalance,
     total_earned: gem.total_earned + Math.max(0, amount),
+  });
+  void recordGemEvent({
+    userId,
+    delta: amount,
+    reason,
+    balanceAfter: newBalance,
   });
   return { balance: newBalance };
 }
@@ -101,6 +149,7 @@ export async function addGems(userId: number, amount: number): Promise<{ balance
 export async function addFragments(
   userId: number,
   amount: number,
+  reason: MakeupCardReason = 'devpanel',
 ): Promise<{ fragments: number; cards: number }> {
   const mu = await getMakeupCards(userId);
   if (!mu) throw new Error('Makeup cards row not found');
@@ -110,6 +159,14 @@ export async function addFragments(
   await drust.update('makeup_cards', mu.id, {
     fragment_count: newFragments,
     card_count: newCards,
+  });
+  void recordMakeupCardEvent({
+    userId,
+    deltaCards: newCards - mu.card_count,
+    deltaFragments: newFragments - mu.fragment_count,
+    reason,
+    cardsAfter: newCards,
+    fragmentsAfter: newFragments,
   });
   return { fragments: newFragments, cards: newCards };
 }
@@ -123,6 +180,14 @@ export async function resetGems(userId: number): Promise<void> {
     total_earned: 0,
     total_spent: 0,
   });
+  if (gem.balance !== 0) {
+    void recordGemEvent({
+      userId,
+      delta: -gem.balance,
+      reason: 'devpanel_reset',
+      balanceAfter: 0,
+    });
+  }
 }
 
 /** Dev-only: zero out card_count + fragment_count on makeup_cards. */
@@ -133,4 +198,14 @@ export async function resetMakeup(userId: number): Promise<void> {
     card_count: 0,
     fragment_count: 0,
   });
+  if (mu.card_count !== 0 || mu.fragment_count !== 0) {
+    void recordMakeupCardEvent({
+      userId,
+      deltaCards: -mu.card_count,
+      deltaFragments: -mu.fragment_count,
+      reason: 'reset',
+      cardsAfter: 0,
+      fragmentsAfter: 0,
+    });
+  }
 }

@@ -63,8 +63,13 @@ export async function reloadPet(userId: number) {
   if (p) setPetFromRow(p);
 }
 
-export async function awardXp(userId: number, deltaXp: number) {
-  const next = await petApi.addXp(userId, deltaXp);
+export async function awardXp(
+  userId: number,
+  deltaXp: number,
+  reason: petApi.XpReason = 'check_in',
+  refId: number | null = null,
+) {
+  const next = await petApi.addXp(userId, deltaXp, reason, refId);
   setPetFromRow(next);
 }
 

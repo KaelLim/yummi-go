@@ -195,7 +195,7 @@ export default function review(params: Record<string, string>): HTMLElement {
         setLastResult({ xpEarned: xpForCheckin, luckyColorMatched: luckyMatch, fogReductionPct });
       }
 
-      try { await awardXp(u.id, totalXp); } catch { /* server XP soft fail */ }
+      try { await awardXp(u.id, totalXp, 'bonus', restaurantId); } catch { /* server XP soft fail */ }
 
       // Bump $today.totalXpToday for the review reward (mark a per-restaurant
       // mission so duplicate-clicks don't double-credit if user re-submits).

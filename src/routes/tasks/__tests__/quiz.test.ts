@@ -72,7 +72,7 @@ describe('quiz route', () => {
     expect(el.querySelector('.quiz-opt[data-value="B"]')?.classList.contains('correct')).toBe(true);
     expect($today.get().missionsDone).toContain('quiz');
     expect($today.get().totalXpToday).toBe(15);
-    expect(mockedPet.awardXp).toHaveBeenCalledWith(7, 15);
+    expect(mockedPet.awardXp).toHaveBeenCalledWith(7, 15, 'quiz', expect.any(Number));
     el.remove();
   });
 

@@ -163,7 +163,7 @@ async function onPick(
     }
     if (correct) {
       try {
-        await awardXp(u.id, QUIZ_XP);
+        await awardXp(u.id, QUIZ_XP, 'quiz', q.id);
       } catch (err) {
         console.warn('[quiz] awardXp failed:', err);
       }

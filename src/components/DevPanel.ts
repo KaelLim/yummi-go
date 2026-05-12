@@ -310,11 +310,11 @@ export function createDevPanel(): HTMLElement {
     flash('處理中…', false);
     try {
       if (kind === 'xp') {
-        await awardXp(u.id, amount);
+        await awardXp(u.id, amount, 'devpanel');
       } else if (kind === 'gems') {
-        await addGems(u.id, amount);
+        await addGems(u.id, amount, 'devpanel_add');
       } else if (kind === 'frags') {
-        await addFragments(u.id, amount);
+        await addFragments(u.id, amount, 'devpanel');
       }
       const refreshed = await getUserFull(u.id);
       if (refreshed) $profile.set(refreshed);
