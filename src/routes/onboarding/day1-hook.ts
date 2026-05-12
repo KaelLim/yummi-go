@@ -45,6 +45,7 @@ export default function day1Hook(): HTMLElement {
 
   wrap.innerHTML = `
     <div class="onb-header">
+      <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
       ${createProgress(7, 8).outerHTML}
     </div>
     <div class="day1-body">
@@ -58,7 +59,7 @@ export default function day1Hook(): HTMLElement {
           <li>🎯 ${purposeLine}</li>
         </ul>
         <p class="day1-text">
-          灰霧濃重，蛋殼裡的精靈正等待你<br/>
+          蛋殼裡的精靈正等待你<br/>
           為這顆蛋取個名字，開始你的旅程
         </p>
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="enter-btn">
@@ -69,6 +70,9 @@ export default function day1Hook(): HTMLElement {
     </div>
   `;
 
+  wrap.querySelector('#back-btn')?.addEventListener('click', () => {
+    navigate('/onboarding/known-from');
+  });
   wrap.querySelector('#enter-btn')?.addEventListener('click', () => {
     navigate('/onboarding/pet-name');
   });

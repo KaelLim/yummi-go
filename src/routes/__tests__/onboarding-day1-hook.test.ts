@@ -54,6 +54,12 @@ describe('onboarding/day1-hook', () => {
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/pet-name');
   });
 
+  it('back button navigates to /onboarding/known-from', () => {
+    const el = day1Hook();
+    (el.querySelector('#back-btn') as HTMLElement).click();
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/known-from');
+  });
+
   it('shows diet-typed egg + level rule + purpose line from profile', () => {
     const el = day1Hook();
     expect(el.querySelector('.day1-egg')?.getAttribute('data-tint')).toBe('vegan');
