@@ -1177,9 +1177,12 @@ body {
   color: var(--color-neutral-darker);
 }
 .calendar-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; /* tiny accent radius — not card-shaped */ margin-right: var(--space-1); vertical-align: -1px; }
-.calendar-legend .d-leaf { background: var(--color-primary-light); }
-.calendar-legend .d-lucky { background: linear-gradient(135deg, var(--color-secondary-light), var(--color-primary-light)); }
-.calendar-legend .d-miss { background: rgba(232,93,117,0.2); }
+/* Cell fills use --color-primary-light (#e8eeeb) which reads fine across a
+ * whole calendar square but is invisible in a 10px legend dot. Use the
+ * saturated tokens here so the legend actually communicates its key. */
+.calendar-legend .d-leaf { background: var(--color-primary); }
+.calendar-legend .d-lucky { background: linear-gradient(135deg, var(--color-secondary), var(--color-primary)); }
+.calendar-legend .d-miss { background: var(--color-destructive); }
 
 .profile-links { display: flex; flex-direction: column; gap: 6px; }
 .profile-link {
