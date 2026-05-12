@@ -11,6 +11,7 @@
  */
 import { atom } from 'nanostores';
 import * as petApi from '@/api/pet';
+import * as xpWallet from '@/api/xp-wallet';
 import { stageFromLevel, type PetStage } from '@/lib/pet-evolution';
 import type { PetMood } from '@/lib/pet-sprites';
 
@@ -63,14 +64,20 @@ export async function reloadPet(userId: number) {
   if (p) setPetFromRow(p);
 }
 
+/**
+ * Earned XP no longer feeds the pet directly — it lands in the user's
+ * XP wallet (xp_balances). The pet only gains accumulated_xp when the
+ * user explicitly calls feedPet from the check-in success screen
+ * (capped at PET_DAILY_XP_CAP per local day). Wallet credits still
+ * emit an xp_events row so the history shows where the XP came from.
+ */
 export async function awardXp(
   userId: number,
   deltaXp: number,
   reason: petApi.XpReason = 'check_in',
   refId: number | null = null,
 ) {
-  const next = await petApi.addXp(userId, deltaXp, reason, refId);
-  setPetFromRow(next);
+  await xpWallet.creditXp(userId, deltaXp, reason, refId);
 }
 
 /**

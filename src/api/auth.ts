@@ -27,7 +27,7 @@ export async function register(
     display_name: string;
   }>('users', { username, password_hash, display_name: displayName });
   const userId = result.id;
-  // Bootstrap default rows in 4 dependent tables
+  // Bootstrap default rows in 5 dependent tables.
   await Promise.all([
     drust.insert('user_profiles', { user_id: userId }),
     drust.insert('pet_states', {
@@ -48,6 +48,13 @@ export async function register(
       user_id: userId,
       card_count: 0,
       fragment_count: 0,
+    }),
+    drust.insert('xp_balances', {
+      user_id: userId,
+      balance: 0,
+      total_earned: 0,
+      fed_today: 0,
+      fed_today_date: null,
     }),
   ]);
   storage.set(KEYS.USER_ID, userId);

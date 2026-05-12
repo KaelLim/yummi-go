@@ -14,6 +14,7 @@ export type XpReason =
   | 'quiz'
   | 'mission'
   | 'bonus'
+  | 'feed_pet'
   | 'devpanel'
   | 'reset';
 
