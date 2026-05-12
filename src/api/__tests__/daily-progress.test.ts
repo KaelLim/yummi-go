@@ -131,6 +131,60 @@ describe('daily-progress', () => {
       });
     });
 
+    it('recovers from UNIQUE violation by re-reading and falling through to update', async () => {
+      // First read: no row (so insert path is taken).
+      mockRpcReturns<DailyProgressRow>([]);
+      // Insert hits the unique index — another writer beat us.
+      mockedDrust.insert.mockRejectedValueOnce({
+        message: 'UNIQUE constraint failed: daily_progress.user_id, daily_progress.day_number',
+        status: 409,
+      });
+      // Second read: now finds the winner's row.
+      mockRpcReturns<DailyProgressRow>([
+        {
+          id: 11,
+          user_id: 5,
+          day_number: 1,
+          missions_done: '["quiz"]',
+          total_xp: 15,
+          lucky_color: 'red',
+          completed_at: null,
+        },
+      ]);
+      mockedDrust.update.mockResolvedValueOnce({
+        record: {
+          id: 11,
+          user_id: 5,
+          day_number: 1,
+          missions_done: '["quiz","meal:breakfast"]',
+          total_xp: 35,
+          lucky_color: 'red',
+          completed_at: null,
+        },
+      });
+      const out = await upsertDailyProgress(5, 1, {
+        missions_done: ['quiz', 'meal:breakfast'],
+        total_xp: 35,
+      });
+      expect(mockedDrust.insert).toHaveBeenCalledTimes(1);
+      expect(mockedDrust.update).toHaveBeenCalledWith('daily_progress', 11, {
+        missions_done: '["quiz","meal:breakfast"]',
+        total_xp: 35,
+      });
+      expect(out.id).toBe(11);
+    });
+
+    it('re-throws non-UNIQUE errors from insert', async () => {
+      mockRpcReturns<DailyProgressRow>([]);
+      mockedDrust.insert.mockRejectedValueOnce({
+        message: 'network error',
+        status: 500,
+      });
+      await expect(
+        upsertDailyProgress(5, 1, { missions_done: ['quiz'], total_xp: 15 }),
+      ).rejects.toMatchObject({ status: 500 });
+    });
+
     it('update path is a no-op when patch is empty', async () => {
       mockRpcReturns<DailyProgressRow>([
         {

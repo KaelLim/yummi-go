@@ -43,11 +43,12 @@ export async function getDailyProgress(
 
 /**
  * Insert-or-update for (user_id, day_number). drust offers no atomic
- * upsert, so this is a read → branch → write triplet. There's a
- * write-write race between two devices completing the same mission at
- * the same instant; since both writers send the merged JSON of all
- * completed missions, the loser's update gets stomped but no data is
- * actually lost (worst case: that user has to refresh to re-see it).
+ * upsert, so this is a read → branch → write triplet. The UNIQUE index
+ * `idx_daily_progress_user_id_day_number` is the safety net: if two
+ * writers both see no existing row and both call insert, the second
+ * insert raises a UNIQUE constraint failure and we recover by reading
+ * the now-present row and falling through to the update branch. Before
+ * the index, a real race in production left two rows for (9, day 17).
  */
 export async function upsertDailyProgress(
   userId: number,
@@ -69,13 +70,29 @@ export async function upsertDailyProgress(
       lucky_color: patch.lucky_color ?? null,
       completed_at: patch.completed_at ?? null,
     };
-    const result = await drust.insert<DailyProgressRow>(
-      'daily_progress',
-      seed,
-    );
-    return result.record;
+    try {
+      const result = await drust.insert<DailyProgressRow>(
+        'daily_progress',
+        seed,
+      );
+      return result.record;
+    } catch (err) {
+      if (!isUniqueViolation(err)) throw err;
+      // Another writer beat us; re-read and fall through to update.
+      const winner = await getDailyProgress(userId, dayNumber);
+      if (!winner) throw err;
+      return updateDailyProgress(winner, missionsJson, patch);
+    }
   }
 
+  return updateDailyProgress(existing, missionsJson, patch);
+}
+
+async function updateDailyProgress(
+  existing: DailyProgressRow,
+  missionsJson: string | undefined,
+  patch: DailyProgressPatch,
+): Promise<DailyProgressRow> {
   const writePatch: Record<string, unknown> = {};
   if (missionsJson !== undefined) writePatch.missions_done = missionsJson;
   if (patch.total_xp !== undefined) writePatch.total_xp = patch.total_xp;
@@ -90,6 +107,14 @@ export async function upsertDailyProgress(
     writePatch,
   );
   return result.record;
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  const msg =
+    err && typeof err === 'object' && 'message' in err
+      ? String((err as { message: unknown }).message)
+      : '';
+  return /UNIQUE constraint failed/i.test(msg);
 }
 
 /** Decode missions_done JSON column into a string[]. Tolerates malformed JSON. */
