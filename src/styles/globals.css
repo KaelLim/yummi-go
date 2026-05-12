@@ -1171,12 +1171,12 @@ body {
 .cal-cell.today { box-shadow: 0 0 0 2px var(--color-primary); transform: scale(1.05); }
 
 .calendar-legend {
-  display: flex; gap: 12px;
+  display: flex; gap: 12px; align-items: center;
   margin-top: var(--space-3);
   font-size: var(--text-caption-size);
   color: var(--color-neutral-darker);
 }
-.calendar-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; /* tiny accent radius — not card-shaped */ margin-right: var(--space-1); vertical-align: -1px; }
+.calendar-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; /* tiny accent radius — not card-shaped */ margin-right: var(--space-1); }
 /* Cell fills use --color-primary-light (#e8eeeb) which reads fine across a
  * whole calendar square but is invisible in a 10px legend dot. Use the
  * saturated tokens here so the legend actually communicates its key. */
