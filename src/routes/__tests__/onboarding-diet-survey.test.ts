@@ -43,11 +43,9 @@ describe('onboarding/diet-survey', () => {
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/');
   });
 
-  it('skip button navigates to baseline without writing profile', () => {
+  it('has no skip button — diet pick is required', () => {
     const el = dietSurvey();
-    (el.querySelector('#skip-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/baseline');
-    expect(mockedProfile.updateProfile).not.toHaveBeenCalled();
+    expect(el.querySelector('#skip-btn')).toBeNull();
   });
 
   it('clicking a choice writes diet_type and advances', async () => {

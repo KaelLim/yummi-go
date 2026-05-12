@@ -2,8 +2,8 @@
  * Onboarding step 2 — Diet survey.
  *
  * Asks the user to pick a diet style. Tapping any option PATCHes the profile
- * with diet_type and advances to /onboarding/baseline. A skip button lets the
- * user move on without writing the field. PATCH errors soft-fail (we still
+ * with diet_type and advances to /onboarding/baseline. Required step — no skip,
+ * the user must pick before continuing. PATCH errors soft-fail (we still
  * advance) so flaky network does not strand the user mid-onboarding.
  */
 import { navigate } from '@/router';
@@ -40,7 +40,6 @@ export default function dietSurvey(): HTMLElement {
         `).join('')}
       </div>
       <div class="grow"></div>
-      <button class="btn-skip" id="skip-btn">Skip</button>
       <p class="auth-foot" style="margin-top:12px;text-align:center;">
         已有帳號？<a href="#/login" class="link">登入</a>
       </p>
@@ -48,7 +47,6 @@ export default function dietSurvey(): HTMLElement {
   `;
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/'));
-  wrap.querySelector('#skip-btn')?.addEventListener('click', () => navigate('/onboarding/baseline'));
 
   wrap.querySelectorAll<HTMLButtonElement>('.choice').forEach(btn => {
     btn.addEventListener('click', async () => {
