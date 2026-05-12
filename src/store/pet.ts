@@ -1,17 +1,21 @@
 /**
- * Pet & gems global stores.
+ * Pet + wallet global stores.
  *
  * $pet mirrors the user's pet_states row. Strikes / poison_until are
  * server-side fields now (drust pet_states.strikes + pet_states.poisoned_until).
  * The store still exposes them as numbers / epoch-ms for the UI; we
  * convert at the API boundary.
  *
- * $gems is a placeholder aggregate for gem balance / fragments / makeup
- * cards.
+ * $gems aggregates the three spendable resources rendered in the home
+ * header: wallet XP (xp_balances.balance — the food bag), gems
+ * (gem_balances.balance), and makeup cards (makeup_cards.card_count).
+ * reloadWallet pulls all three in parallel from drust and writes the
+ * store atomically.
  */
 import { atom } from 'nanostores';
 import * as petApi from '@/api/pet';
 import * as xpWallet from '@/api/xp-wallet';
+import * as walletApi from '@/api/wallet';
 import { stageFromLevel, type PetStage } from '@/lib/pet-evolution';
 import type { PetMood } from '@/lib/pet-sprites';
 
@@ -29,13 +33,19 @@ export interface PetStoreShape {
 }
 
 export interface GemsStoreShape {
+  walletXp: number;
   balance: number;
   fragments: number;
   makeupCards: number;
 }
 
 export const $pet = atom<PetStoreShape | null>(null);
-export const $gems = atom<GemsStoreShape>({ balance: 0, fragments: 0, makeupCards: 0 });
+export const $gems = atom<GemsStoreShape>({
+  walletXp: 0,
+  balance: 0,
+  fragments: 0,
+  makeupCards: 0,
+});
 
 function isoToEpoch(iso: string | null): number | null {
   if (!iso) return null;
@@ -62,6 +72,26 @@ export function setPetFromRow(p: petApi.PetState) {
 export async function reloadPet(userId: number) {
   const p = await petApi.getPet(userId);
   if (p) setPetFromRow(p);
+}
+
+/**
+ * Pull wallet XP + gems + makeup-cards in parallel and push the
+ * aggregated values into $gems. Used by day-sync on user/day change
+ * and by check-in success after a wallet mutation so the home header
+ * stays in sync with drust.
+ */
+export async function reloadWallet(userId: number): Promise<void> {
+  const [xp, gem, mu] = await Promise.all([
+    xpWallet.getOrBootstrapXpBalance(userId),
+    walletApi.getGemBalance(userId),
+    walletApi.getMakeupCards(userId),
+  ]);
+  $gems.set({
+    walletXp: xp.balance,
+    balance: gem?.balance ?? 0,
+    fragments: mu?.fragment_count ?? 0,
+    makeupCards: mu?.card_count ?? 0,
+  });
 }
 
 /**

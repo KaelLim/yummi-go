@@ -14,7 +14,7 @@
 import { $ui } from './ui';
 import { $today, $challenge, setDay, loadDailyProgress } from './today';
 import { $user } from './user';
-import { reloadPet } from './pet';
+import { reloadPet, reloadWallet } from './pet';
 import { currentDayNumber } from '@/lib/time';
 import { getDayScript } from '@/api/content';
 import { getDailyProgress } from '@/api/daily-progress';
@@ -111,5 +111,11 @@ async function rehydrateForUser(day: number): Promise<void> {
     await reloadPet(u.id);
   } catch (err) {
     console.warn('[day-sync] reloadPet failed:', err);
+  }
+
+  try {
+    await reloadWallet(u.id);
+  } catch (err) {
+    console.warn('[day-sync] reloadWallet failed:', err);
   }
 }

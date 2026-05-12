@@ -1,18 +1,20 @@
 /**
  * Home route — main "tamagotchi" view.
  *
- * Five sections (per design.md §6.1):
- *   1. Greeting + day badge (driven by current ChallengeScript.greeting)
+ * Sections:
+ *   1. Resource header — wallet XP / gems / makeup cards (from $gems)
  *   2. Hero PetView with fog overlay
- *   3. Level/XP progress bar (from $pet)
- *   4. Today status card with breakfast/lunch/dinner dots (from $today)
- *   5. Lucky-color card → /map, Quiz bubble → /tasks/quiz
+ *   3. Pet greeting bubble (from current day's task_description)
+ *   4. Level/XP progress bar (from $pet)
+ *   5. Today status card — D{n}/30 badge + meal dots (from $today)
+ *   6. Lucky-color card → /check-in, Quiz bubble → /tasks/quiz
  *
  * Day data (currentDay / dayNumber / luckyColor) is kept in sync globally
- * by store/day-sync; this route only reacts to $today / $challenge / $pet.
+ * by store/day-sync; this route only reacts to $today / $challenge / $pet
+ * / $gems.
  */
 import { navigate } from '@/router';
-import { $pet, type PetStoreShape } from '@/store/pet';
+import { $pet, $gems, type PetStoreShape, type GemsStoreShape } from '@/store/pet';
 import { $today, $challenge, type TodayStoreShape } from '@/store/today';
 import { $profile } from '@/store/user';
 import type { ChallengeScript } from '@/api/content';
@@ -45,11 +47,19 @@ export default function home(): HTMLElement {
   const pet = createPetView();
 
   wrap.innerHTML = `
-    <header class="home-greeting">
-      <div class="home-greeting-text" data-bind="greeting">早安，喚醒者</div>
-      <div class="home-greeting-day">
-        D<span data-bind="day">1</span><span class="home-day-of">/30</span>
-        <span class="tolerance-pill" id="tolerance-pill" hidden></span>
+    <header class="home-resources" aria-label="resources">
+      <div class="resource-chip" data-resource="xp" title="食物袋 XP">
+        <span class="ms">eco</span>
+        <span class="resource-num" data-bind="wallet-xp">0</span>
+        <span class="resource-unit">XP</span>
+      </div>
+      <div class="resource-chip" data-resource="gem" title="寶石">
+        <span class="ms">diamond</span>
+        <span class="resource-num" data-bind="gems">0</span>
+      </div>
+      <div class="resource-chip" data-resource="card" title="補簽卡">
+        <span class="ms">style</span>
+        <span class="resource-num" data-bind="cards">0</span>
       </div>
     </header>
     <section class="home-hero" data-slot="pet"></section>
@@ -65,7 +75,11 @@ export default function home(): HTMLElement {
     </section>
     <section class="today-card">
       <div class="today-card-row">
-        <span class="today-card-label">今日進度</span>
+        <span class="today-card-label">
+          今日進度
+          <span class="today-day-badge">D<span data-bind="day">1</span>/30</span>
+          <span class="tolerance-pill" id="tolerance-pill" hidden></span>
+        </span>
         <span class="today-card-value">+<span data-bind="today-xp">0</span> XP</span>
       </div>
       <div class="meal-dots">
@@ -167,13 +181,19 @@ export default function home(): HTMLElement {
   }
 
   function renderChallenge(c: { currentDay: ChallengeScript | null }) {
-    const greeting = c.currentDay?.greeting ?? '早安，喚醒者';
-    const greetEl = $$('[data-bind="greeting"]');
-    if (greetEl) greetEl.textContent = greeting;
     const bubble = $$('[data-bind="pet-bubble"]');
     if (bubble) {
       bubble.textContent = c.currentDay?.task_description ?? '今日任務即將解鎖…';
     }
+  }
+
+  function renderWallet(g: GemsStoreShape) {
+    const xp = $$('[data-bind="wallet-xp"]');
+    if (xp) xp.textContent = String(g.walletXp);
+    const gem = $$('[data-bind="gems"]');
+    if (gem) gem.textContent = String(g.balance);
+    const cards = $$('[data-bind="cards"]');
+    if (cards) cards.textContent = String(g.makeupCards);
   }
 
   function renderTolerancePill(level: number | null) {
@@ -191,6 +211,7 @@ export default function home(): HTMLElement {
   bind(wrap, $pet, renderPet);
   bind(wrap, $today, renderToday);
   bind(wrap, $challenge, renderChallenge);
+  bind(wrap, $gems, renderWallet);
   bind(wrap, $profile, (p) => renderTolerancePill(p?.challenge_level ?? null));
 
   $$('#lucky-card')?.addEventListener('click', () => navigate('/check-in'));

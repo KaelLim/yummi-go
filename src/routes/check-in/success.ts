@@ -18,6 +18,7 @@ import { navigate } from '@/router';
 import { $checkin, resetCheckin } from '@/store/checkin';
 import { $today } from '@/store/today';
 import { $user } from '@/store/user';
+import { reloadWallet } from '@/store/pet';
 import {
   PET_DAILY_XP_CAP,
   getXpBalance,
@@ -127,6 +128,9 @@ async function hydrateWallet(wrap: HTMLElement): Promise<void> {
   try {
     const row = await getOrBootstrapXpBalance(u.id);
     renderWallet(wrap, row);
+    // Mirror the latest balance into $gems so the home header is
+    // already correct by the time the user backs out of this screen.
+    void reloadWallet(u.id);
   } catch (err) {
     console.warn('[success] wallet hydrate failed:', err);
   }
@@ -185,6 +189,9 @@ function renderWallet(wrap: HTMLElement, row: XpBalance): void {
       }
       const fresh = await getXpBalance(u.id);
       if (fresh) renderWallet(wrap, fresh);
+      // Push the new wallet/gem totals into $gems so the home header
+      // already reflects the change before this screen unmounts.
+      void reloadWallet(u.id);
     } catch (err) {
       console.error('[success] wallet action failed:', err);
     } finally {

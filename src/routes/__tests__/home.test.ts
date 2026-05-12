@@ -25,7 +25,9 @@ describe('home route', () => {
   it('renders all main sections', () => {
     const el = home();
     expect(el.classList.contains('home-screen')).toBe(true);
-    expect(el.querySelector('.home-greeting')).not.toBeNull();
+    expect(el.querySelector('.home-resources')).not.toBeNull();
+    expect(el.querySelectorAll('.resource-chip').length).toBe(3);
+    expect(el.querySelector('.today-day-badge')).not.toBeNull();
     expect(el.querySelector('.home-hero')).not.toBeNull();
     expect(el.querySelector('.pet-view')).not.toBeNull();
     expect(el.querySelector('.level-bar')).not.toBeNull();

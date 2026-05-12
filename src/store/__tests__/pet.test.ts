@@ -6,12 +6,12 @@ describe('pet store', () => {
   beforeEach(() => {
     localStorage.clear();
     $pet.set(null);
-    $gems.set({ balance: 0, fragments: 0, makeupCards: 0 });
+    $gems.set({ walletXp: 0, balance: 0, fragments: 0, makeupCards: 0 });
   });
 
   it('starts with $pet null and default $gems', () => {
     expect($pet.get()).toBeNull();
-    expect($gems.get()).toEqual({ balance: 0, fragments: 0, makeupCards: 0 });
+    expect($gems.get()).toEqual({ walletXp: 0, balance: 0, fragments: 0, makeupCards: 0 });
   });
 
   it('setPetFromRow maps DB row into store shape', () => {
