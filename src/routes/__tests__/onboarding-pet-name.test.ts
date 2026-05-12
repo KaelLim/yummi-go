@@ -1,13 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/router', () => ({ navigate: vi.fn() }));
+vi.mock('@/api/content', () => ({
+  // Default to a never-resolving fetch so the random pick doesn't race the
+  // synchronous assertions. Individual tests can override.
+  listPetNameSuggestions: vi.fn(() => new Promise(() => {})),
+}));
 
 import petName from '../onboarding/pet-name';
 import * as router from '@/router';
+import * as content from '@/api/content';
 import { $user } from '@/store/user';
 import { $onboardingDraft } from '@/store/onboarding-draft';
 
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
+const mockedContent = content as unknown as {
+  listPetNameSuggestions: ReturnType<typeof vi.fn>;
+};
+
+function flush() {
+  return new Promise((r) => setTimeout(r, 0));
+}
 
 function emptyDraft() {
   return {
@@ -26,6 +39,11 @@ describe('onboarding/pet-name', () => {
     vi.clearAllMocks();
     $user.set(null);
     $onboardingDraft.set(emptyDraft());
+    // `clearAllMocks` keeps queued `mockResolvedValueOnce` values from
+    // prior tests — call `mockReset` to drop them and re-arm the never-
+    // resolving default.
+    mockedContent.listPetNameSuggestions.mockReset();
+    mockedContent.listPetNameSuggestions.mockReturnValue(new Promise(() => {}));
   });
 
   it('renders 8/8 progress, input with default name, and continue button', () => {
@@ -43,6 +61,37 @@ describe('onboarding/pet-name', () => {
     const el = petName();
     const input = el.querySelector('#pet-name-input') as HTMLInputElement;
     expect(input.value).toBe('皮蛋');
+  });
+
+  it('replaces the placeholder with a random suggestion once the fetch resolves', async () => {
+    mockedContent.listPetNameSuggestions.mockResolvedValueOnce([
+      { id: 1, name: '阿芽', emoji: '🌿', sort_order: 1, active: 1 },
+      { id: 2, name: '蛋蛋', emoji: '🥚', sort_order: 2, active: 1 },
+    ]);
+    const el = petName();
+    await flush();
+    const input = el.querySelector('#pet-name-input') as HTMLInputElement;
+    expect(['阿芽', '蛋蛋']).toContain(input.value);
+  });
+
+  it('does not overwrite the draft value when a returning user revisits the page', async () => {
+    $onboardingDraft.set({ ...emptyDraft(), pet_name: '皮蛋' });
+    mockedContent.listPetNameSuggestions.mockResolvedValueOnce([
+      { id: 1, name: '阿芽', emoji: '🌿', sort_order: 1, active: 1 },
+    ]);
+    const el = petName();
+    await flush();
+    const input = el.querySelector('#pet-name-input') as HTMLInputElement;
+    expect(input.value).toBe('皮蛋');
+    expect(mockedContent.listPetNameSuggestions).not.toHaveBeenCalled();
+  });
+
+  it('keeps 小綠 when the suggestions fetch returns an empty list', async () => {
+    mockedContent.listPetNameSuggestions.mockResolvedValueOnce([]);
+    const el = petName();
+    await flush();
+    const input = el.querySelector('#pet-name-input') as HTMLInputElement;
+    expect(input.value).toBe('小綠');
   });
 
   it('on continue, stamps the draft and navigates to /register', () => {

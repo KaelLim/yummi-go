@@ -65,6 +65,46 @@ const PURPOSE_FALLBACK: ChallengePurpose[] = [
   { id: -3, key: 'vow',         emoji: '🙏', label: 'Make a vow 發願',              sort_order: 3, active: 1 },
 ];
 
+export interface PetNameSuggestion {
+  id: number;
+  name: string;
+  emoji: string | null;
+  sort_order: number;
+  active: number | boolean;
+}
+
+/**
+ * Hardcoded fallback for pet name suggestions — used when drust is
+ * unreachable on /onboarding/pet-name. Keep loosely in sync with what's
+ * seeded in pet_name_suggestions; the live read takes precedence so
+ * admin edits to the table propagate immediately.
+ */
+const PET_NAME_FALLBACK: PetNameSuggestion[] = [
+  { id: -1, name: '小綠', emoji: '🌱', sort_order: 1, active: 1 },
+  { id: -2, name: '阿芽', emoji: '🌿', sort_order: 2, active: 1 },
+  { id: -3, name: '豆豆', emoji: '🫛', sort_order: 3, active: 1 },
+  { id: -4, name: '小翠', emoji: '💚', sort_order: 4, active: 1 },
+  { id: -5, name: '蛋蛋', emoji: '🥚', sort_order: 5, active: 1 },
+];
+
+export async function listPetNameSuggestions(): Promise<PetNameSuggestion[]> {
+  try {
+    const result = await drust.list<PetNameSuggestion>('pet_name_suggestions', {
+      limit: '100',
+    });
+    const live = result.records
+      .filter((r) => Number(r.active) === 1)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    if (live.length > 0) return live;
+  } catch (err) {
+    console.warn(
+      '[content] list pet_name_suggestions failed, using fallback:',
+      err,
+    );
+  }
+  return [...PET_NAME_FALLBACK];
+}
+
 export async function listChallengePurposes(): Promise<ChallengePurpose[]> {
   try {
     const result = await drust.list<ChallengePurpose>('challenge_purposes', {
