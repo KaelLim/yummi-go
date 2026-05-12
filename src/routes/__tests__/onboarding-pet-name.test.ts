@@ -65,8 +65,8 @@ describe('onboarding/pet-name', () => {
 
   it('replaces the placeholder with a random suggestion once the fetch resolves', async () => {
     mockedContent.listPetNameSuggestions.mockResolvedValueOnce([
-      { id: 1, name: '阿芽', emoji: '🌿', sort_order: 1, active: 1 },
-      { id: 2, name: '蛋蛋', emoji: '🥚', sort_order: 2, active: 1 },
+      { id: 1, name: '阿芽', sort_order: 1, active: 1 },
+      { id: 2, name: '蛋蛋', sort_order: 2, active: 1 },
     ]);
     const el = petName();
     await flush();
@@ -77,13 +77,47 @@ describe('onboarding/pet-name', () => {
   it('does not overwrite the draft value when a returning user revisits the page', async () => {
     $onboardingDraft.set({ ...emptyDraft(), pet_name: '皮蛋' });
     mockedContent.listPetNameSuggestions.mockResolvedValueOnce([
-      { id: 1, name: '阿芽', emoji: '🌿', sort_order: 1, active: 1 },
+      { id: 1, name: '阿芽', sort_order: 1, active: 1 },
     ]);
     const el = petName();
     await flush();
     const input = el.querySelector('#pet-name-input') as HTMLInputElement;
     expect(input.value).toBe('皮蛋');
     expect(mockedContent.listPetNameSuggestions).not.toHaveBeenCalled();
+  });
+
+  it('refresh button rolls a different name from the cached list', async () => {
+    mockedContent.listPetNameSuggestions.mockResolvedValueOnce([
+      { id: 1, name: '阿芽', sort_order: 1, active: 1 },
+      { id: 2, name: '蛋蛋', sort_order: 2, active: 1 },
+    ]);
+    const el = petName();
+    await flush();
+    const input = el.querySelector('#pet-name-input') as HTMLInputElement;
+    const refresh = el.querySelector('#pet-name-refresh') as HTMLButtonElement;
+    const first = input.value;
+    refresh.click();
+    // With only 2 entries and avoid-current, refresh must flip to the other.
+    expect(input.value).not.toBe(first);
+    expect(['阿芽', '蛋蛋']).toContain(input.value);
+    // Refresh should reuse the cached fetch, not fire another request.
+    expect(mockedContent.listPetNameSuggestions).toHaveBeenCalledTimes(1);
+  });
+
+  it('refresh button triggers a fetch when the cache is empty', async () => {
+    mockedContent.listPetNameSuggestions.mockResolvedValue([
+      { id: 1, name: '阿芽', sort_order: 1, active: 1 },
+    ]);
+    $onboardingDraft.set({ ...emptyDraft(), pet_name: '皮蛋' });
+    const el = petName();
+    // Draft path didn't trigger a fetch on mount.
+    expect(mockedContent.listPetNameSuggestions).not.toHaveBeenCalled();
+    const refresh = el.querySelector('#pet-name-refresh') as HTMLButtonElement;
+    refresh.click();
+    await flush();
+    expect(mockedContent.listPetNameSuggestions).toHaveBeenCalledTimes(1);
+    const input = el.querySelector('#pet-name-input') as HTMLInputElement;
+    expect(input.value).toBe('阿芽');
   });
 
   it('keeps 小綠 when the suggestions fetch returns an empty list', async () => {

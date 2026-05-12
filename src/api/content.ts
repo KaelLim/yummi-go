@@ -68,7 +68,6 @@ const PURPOSE_FALLBACK: ChallengePurpose[] = [
 export interface PetNameSuggestion {
   id: number;
   name: string;
-  emoji: string | null;
   sort_order: number;
   active: number | boolean;
 }
@@ -80,11 +79,11 @@ export interface PetNameSuggestion {
  * admin edits to the table propagate immediately.
  */
 const PET_NAME_FALLBACK: PetNameSuggestion[] = [
-  { id: -1, name: '小綠', emoji: '🌱', sort_order: 1, active: 1 },
-  { id: -2, name: '阿芽', emoji: '🌿', sort_order: 2, active: 1 },
-  { id: -3, name: '豆豆', emoji: '🫛', sort_order: 3, active: 1 },
-  { id: -4, name: '小翠', emoji: '💚', sort_order: 4, active: 1 },
-  { id: -5, name: '蛋蛋', emoji: '🥚', sort_order: 5, active: 1 },
+  { id: -1, name: '小綠', sort_order: 1, active: 1 },
+  { id: -2, name: '阿芽', sort_order: 2, active: 1 },
+  { id: -3, name: '豆豆', sort_order: 3, active: 1 },
+  { id: -4, name: '小翠', sort_order: 4, active: 1 },
+  { id: -5, name: '蛋蛋', sort_order: 5, active: 1 },
 ];
 
 export async function listPetNameSuggestions(): Promise<PetNameSuggestion[]> {

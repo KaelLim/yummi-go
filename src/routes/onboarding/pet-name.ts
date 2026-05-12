@@ -9,8 +9,9 @@
  *
  * The initial value is randomised on every mount from the
  * pet_name_suggestions collection (drust live, hardcoded fallback if the
- * fetch fails). Visiting twice in a row should rarely show the same name
- * so the user gets a fresh suggestion to react to.
+ * fetch fails). The refresh button next to the input lets the user roll
+ * a new suggestion without leaving the page — same source list, just
+ * picks a different entry from the cached result.
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
@@ -20,9 +21,14 @@ import { listPetNameSuggestions } from '@/api/content';
 
 const STATIC_FALLBACK = '小綠';
 
-function pickRandomName(names: string[]): string {
+function pickRandomName(names: string[], avoid: string | null = null): string {
   if (names.length === 0) return STATIC_FALLBACK;
-  return names[Math.floor(Math.random() * names.length)];
+  // Prefer a name different from the one currently shown so back-to-back
+  // refreshes visibly change the input. Falls through if the list has
+  // only one entry.
+  const pool = avoid !== null ? names.filter((n) => n !== avoid) : names;
+  const source = pool.length > 0 ? pool : names;
+  return source[Math.floor(Math.random() * source.length)];
 }
 
 export default function petName(): HTMLElement {
@@ -41,9 +47,14 @@ export default function petName(): HTMLElement {
       <p class="onb-sub text-mini">這個名字會跟著你走完 30 天的挑戰</p>
       <label class="field">
         <span class="field-label text-mini">寵物名稱</span>
-        <input class="input" id="pet-name-input" type="text" maxlength="20" value="${escapeHtml(
-          draft.pet_name ?? STATIC_FALLBACK,
-        )}" />
+        <div class="field-row">
+          <input class="input" id="pet-name-input" type="text" maxlength="20" value="${escapeHtml(
+            draft.pet_name ?? STATIC_FALLBACK,
+          )}" />
+          <button class="btn-icon" id="pet-name-refresh" type="button" aria-label="再抽一個名字" title="再抽一個">
+            <span class="ms">refresh</span>
+          </button>
+        </div>
       </label>
       <div class="auth-error" id="pet-name-error" hidden></div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">下一步</button>
@@ -52,17 +63,48 @@ export default function petName(): HTMLElement {
 
   const input = wrap.querySelector<HTMLInputElement>('#pet-name-input')!;
   const error = wrap.querySelector<HTMLElement>('#pet-name-error')!;
+  const refreshBtn = wrap.querySelector<HTMLButtonElement>('#pet-name-refresh')!;
 
-  // Only randomise if the user hasn't typed something previously (draft
-  // empty). Returning to the page from /register via back button should
-  // preserve whatever they entered last time.
+  // Cache the fetched suggestions so the refresh button doesn't re-hit
+  // drust on every click. Populated by the in-flight fetch below.
+  let cachedNames: string[] = [];
+  let pendingFetch: Promise<void> | null = null;
+
+  function loadSuggestions(): Promise<void> {
+    if (pendingFetch) return pendingFetch;
+    pendingFetch = listPetNameSuggestions()
+      .then((rows) => {
+        cachedNames = rows.map((r) => r.name);
+      })
+      .catch(() => {
+        // listPetNameSuggestions already swallows + falls back; this catch
+        // is defensive in case future refactors let an error escape.
+      })
+      .finally(() => {
+        pendingFetch = null;
+      });
+    return pendingFetch;
+  }
+
+  // First load: replace the placeholder unless the user already has a draft.
   if (!draft.pet_name) {
-    void listPetNameSuggestions().then((rows) => {
-      // Skip if the user already started typing while we were fetching.
+    void loadSuggestions().then(() => {
       if (input.value !== STATIC_FALLBACK && input.value !== '') return;
-      input.value = pickRandomName(rows.map((r) => r.name));
+      input.value = pickRandomName(cachedNames);
     });
   }
+
+  refreshBtn.addEventListener('click', () => {
+    refreshBtn.classList.add('is-spinning');
+    setTimeout(() => refreshBtn.classList.remove('is-spinning'), 400);
+    if (cachedNames.length === 0) {
+      void loadSuggestions().then(() => {
+        input.value = pickRandomName(cachedNames, input.value);
+      });
+      return;
+    }
+    input.value = pickRandomName(cachedNames, input.value);
+  });
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () =>
     navigate('/onboarding/day1-hook'),
