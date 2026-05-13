@@ -94,20 +94,44 @@ export async function reloadWallet(userId: number): Promise<void> {
   });
 }
 
+export interface AwardXpResult {
+  /** XP credited to the wallet (== deltaXp on success, 0 on early return). */
+  credited: number;
+  /** Slice that auto-fed the pet (≤ PET_DAILY_XP_CAP - fed_today). */
+  xpFedToPet: number;
+  /** Gems gained from auto-converting the overflow (1 XP = 1 gem). */
+  gemsFromXp: number;
+}
+
 /**
- * Earned XP no longer feeds the pet directly — it lands in the user's
- * XP wallet (xp_balances). The pet only gains accumulated_xp when the
- * user explicitly calls feedPet from the check-in success screen
- * (capped at PET_DAILY_XP_CAP per local day). Wallet credits still
- * emit an xp_events row so the history shows where the XP came from.
+ * Earn XP and auto-distribute it. Credits xp_balances, then immediately
+ * feeds the pet up to PET_DAILY_XP_CAP for the local day and converts any
+ * leftover XP into gems at 1:1. Callers that don't care about the split
+ * can ignore the return value — most just want the credit + feed to
+ * happen as a side effect. /check-in/result is the only caller that
+ * reads the result to display the breakdown on /check-in/success.
+ *
+ * Each leg emits its own xp_events / gem_events row so the history shows
+ * the wallet credit, the wallet→pet transfer, and the overflow→gem swap
+ * as discrete entries.
  */
 export async function awardXp(
   userId: number,
   deltaXp: number,
   reason: petApi.XpReason = 'check_in',
   refId: number | null = null,
-) {
+): Promise<AwardXpResult> {
+  if (deltaXp <= 0) {
+    return { credited: 0, xpFedToPet: 0, gemsFromXp: 0 };
+  }
   await xpWallet.creditXp(userId, deltaXp, reason, refId);
+  const fed = await xpWallet.feedPet(userId);
+  let gemsFromXp = 0;
+  if (fed.remainingBalance > 0) {
+    const conv = await xpWallet.convertXpToGems(userId);
+    gemsFromXp = conv.gemsEarned;
+  }
+  return { credited: deltaXp, xpFedToPet: fed.fed, gemsFromXp };
 }
 
 /**

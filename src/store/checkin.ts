@@ -23,6 +23,10 @@ export interface CheckinDraft {
     xpEarned: number;
     luckyColorMatched: boolean;
     fogReductionPct: number;
+    /** Slice of xpEarned that auto-fed the pet (≤ PET_DAILY_XP_CAP per day). */
+    xpFedToPet: number;
+    /** Gem balance increase from the auto-convert of XP earned past the cap. */
+    gemsFromXp: number;
     nutrition: {
       cal: number;
       protein: number;

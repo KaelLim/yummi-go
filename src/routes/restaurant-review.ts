@@ -192,10 +192,28 @@ export default function review(params: Record<string, string>): HTMLElement {
           ...$checkin.get(),
           mealIndex,
         });
-        setLastResult({ xpEarned: xpForCheckin, luckyColorMatched: luckyMatch, fogReductionPct, nutrition: null });
+        setLastResult({
+          xpEarned: xpForCheckin,
+          luckyColorMatched: luckyMatch,
+          fogReductionPct,
+          xpFedToPet: 0,
+          gemsFromXp: 0,
+          nutrition: null,
+        });
       }
 
-      try { await awardXp(u.id, totalXp, 'bonus', restaurantId); } catch { /* server XP soft fail */ }
+      let award = { xpFedToPet: 0, gemsFromXp: 0 };
+      try {
+        const res = await awardXp(u.id, totalXp, 'bonus', restaurantId);
+        award = { xpFedToPet: res.xpFedToPet, gemsFromXp: res.gemsFromXp };
+      } catch { /* server XP soft fail */ }
+      // For review-as-checkin, surface the auto-feed breakdown on success.
+      if (asCheckin) {
+        const prev = $checkin.get().lastResult;
+        if (prev) {
+          setLastResult({ ...prev, xpFedToPet: award.xpFedToPet, gemsFromXp: award.gemsFromXp });
+        }
+      }
 
       // Bump $today.totalXpToday for the review reward (mark a per-restaurant
       // mission so duplicate-clicks don't double-credit if user re-submits).

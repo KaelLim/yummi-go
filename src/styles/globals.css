@@ -836,33 +836,29 @@ body {
 .success-text strong { color: var(--color-secondary-dark); font-weight: var(--font-weight-extrabold); }
 .success-body .btn-primary { max-width: 280px; }
 
-.wallet-panel {
+.success-distribution {
   width: 100%; max-width: 320px;
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.dist-row {
+  display: flex; align-items: center; gap: var(--space-3);
   background: var(--color-card, #fff);
-  border-radius: 16px;
-  padding: var(--space-4);
-  display: flex; flex-direction: column; gap: var(--space-3);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-.wallet-meter-label {
-  display: flex; justify-content: space-between;
+  border-radius: 12px;
+  padding: var(--space-3) var(--space-4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   font-size: var(--text-mini-size); color: var(--color-foreground-alt);
-  margin-bottom: 4px;
 }
-.wallet-meter-label strong { color: var(--color-primary-dark); font-weight: var(--font-weight-extrabold); }
-.wallet-meter-bar {
-  height: 8px; border-radius: 4px;
-  background: var(--color-neutral-light-active);
-  overflow: hidden;
+.dist-row .dist-icon {
+  font-size: 20px;
+  color: var(--color-primary-dark);
 }
-.wallet-meter-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-  transition: width 0.4s ease;
+.dist-row.dist-gems .dist-icon { color: var(--color-secondary-dark); }
+.dist-row.dist-empty { justify-content: center; color: var(--color-neutral-darker); }
+.dist-row strong {
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-extrabold);
 }
-.wallet-balance { font-size: var(--text-mini-size); color: var(--color-foreground-alt); margin: 0; text-align: center; }
-.wallet-balance strong { color: var(--color-primary-dark); font-weight: var(--font-weight-extrabold); }
-.wallet-hint { font-size: var(--text-caption-size); color: var(--color-neutral-darker); margin: 0; text-align: center; }
+.dist-row.dist-gems strong { color: var(--color-secondary-dark); }
 
 .xp-burst {
   position: absolute; top: 16px; left: 0; right: 0;
@@ -1625,20 +1621,24 @@ body {
 .checkin-success.act-1 .success-pet,
 .checkin-success.act-1 .success-title,
 .checkin-success.act-1 .success-text,
+.checkin-success.act-1 .success-distribution,
 .checkin-success.act-1 .success-actions { opacity: 0; transform: translateY(8px); }
 .checkin-success.act-2 .success-progress { opacity: 1; transform: translateY(0); transition: 0.5s ease; }
 .checkin-success.act-2 .success-pet,
 .checkin-success.act-2 .success-title,
 .checkin-success.act-2 .success-text,
+.checkin-success.act-2 .success-distribution,
 .checkin-success.act-2 .success-actions { opacity: 0; }
 .checkin-success.act-3 .success-pet,
 .checkin-success.act-3 .success-title,
 .checkin-success.act-3 .success-text { opacity: 1; transform: translateY(0); transition: 0.5s ease; animation: pet-glow 1.6s ease-in-out; }
+.checkin-success.act-3 .success-distribution { opacity: 1; transform: translateY(0); transition: 0.5s ease 0.15s; }
 .checkin-success.act-3 .success-actions { opacity: 0; }
 .checkin-success.settled .success-progress,
 .checkin-success.settled .success-pet,
 .checkin-success.settled .success-title,
 .checkin-success.settled .success-text,
+.checkin-success.settled .success-distribution,
 .checkin-success.settled .success-actions { opacity: 1; transform: translateY(0); transition: 0.4s ease; }
 
 .success-progress {

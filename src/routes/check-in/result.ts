@@ -25,7 +25,7 @@ import type { MockFood } from '@/lib/mock-ai';
 import { mealXp, type MealIndex } from '@/lib/xp-calc';
 import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
 import { createCheckIn } from '@/api/check-ins';
-import { awardXp } from '@/store/pet';
+import { awardXp, reloadWallet } from '@/store/pet';
 
 const MEAL_LABEL: Record<MealIndex, string> = { 1: '早餐', 2: '午餐', 3: '晚餐' };
 
@@ -148,15 +148,28 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
       xp,
     );
     if (luckyMatch) markMissionDone('lucky:hit', 0);
+
+    // XP auto-distribution lives inside awardXp: it credits the wallet,
+    // feeds the pet up to PET_DAILY_XP_CAP for the day, and converts any
+    // leftover to gems at 1:1. We just surface the breakdown for the
+    // success page; no manual feed/convert buttons anymore.
+    let xpFedToPet = 0;
+    let gemsFromXp = 0;
     try {
-      await awardXp(u.id, xp, 'check_in', checkInRow.id);
+      const award = await awardXp(u.id, xp, 'check_in', checkInRow.id);
+      xpFedToPet = award.xpFedToPet;
+      gemsFromXp = award.gemsFromXp;
+      void reloadWallet(u.id);
     } catch {
-      /* server XP soft fail */
+      /* server XP soft fail — UI still shows xpEarned via the burst */
     }
+
     setLastResult({
       xpEarned: xp,
       luckyColorMatched: luckyMatch,
       fogReductionPct,
+      xpFedToPet,
+      gemsFromXp,
       nutrition,
     });
     navigate('/check-in/success');

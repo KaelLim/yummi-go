@@ -33,6 +33,8 @@ describe('check-in/success', () => {
       xpEarned: 20,
       luckyColorMatched: false,
       fogReductionPct: 3,
+      xpFedToPet: 20,
+      gemsFromXp: 0,
       nutrition: { cal: 320, protein: 12, carb: 40, fat: 8, fiber: 4 },
     });
     $user.set({ id: 1, username: 'k', displayName: 'k' });
