@@ -39,7 +39,7 @@ export default function petName(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(5, 5).outerHTML}
+      ${createProgress({ current: 5, total: 5 }).outerHTML}
     </div>
     <div class="onb-body">
       <div class="day1-egg" data-tint="neutral" style="font-size:64px;margin:0 auto;">🥚</div>

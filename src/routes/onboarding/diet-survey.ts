@@ -25,7 +25,7 @@ export default function dietSurvey(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(1, 5).outerHTML}
+      ${createProgress({ current: 1, total: 5 }).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">你的飲食習慣是？</h1>

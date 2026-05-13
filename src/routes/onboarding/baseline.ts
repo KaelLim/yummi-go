@@ -31,7 +31,7 @@ export default function baseline(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(2, 5).outerHTML}
+      ${createProgress({ current: 2, total: 5 }).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">原本的肉類飲食</h1>

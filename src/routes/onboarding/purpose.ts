@@ -19,7 +19,7 @@ export default function purpose(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(3, 5).outerHTML}
+      ${createProgress({ current: 3, total: 5 }).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">參加挑戰的目的</h1>
