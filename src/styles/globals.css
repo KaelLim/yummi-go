@@ -404,9 +404,9 @@ body {
 .modal-actions, .sheet-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
 .modal-actions .btn, .sheet-actions .btn { flex: 1; }
 
-/* Flow viewer (/dev/flows). */
+/* Flow viewer (/dev/flows) — bypasses the app layout, owns the viewport. */
 .flow-viewer {
-  display: flex; height: calc(100vh - 80px);
+  display: flex; height: 100vh;
   font-family: var(--font-sans);
 }
 .flow-sidebar {

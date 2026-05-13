@@ -65,7 +65,8 @@ defRoute('/profile/settings', wrap(() => import('./routes/profile/settings')));
 defRoute('/profile/reviews', wrap(() => import('./routes/profile/reviews')));
 defRoute('/profile/baseline', wrap(() => import('./routes/profile/baseline')));
 defRoute('/challenge/day-30', wrap(() => import('./routes/day-30')));
-defRoute('/dev/flows', wrap(() => import('./routes/dev/flows')));
+// Dev tools render their own full-viewport chrome — bypass the app layout.
+defRoute('/dev/flows', () => import('./routes/dev/flows'));
 
 async function boot() {
   await bootstrapFromStorage();
