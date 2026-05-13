@@ -23,6 +23,13 @@ export interface CheckinDraft {
     xpEarned: number;
     luckyColorMatched: boolean;
     fogReductionPct: number;
+    nutrition: {
+      cal: number;
+      protein: number;
+      carb: number;
+      fat: number;
+      fiber: number;
+    } | null;
   } | null;
 }
 

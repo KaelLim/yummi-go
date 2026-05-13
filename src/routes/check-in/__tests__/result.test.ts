@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/router', () => ({ navigate: vi.fn() }));
-vi.mock('@/api/check-ins', () => ({ createCheckIn: vi.fn().mockResolvedValue({}) }));
+vi.mock('@/api/check-ins', () => ({ createCheckIn: vi.fn().mockResolvedValue({ id: 99 }) }));
 vi.mock('@/store/pet', () => ({ awardXp: vi.fn().mockResolvedValue(undefined) }));
 
 import result from '../result';
@@ -51,7 +51,7 @@ function seedDay1Red() {
   setDay([script], 1);
 }
 
-describe('check-in/result route', () => {
+describe('check-in/result (prototype meat-detection prompt)', () => {
   beforeEach(() => {
     resetCheckin();
     vi.clearAllMocks();
@@ -67,118 +67,43 @@ describe('check-in/result route', () => {
     expect(el.querySelector('.checkin-fallback')).not.toBeNull();
   });
 
-  it('renders item rows for scanned veg-only output, no meat banner', () => {
+  it('no-meat scan: auto-submits and navigates to /check-in/success without showing a banner', async () => {
     setScan({
       items: [veg('生菜', ['green']), veg('番茄', ['red'])],
       hasMeat: false,
       scanFailed: false,
     });
     const el = result();
-    expect(el.querySelectorAll('.result-item').length).toBe(2);
-    expect(el.querySelector<HTMLElement>('#meat-banner')?.hidden).toBe(true);
-  });
-
-  it('meat-pending stage hides the list/summary/confirm and shows only the banner', () => {
-    setScan({
-      items: [veg('生菜'), meat('牛肉片')],
-      hasMeat: true,
-      scanFailed: false,
-    });
-    const el = result();
-    expect(el.querySelector<HTMLElement>('#meat-banner')?.hidden).toBe(false);
-    expect(el.querySelector('#meat-list')?.textContent).toContain('牛肉片');
-    // The full edit UI is hidden while the user is still answering 是/否.
-    expect(el.querySelector<HTMLElement>('#items-list')?.hidden).toBe(true);
-    expect(el.querySelector<HTMLElement>('#vegan-section')?.hidden).toBe(true);
-    expect(el.querySelector<HTMLElement>('#summary')?.hidden).toBe(true);
-    expect(el.querySelector<HTMLElement>('#confirm-btn')?.hidden).toBe(true);
-    expect(el.querySelector<HTMLElement>('#nutrition-card')?.hidden).toBe(true);
-  });
-
-  it('"否" button label is just "否" (not the old "否，替代為植物肉")', () => {
-    setScan({
-      items: [meat('牛肉片')],
-      hasMeat: true,
-      scanFailed: false,
-    });
-    const el = result();
-    const btn = el.querySelector('#meat-no');
-    expect(btn?.textContent?.trim()).toBe('否');
-  });
-
-  it('clicking 否 flips items + reveals nutrition card + pet bubble + confirm (no auto-submit)', () => {
-    setScan({
-      items: [meat('牛肉片')],
-      hasMeat: true,
-      scanFailed: false,
-    });
-    const el = result();
-    document.body.appendChild(el);
-
-    el.querySelector<HTMLButtonElement>('#meat-no')?.click();
-
-    // State flipped immediately.
-    expect($checkin.get().wasMeatReplaced).toBe(true);
-    expect($checkin.get().items.every((i) => i.isVeg)).toBe(true);
-    // No auto-submit; the network call must wait for the confirm button.
-    expect(mockedCreate).not.toHaveBeenCalled();
-    expect(mockedRouter.navigate).not.toHaveBeenCalledWith('/check-in/success');
-
-    // Banner gone, nutrition card + pet bubble + confirm now visible.
-    expect(el.querySelector<HTMLElement>('#meat-banner')?.hidden).toBe(true);
-    expect(el.querySelector<HTMLElement>('#nutrition-card')?.hidden).toBe(false);
-    expect(el.querySelector<HTMLElement>('#nutrition-card')?.classList.contains('is-revealed')).toBe(true);
-    expect(el.querySelector<HTMLElement>('#pet-bubble')?.hidden).toBe(false);
-    expect(el.querySelector<HTMLElement>('#confirm-btn')?.hidden).toBe(false);
-
-    // Edit panels stay hidden until 修改餐點 is pressed.
-    expect(el.querySelector<HTMLElement>('#items-list')?.hidden).toBe(true);
-    expect(el.querySelector<HTMLElement>('#vegan-section')?.hidden).toBe(true);
-    expect(el.querySelector<HTMLElement>('#summary')?.hidden).toBe(true);
-
-    el.remove();
-  });
-
-  it('pressing 修改餐點 unveils the editable list / vegan chips / summary', () => {
-    setScan({
-      items: [meat('牛肉片')],
-      hasMeat: true,
-      scanFailed: false,
-    });
-    const el = result();
-    document.body.appendChild(el);
-    el.querySelector<HTMLButtonElement>('#meat-no')?.click();
-    el.querySelector<HTMLButtonElement>('#open-edit')?.click();
-
-    expect(el.querySelector<HTMLElement>('#items-list')?.hidden).toBe(false);
-    expect(el.querySelector<HTMLElement>('#vegan-section')?.hidden).toBe(false);
-    expect(el.querySelector<HTMLElement>('#summary')?.hidden).toBe(false);
-    // Confirm + nutrition card stay visible together.
-    expect(el.querySelector<HTMLElement>('#confirm-btn')?.hidden).toBe(false);
-    expect(el.querySelector<HTMLElement>('#nutrition-card')?.hidden).toBe(false);
-    el.remove();
-  });
-
-  it('after 否, confirm submits the (already-replaced) check-in', async () => {
-    setScan({
-      items: [meat('牛肉片')],
-      hasMeat: true,
-      scanFailed: false,
-    });
-    mockedCreate.mockResolvedValueOnce({});
-    const el = result();
-    document.body.appendChild(el);
-    el.querySelector<HTMLButtonElement>('#meat-no')?.click();
-    el.querySelector<HTMLButtonElement>('#confirm-btn')?.click();
+    expect(el.querySelector('.checkin-veg-pass')).not.toBeNull();
+    expect(el.querySelector('#meat-banner')).toBeNull();
     await vi.waitFor(() =>
       expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'),
     );
-    const args = mockedCreate.mock.calls[0][0];
-    expect(args.wasMeatReplaced).toBe(true);
-    el.remove();
+    expect(mockedCreate).toHaveBeenCalledTimes(1);
   });
 
-  it('clicking 是 routes to /check-in/fail without resetting the draft', () => {
+  it('meat scan: renders banner with detected names and no nutrition card', () => {
+    setScan({
+      items: [veg('生菜'), meat('牛肉片'), meat('豬肉絲')],
+      hasMeat: true,
+      scanFailed: false,
+    });
+    const el = result();
+    const banner = el.querySelector<HTMLElement>('#meat-banner');
+    expect(banner).not.toBeNull();
+    expect(banner?.hidden).toBeFalsy();
+    expect(el.querySelector('#meat-list')?.textContent).toContain('牛肉片');
+    expect(el.querySelector('#meat-list')?.textContent).toContain('豬肉絲');
+    // Nutrition belongs to the success page now — not here.
+    expect(el.querySelector('#nutrition-card')).toBeNull();
+    expect(el.querySelector('.nutrition-grid')).toBeNull();
+    // No editable list / vegan chips / summary on this prototype page.
+    expect(el.querySelector('#items-list')).toBeNull();
+    expect(el.querySelector('#vegan-section')).toBeNull();
+    expect(el.querySelector('#summary')).toBeNull();
+  });
+
+  it('clicking 是 navigates to /check-in/fail', () => {
     setScan({
       items: [meat('牛肉片')],
       hasMeat: true,
@@ -187,42 +112,55 @@ describe('check-in/result route', () => {
     const el = result();
     el.querySelector<HTMLButtonElement>('#meat-yes')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/fail');
-    // draft must NOT be reset — fail.ts needs mealIndex to record the right slot
-    expect($checkin.get().items).not.toEqual([]);
   });
 
-  it('confirm posts createCheckIn with correct XP (lucky-match + meal-2 base)', async () => {
+  it('clicking 否 flips items, submits, and navigates to /check-in/success', async () => {
+    setScan({
+      items: [meat('牛肉片')],
+      hasMeat: true,
+      scanFailed: false,
+    });
+    const el = result();
+    el.querySelector<HTMLButtonElement>('#meat-no')?.click();
+    expect($checkin.get().wasMeatReplaced).toBe(true);
+    expect($checkin.get().items.every((i) => i.isVeg)).toBe(true);
+    await vi.waitFor(() =>
+      expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'),
+    );
+    const args = mockedCreate.mock.calls[0][0];
+    expect(args.wasMeatReplaced).toBe(true);
+  });
+
+  it('submit credits XP with lucky-match bonus and stamps nutrition onto lastResult', async () => {
     setScan({
       items: [veg('番茄', ['red'])],
       hasMeat: false,
       scanFailed: false,
     });
-    const el = result();
-    document.body.appendChild(el);
-    el.querySelector<HTMLButtonElement>('#confirm-btn')?.click();
-    await vi.waitFor(() => expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'));
+    result();
+    await vi.waitFor(() =>
+      expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'),
+    );
     const args = mockedCreate.mock.calls[0][0];
-    expect(args.userId).toBe(7);
-    expect(args.dayNumber).toBe(1);
     expect(args.mealIndex).toBe(2);
-    expect(args.luckyColorMatched).toBe(true); // 番茄 red matches 紅色
-    expect(args.xpEarned).toBe(20 + 15); // meal-2 base + lucky bonus
-    el.remove();
+    expect(args.luckyColorMatched).toBe(true);
+    expect(args.xpEarned).toBe(20 + 15);
+    expect($checkin.get().lastResult?.nutrition).not.toBeNull();
+    expect($checkin.get().lastResult?.nutrition?.cal).toBeGreaterThan(0);
   });
 
-  it('confirm without lucky match still credits base XP', async () => {
+  it('submit without lucky match still credits base XP', async () => {
     setScan({
       items: [veg('生菜', ['green'])],
       hasMeat: false,
       scanFailed: false,
     });
-    const el = result();
-    document.body.appendChild(el);
-    el.querySelector<HTMLButtonElement>('#confirm-btn')?.click();
-    await vi.waitFor(() => expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'));
+    result();
+    await vi.waitFor(() =>
+      expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'),
+    );
     const args = mockedCreate.mock.calls[0][0];
     expect(args.luckyColorMatched).toBe(false);
     expect(args.xpEarned).toBe(20);
-    el.remove();
   });
 });

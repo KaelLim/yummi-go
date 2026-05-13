@@ -29,7 +29,12 @@ describe('check-in/success', () => {
     vi.useFakeTimers();
     $today.set({ dayNumber: 5, totalXpToday: 20, missionsDone: ['meal:lunch'], luckyColor: '' });
     setMealIndex(2);
-    setLastResult({ xpEarned: 20, luckyColorMatched: false, fogReductionPct: 3 });
+    setLastResult({
+      xpEarned: 20,
+      luckyColorMatched: false,
+      fogReductionPct: 3,
+      nutrition: { cal: 320, protein: 12, carb: 40, fat: 8, fiber: 4 },
+    });
     $user.set({ id: 1, username: 'k', displayName: 'k' });
     $profile.set(profileWith(2));
   });
@@ -84,5 +89,20 @@ describe('check-in/success', () => {
     const el = success();
     el.querySelector<HTMLButtonElement>('#next')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+  });
+
+  it('nutrition details start collapsed and open when toggled', () => {
+    const el = success();
+    const details = el.querySelector<HTMLElement>('#nutrition-details')!;
+    const toggle = el.querySelector<HTMLButtonElement>('#nutrition-toggle')!;
+    expect(details.classList.contains('is-open')).toBe(false);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    toggle.click();
+    expect(details.classList.contains('is-open')).toBe(true);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    // Nutrition grid is in the DOM either way (CSS animates the reveal).
+    expect(el.querySelector('.nutrition-grid')).not.toBeNull();
+    expect(el.textContent).toContain('320 kcal');
+    expect(el.textContent).toContain('12 g');
   });
 });

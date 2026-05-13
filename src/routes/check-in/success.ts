@@ -50,6 +50,17 @@ export default function success(): HTMLElement {
   const segments = Array.from({ length: 30 }, (_, i) => i + 1)
     .map((d) => `<span class="seg ${d <= today ? 'fill' : ''} ${d === today ? 'now' : ''}"></span>`)
     .join('');
+  const n = r.nutrition;
+  const nutritionGrid = n
+    ? `
+      <div class="nutrition-grid">
+        <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(n.cal)} kcal</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${n.protein} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${n.carb} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${n.fat} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${n.fiber} g</strong></div>
+      </div>`
+    : '<p class="nutrition-empty">本餐沒有營養素資料</p>';
 
   wrap.innerHTML = `
     <div class="success-body">
@@ -65,6 +76,17 @@ export default function success(): HTMLElement {
         <strong>${r.xpEarned} XP</strong> 已存入小綠的食物袋。<br/>
         灰霧消散 <strong>${r.fogReductionPct}%</strong>。
       </p>
+      <div class="nutrition-details" id="nutrition-details">
+        <button type="button" class="nutrition-toggle" id="nutrition-toggle" aria-expanded="false">
+          <span class="ms">restaurant_menu</span>
+          <span>查看營養成分</span>
+          <span class="ms nutrition-chevron">expand_more</span>
+        </button>
+        <div class="nutrition-content" id="nutrition-content">
+          ${nutritionGrid}
+          <p class="nutrition-card-hint">由 AI 依本餐食材自動估算</p>
+        </div>
+      </div>
       <div class="wallet-panel" id="wallet-panel" hidden>
         <div class="wallet-meter">
           <div class="wallet-meter-label">
@@ -120,6 +142,14 @@ export default function success(): HTMLElement {
 
   wrap.querySelector('#share')?.addEventListener('click', () => {
     void shareSummary(today, r.xpEarned, r.luckyColorMatched);
+  });
+
+  const toggle = wrap.querySelector<HTMLButtonElement>('#nutrition-toggle');
+  const details = wrap.querySelector<HTMLElement>('#nutrition-details');
+  toggle?.addEventListener('click', () => {
+    const open = !details?.classList.contains('is-open');
+    details?.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
 
   return wrap;

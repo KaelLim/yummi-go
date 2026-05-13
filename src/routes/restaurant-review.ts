@@ -192,7 +192,7 @@ export default function review(params: Record<string, string>): HTMLElement {
           ...$checkin.get(),
           mealIndex,
         });
-        setLastResult({ xpEarned: xpForCheckin, luckyColorMatched: luckyMatch, fogReductionPct });
+        setLastResult({ xpEarned: xpForCheckin, luckyColorMatched: luckyMatch, fogReductionPct, nutrition: null });
       }
 
       try { await awardXp(u.id, totalXp, 'bonus', restaurantId); } catch { /* server XP soft fail */ }
