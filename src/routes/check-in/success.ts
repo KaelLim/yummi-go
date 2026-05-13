@@ -74,16 +74,35 @@ export default function success(): HTMLElement {
        </div>`
     : '';
 
+  // First-time AHA: when this is the user's first ever check-in, lead
+  // with a celebratory banner + swap the title + extra burst bubble.
+  // Everything else (distribution, nutrition, actions) stays identical.
+  const firstBanner = r.isFirstCheckIn
+    ? `<div class="first-banner" id="first-banner">
+         <span class="first-banner-emoji" aria-hidden="true">🎉</span>
+         <div class="first-banner-body">
+           <strong class="first-banner-title">第一次打卡完成！</strong>
+           <span class="first-banner-sub">小綠剛剛吃到第一口 XP，跟你的 30 天挑戰一起開始 🌱</span>
+         </div>
+       </div>`
+    : '';
+  const title = r.isFirstCheckIn ? '歡迎踏出第一步！' : '打卡成功！';
+  const firstBubble = r.isFirstCheckIn
+    ? '<span class="xp-bubble xp-first">🎉 首次打卡 +XP 解鎖</span>'
+    : '';
+
   wrap.innerHTML = `
     <div class="success-body">
+      ${firstBanner}
       <div class="xp-burst" aria-hidden="true">
         <span class="xp-bubble xp-1">+${r.xpEarned} XP</span>
+        ${firstBubble}
         ${r.luckyColorMatched ? '<span class="xp-bubble xp-2">幸運色 +15 XP</span>' : ''}
         ${replaced ? '<span class="xp-bubble xp-3">替代為植物肉</span>' : ''}
       </div>
       <div class="success-progress" aria-label="30-day progress">${segments}</div>
       <div class="success-pet">🐸</div>
-      <h1 class="success-title">打卡成功！</h1>
+      <h1 class="success-title">${title}</h1>
       <p class="success-text">灰霧消散 <strong>${r.fogReductionPct}%</strong>。</p>
       <div class="success-distribution" id="success-distribution">
         ${fedRow}${gemRow}${emptyRow}

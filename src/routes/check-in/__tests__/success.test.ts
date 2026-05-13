@@ -48,6 +48,7 @@ describe('check-in/success', () => {
         { name: '青菜', cal: 30, protein: 2, carb: 5, fat: 0, fiber: 2, isVeg: true, colors: ['green'], weightG: 80 },
       ],
       nutrition: { cal: 320, protein: 12, carb: 40, fat: 8, fiber: 4 },
+      isFirstCheckIn: false,
     });
     $user.set({ id: 1, username: 'k', displayName: 'k' });
     $profile.set(profileWith(2));
@@ -103,6 +104,24 @@ describe('check-in/success', () => {
     const el = success();
     el.querySelector<HTMLButtonElement>('#next')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+  });
+
+  describe('first-check-in AHA', () => {
+    it('omits the banner + uses the regular title by default', () => {
+      const el = success();
+      expect(el.querySelector('#first-banner')).toBeNull();
+      expect(el.querySelector('.success-title')?.textContent).toBe('打卡成功！');
+      expect(el.querySelector('.xp-bubble.xp-first')).toBeNull();
+    });
+
+    it('renders banner + welcome title + first-time bubble when isFirstCheckIn', () => {
+      const prev = $checkin.get().lastResult!;
+      setLastResult({ ...prev, isFirstCheckIn: true });
+      const el = success();
+      expect(el.querySelector('#first-banner')).not.toBeNull();
+      expect(el.querySelector('.success-title')?.textContent).toBe('歡迎踏出第一步！');
+      expect(el.querySelector('.xp-bubble.xp-first')?.textContent).toContain('首次打卡');
+    });
   });
 
   describe('modify-content sheet', () => {

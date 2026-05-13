@@ -201,6 +201,7 @@ export default function review(params: Record<string, string>): HTMLElement {
           gemsFromXp: 0,
           items: [],
           nutrition: null,
+          isFirstCheckIn: false,
         });
       }
 

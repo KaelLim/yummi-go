@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/router', () => ({ navigate: vi.fn() }));
-vi.mock('@/api/check-ins', () => ({ createCheckIn: vi.fn().mockResolvedValue({ id: 99 }) }));
-vi.mock('@/store/pet', () => ({ awardXp: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('@/api/check-ins', () => ({
+  createCheckIn: vi.fn().mockResolvedValue({ id: 99 }),
+  listCheckIns: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('@/store/pet', () => ({
+  awardXp: vi.fn().mockResolvedValue({ credited: 0, xpFedToPet: 0, gemsFromXp: 0 }),
+  reloadWallet: vi.fn().mockResolvedValue(undefined),
+}));
 
 import result from '../result';
 import {

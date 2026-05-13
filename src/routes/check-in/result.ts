@@ -24,7 +24,7 @@ import { $today, $challenge, markMissionDone } from '@/store/today';
 import type { MockFood } from '@/lib/mock-ai';
 import { mealXp, type MealIndex } from '@/lib/xp-calc';
 import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
-import { createCheckIn } from '@/api/check-ins';
+import { createCheckIn, listCheckIns } from '@/api/check-ins';
 import { awardXp, reloadWallet } from '@/store/pet';
 
 const MEAL_LABEL: Record<MealIndex, string> = { 1: '早餐', 2: '午餐', 3: '晚餐' };
@@ -131,6 +131,18 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
   const nutrition = aggregateNutrition(d.items);
 
   try {
+    // Pre-flight: is this the user's very first check-in? Used by /success
+    // for "🎉 第一次打卡" framing. listCheckIns is cheap (typically returns
+    // [] for a brand-new user), and we run it before createCheckIn so we
+    // see pre-insert state.
+    let isFirstCheckIn = false;
+    try {
+      const prior = await listCheckIns(u.id);
+      isFirstCheckIn = prior.length === 0;
+    } catch {
+      /* soft fail — fall back to non-first treatment */
+    }
+
     const checkInRow = await createCheckIn({
       userId: u.id,
       dayNumber: day,
@@ -173,6 +185,7 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
       gemsFromXp,
       items: d.items,
       nutrition,
+      isFirstCheckIn,
     });
     navigate('/check-in/success');
   } catch (err) {

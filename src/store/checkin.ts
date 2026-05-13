@@ -38,6 +38,9 @@ export interface CheckinDraft {
       fat: number;
       fiber: number;
     } | null;
+    /** True when this submission was the user's very first check-in.
+     *  /check-in/success uses this to swap in the AHA-moment framing. */
+    isFirstCheckIn: boolean;
   } | null;
 }
 
