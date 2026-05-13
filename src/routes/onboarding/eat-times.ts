@@ -1,5 +1,10 @@
 /**
- * Onboarding step 5 — Daily meal times.
+ * Post-first-check-in step — Daily meal times.
+ *
+ * Pulled out of the onboarding chain so the user only sets meal times
+ * after they've experienced a real check-in (challenge-level → here →
+ * /home is the post-first-check-in pair). No progress dots — this isn't
+ * presented as part of an N-of-M flow anymore.
  *
  * Three meals (breakfast / lunch / dinner) with time pickers. Each row can
  * be turned off with ✕ (users who skip a meal) and re-added later with +.
@@ -10,10 +15,9 @@
  * skips the disabled meals.
  */
 import { navigate } from '@/router';
-import { $user } from '@/store/user';
-import { updateProfile } from '@/api/profile';
+import { $user, $profile } from '@/store/user';
+import { updateProfile, getUserFull } from '@/api/profile';
 import { patchDraft } from '@/store/onboarding-draft';
-import { createProgress } from '@/components/Progress';
 import { requestMealNotificationPermission } from '@/lib/meal-notifier';
 
 interface MealDef {
@@ -43,18 +47,17 @@ export default function eatTimes(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(6, 6).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">用餐時間</h1>
-      <p class="onb-sub text-mini">我們會在用餐前 10 分鐘提醒你打卡，不吃某餐可用 ✕ 移除</p>
+      <p class="onb-sub text-mini">設定後我們會在用餐前 10 分鐘提醒你打卡，不吃某餐可用 ✕ 移除</p>
       <div class="meal-list" id="meal-list"></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">繼續</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">完成設定</button>
     </div>
   `;
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () =>
-    navigate('/onboarding/pet-name'),
+    navigate('/home'),
   );
 
   function renderList(): void {
@@ -122,13 +125,17 @@ export default function eatTimes(): HTMLElement {
       } catch {
         /* soft fail */
       }
+      // Refresh $profile so home / meal-notifier read the new schedule
+      // immediately instead of waiting for the next bootstrap.
+      void getUserFull(u.id).then((full) => { if (full) $profile.set(full); });
     } else {
       patchDraft({ eat_times: eatTimesJson });
     }
     void requestMealNotificationPermission();
-    // Last onboarding step: logged-in users (returning visitors) jump
-    // straight to /home; guests hand off to /register to create an
-    // account, which then drains the draft onto the new user row.
+    // Post-check-in step: the user is already logged in (this screen only
+    // shows after a real check-in). The `/register` fallback stays as a
+    // defensive path in case someone reaches here without $user — that
+    // path then drains the draft on register.
     navigate(u ? '/home' : '/register');
   });
 

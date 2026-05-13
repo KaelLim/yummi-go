@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/api/profile', () => ({
   updateProfile: vi.fn(),
+  getUserFull: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/store/user', () => ({
   $user: { get: vi.fn() },
+  $profile: { set: vi.fn() },
 }));
 
 vi.mock('@/router', () => ({
@@ -17,7 +19,10 @@ import * as profileApi from '@/api/profile';
 import * as userStore from '@/store/user';
 import * as router from '@/router';
 
-const mockedProfile = profileApi as unknown as { updateProfile: ReturnType<typeof vi.fn> };
+const mockedProfile = profileApi as unknown as {
+  updateProfile: ReturnType<typeof vi.fn>;
+  getUserFull: ReturnType<typeof vi.fn>;
+};
 const mockedUser = userStore as unknown as { $user: { get: ReturnType<typeof vi.fn> } };
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
 
@@ -59,10 +64,10 @@ describe('onboarding/eat-times', () => {
     document.body.removeChild(el);
   });
 
-  it('back button navigates to /onboarding/pet-name', () => {
+  it('back button navigates to /home (post-check-in placement)', () => {
     const el = eatTimes();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/pet-name');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
   it('guest continue stamps the draft and advances to /register', async () => {

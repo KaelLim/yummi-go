@@ -38,13 +38,13 @@ describe('onboarding/day1-hook', () => {
     });
   });
 
-  it('renders the fog overlay, egg, and CTA at step 4 of 6', () => {
+  it('renders the fog overlay, egg, and CTA at step 4 of 5', () => {
     const el = day1Hook();
     expect(el.classList.contains('day1')).toBe(true);
     expect(el.querySelector('.fog-overlay')).not.toBeNull();
     expect(el.querySelector('.day1-egg')).not.toBeNull();
     expect(el.querySelector('#enter-btn')).not.toBeNull();
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(6);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(5);
     expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(4);
   });
 

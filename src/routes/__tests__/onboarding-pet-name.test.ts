@@ -46,9 +46,9 @@ describe('onboarding/pet-name', () => {
     mockedContent.listPetNameSuggestions.mockReturnValue(new Promise(() => {}));
   });
 
-  it('renders 5/6 progress, input with default name, and continue button', () => {
+  it('renders 5/5 progress, input with default name, and continue button', () => {
     const el = petName();
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(6);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(5);
     expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(5);
     const input = el.querySelector('#pet-name-input') as HTMLInputElement;
     expect(input).not.toBeNull();
@@ -128,13 +128,13 @@ describe('onboarding/pet-name', () => {
     expect(input.value).toBe('小綠');
   });
 
-  it('on continue, guests stamp the draft and advance to /onboarding/eat-times', () => {
+  it('on continue, guests stamp the draft and advance to /register (no $user)', () => {
     const el = petName();
     const input = el.querySelector('#pet-name-input') as HTMLInputElement;
     input.value = '阿綠';
     (el.querySelector('#continue-btn') as HTMLButtonElement).click();
     expect($onboardingDraft.get().pet_name).toBe('阿綠');
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/eat-times');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/register');
   });
 
   it('shows an error and does not navigate when the name is blank', () => {
@@ -147,7 +147,7 @@ describe('onboarding/pet-name', () => {
     expect(mockedRouter.navigate).not.toHaveBeenCalled();
   });
 
-  it('logged-in users also continue to /onboarding/eat-times (no draft write needed)', () => {
+  it('logged-in users skip the draft write and continue straight to /home', () => {
     $user.set({ id: 1, username: 'k', displayName: 'Kai' });
     const before = $onboardingDraft.get().pet_name;
     const el = petName();
@@ -155,7 +155,7 @@ describe('onboarding/pet-name', () => {
     input.value = '阿綠';
     (el.querySelector('#continue-btn') as HTMLButtonElement).click();
     expect($onboardingDraft.get().pet_name).toBe(before);
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/eat-times');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
   it('back button returns to /onboarding/day1-hook', () => {

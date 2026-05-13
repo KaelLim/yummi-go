@@ -1,12 +1,13 @@
 /**
- * Challenge difficulty picker — shown right after the user's FIRST
- * check-in (no longer part of the onboarding chain).
+ * Challenge difficulty picker — first leg of the post-first-check-in
+ * setup (no longer part of the onboarding chain).
  *
- * The success page detects challenge_level === null and routes here
- * before /home, so the user gets to set their target difficulty once
- * they've actually tasted the flow. Re-entering later (e.g. from the
- * profile) is intentionally fine — tapping a level just patches
- * challenge_level and bounces to /home.
+ * The success page detects challenge_level === null and routes here, and
+ * after the user picks a level we chain into /onboarding/eat-times if
+ * eat_times hasn't been set yet. Either way the user lands on /home once
+ * both post-check-in steps are filled. Re-entering later (e.g. from the
+ * profile) is intentionally fine — tapping a level patches challenge_level
+ * and bounces straight to /home.
  */
 import { navigate } from '@/router';
 import { $user, $profile } from '@/store/user';
@@ -55,7 +56,10 @@ export default function challengeLevel(): HTMLElement {
         // success branch see the new level immediately.
         void getUserFull(u.id).then((full) => { if (full) $profile.set(full); });
       }
-      navigate('/home');
+      // Chain into eat-times if the user hasn't set their meal schedule
+      // yet (this is the post-check-in setup pair). Otherwise straight home.
+      const eatTimes = $profile.get()?.eat_times;
+      navigate(eatTimes ? '/home' : '/onboarding/eat-times');
     });
   });
 

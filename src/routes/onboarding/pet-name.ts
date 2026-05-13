@@ -1,11 +1,11 @@
 /**
- * Onboarding step 9 — Pet name.
+ * Onboarding step 5/5 (last) — Pet name.
  *
- * Last screen before /register. Stores the chosen name into the draft so
- * it can be passed as `display_name` when the account is finally created.
- * Returning users (already logged in) skip the draft path entirely — drust
- * already holds their display_name and going through this screen again
- * doesn't make sense, so we send them home.
+ * Final onboarding screen. Stores the chosen name into the draft (used as
+ * display_name fallback when /register drains it). Logged-in users (the
+ * normal flow now that guests are pre-registered on splash) just continue
+ * to /home — eat-times moved out of onboarding and now shows after the
+ * user's first check-in instead.
  *
  * The initial value is randomised on every mount from the
  * pet_name_suggestions collection (drust live, hardcoded fallback if the
@@ -39,7 +39,7 @@ export default function petName(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(5, 6).outerHTML}
+      ${createProgress(5, 5).outerHTML}
     </div>
     <div class="onb-body">
       <div class="day1-egg" data-tint="neutral" style="font-size:64px;margin:0 auto;">🥚</div>
@@ -117,8 +117,9 @@ export default function petName(): HTMLElement {
       error.textContent = '請為你的守護者取個名字';
       return;
     }
-    if (!$user.get()) patchDraft({ pet_name: name });
-    navigate('/onboarding/eat-times');
+    const u = $user.get();
+    if (!u) patchDraft({ pet_name: name });
+    navigate(u ? '/home' : '/register');
   });
 
   return wrap;

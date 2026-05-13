@@ -23,7 +23,10 @@ const mockedProfile = profileApi as unknown as {
   updateProfile: ReturnType<typeof vi.fn>;
   getUserFull: ReturnType<typeof vi.fn>;
 };
-const mockedUser = userStore as unknown as { $user: { get: ReturnType<typeof vi.fn> } };
+const mockedUser = userStore as unknown as {
+  $user: { get: ReturnType<typeof vi.fn> };
+  $profile: { get: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn> };
+};
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
 
 function flush() {
@@ -42,13 +45,24 @@ describe('challenge-level (post-first-checkin picker)', () => {
     expect(el.querySelectorAll('.onb-progress-dot').length).toBe(0);
   });
 
-  it('clicking a level writes challenge_level and navigates to /home', async () => {
+  it('clicking a level writes challenge_level and chains to /onboarding/eat-times when eat_times is null', async () => {
+    mockedUser.$profile.get.mockReturnValue({ eat_times: null });
     mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
     const el = challengeLevel();
     const lvl2 = el.querySelector('.level-choice[data-value="2"]') as HTMLButtonElement;
     lvl2.click();
     await flush();
     expect(mockedProfile.updateProfile).toHaveBeenCalledWith(11, { challenge_level: 2 });
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/eat-times');
+  });
+
+  it('skips eat-times and goes straight to /home when eat_times is already set', async () => {
+    mockedUser.$profile.get.mockReturnValue({ eat_times: '{"breakfast":"08:00"}' });
+    mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
+    const el = challengeLevel();
+    const lvl1 = el.querySelector('.level-choice[data-value="1"]') as HTMLButtonElement;
+    lvl1.click();
+    await flush();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
