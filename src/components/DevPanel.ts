@@ -45,6 +45,7 @@ const ROUTES: Array<{ label: string; path: string }> = [
   { label: '任務', path: '/tasks' },
   { label: '我的', path: '/profile' },
   { label: 'Day-30', path: '/challenge/day-30' },
+  { label: 'Flows', path: '/dev/flows' },
 ];
 
 const XP_AMOUNTS = [30, 100, 500];

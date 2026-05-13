@@ -404,6 +404,47 @@ body {
 .modal-actions, .sheet-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
 .modal-actions .btn, .sheet-actions .btn { flex: 1; }
 
+/* Flow viewer (/dev/flows). */
+.flow-viewer {
+  display: flex; height: calc(100vh - 80px);
+  font-family: var(--font-sans);
+}
+.flow-sidebar {
+  width: 220px; flex-shrink: 0;
+  padding: var(--space-4);
+  background: var(--color-neutral-light);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  overflow-y: auto;
+}
+.flow-sidebar h3 { margin: 0 0 var(--space-2); color: var(--color-primary-dark); }
+.flow-sidebar-item {
+  background: transparent; border: 0; padding: var(--space-2) var(--space-3);
+  text-align: left; border-radius: 8px; cursor: pointer;
+  color: var(--color-foreground); font-weight: var(--font-weight-medium);
+}
+.flow-sidebar-item:hover { background: var(--color-neutral-light-active); }
+.flow-sidebar-item.selected { background: var(--color-primary); color: #fff; }
+
+.flow-canvas { flex: 1; overflow: auto; }
+.flow-canvas-inner { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.flow-canvas-header h2 { margin: 0; color: var(--color-primary-dark); }
+.flow-canvas-header p  { margin: 0; color: var(--color-foreground-alt); font-size: var(--text-mini-size); }
+
+.flow-board { position: relative; }
+.flow-edges { position: absolute; inset: 0; pointer-events: none; }
+.flow-edge-label { font-size: 11px; fill: #5b6770; font-family: var(--font-sans); }
+
+.flow-node {
+  cursor: default;
+  font-size: var(--text-caption-size);
+}
+.flow-node-content { display: flex; flex-direction: column; gap: 2px; }
+.flow-node-content strong { color: var(--color-primary-dark); font-size: var(--text-mini-size); }
+.flow-node-content code  { color: var(--color-neutral-darker); font-size: 10px; font-family: ui-monospace, SFMono-Regular, monospace; }
+.flow-node-content p     { margin: 0; font-size: 11px; color: var(--color-foreground-alt); line-height: 1.4; }
+
+.flow-empty { padding: var(--space-5); color: var(--color-neutral-darker); }
+
 /* Eat times pickers (Task 45) */
 .meal-list { display: flex; flex-direction: column; gap: 12px; margin-top: var(--space-4); }
 .meal-row { display: flex; align-items: center; gap: 12px; padding: var(--space-4) var(--space-5); background: var(--color-card, #fff); border: 1.5px solid var(--color-neutral-light-active); border-radius: var(--radius-md); }
