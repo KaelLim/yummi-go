@@ -351,6 +351,16 @@ body {
 .list-row-body     { flex: 1; min-width: 0; }
 .list-row-trailing { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-2); }
 
+/* Generic Card primitive — content surface with three elevations. */
+.card-shell {
+  background: var(--color-card, #fff);
+  border-radius: 14px;
+  padding: var(--space-4);
+}
+.card-default { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+.card-flat    { box-shadow: none; }
+.card-raised  { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10); }
+
 /* Eat times pickers (Task 45) */
 .meal-list { display: flex; flex-direction: column; gap: 12px; margin-top: var(--space-4); }
 .meal-row { display: flex; align-items: center; gap: 12px; padding: var(--space-4) var(--space-5); background: var(--color-card, #fff); border: 1.5px solid var(--color-neutral-light-active); border-radius: var(--radius-md); }
