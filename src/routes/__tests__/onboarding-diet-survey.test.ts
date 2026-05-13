@@ -48,13 +48,31 @@ describe('onboarding/diet-survey', () => {
     expect(el.querySelector('#skip-btn')).toBeNull();
   });
 
-  it('clicking a choice writes diet_type and advances', async () => {
+  it('vegan choice writes diet_type and skips straight to /onboarding/purpose', async () => {
     mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
     const el = dietSurvey();
     const choice = el.querySelector('.choice[data-value="vegan"]') as HTMLButtonElement;
     choice.click();
     await flush();
     expect(mockedProfile.updateProfile).toHaveBeenCalledWith(9, { diet_type: 'vegan' });
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/purpose');
+  });
+
+  it('vegetarian also skips the meat baseline step', async () => {
+    mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
+    const el = dietSurvey();
+    const choice = el.querySelector('.choice[data-value="vegetarian"]') as HTMLButtonElement;
+    choice.click();
+    await flush();
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/purpose');
+  });
+
+  it('omnivore advances through the meat baseline step', async () => {
+    mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
+    const el = dietSurvey();
+    const choice = el.querySelector('.choice[data-value="omnivore"]') as HTMLButtonElement;
+    choice.click();
+    await flush();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/baseline');
   });
 
