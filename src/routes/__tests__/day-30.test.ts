@@ -12,7 +12,7 @@ const mockedListCheckIns = checkIns.listCheckIns as unknown as ReturnType<typeof
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
 
 const baseProfile = {
-  id: 7, username: 'k', display_name: 'k',
+  id: 7, username: 'k', display_name: 'k', is_guest: 0,
   oath_signed_at: null, challenge_started_at: null,
   diet_type: null, challenge_level: null,
   eat_times: null, known_from: null,

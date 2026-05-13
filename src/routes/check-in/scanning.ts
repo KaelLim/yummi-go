@@ -1,21 +1,20 @@
 /**
- * Check-in step 2 — mock AI scanning.
+ * Check-in step 2 — mock AI scanning, prototype dev picker.
  *
- * Animated shimmer + grid-overlay over the captured image. After ~2 seconds
- * mockScan() fabricates 3-6 ingredients (with a small chance of meat or a
- * scan-fail). On success we stash the result in $checkin and route to
- * /check-in/result. On failure we surface a retry CTA.
+ * Animated shimmer + grid-overlay over the captured image runs for ~2s.
+ * Instead of resolving randomly, we surface two dev choices so the
+ * developer/demo viewer can see both flows on demand:
  *
- * Falls back to /check-in (capture) if the user landed here without an
- * image — most common cause is a hard refresh that wiped the transient
- * store.
+ *   🌱 演示：無肉流程 → mockScan({ forceMeat: false })  → /check-in/result
+ *                                                       (auto-submit → success)
+ *   🥩 演示：有肉流程 → mockScan({ forceMeat: true })   → /check-in/result
+ *                                                       (banner with detected meat)
+ *
+ * Falls back to /check-in if there's no captured image.
  */
 import { navigate } from '@/router';
 import { mockScan } from '@/lib/mock-ai';
 import { $checkin, setScan } from '@/store/checkin';
-import { onUnmount } from '@/lib/lifecycle';
-
-const SCAN_MS = 2000;
 
 export default function scanning(): HTMLElement {
   const wrap = document.createElement('div');
@@ -43,29 +42,32 @@ export default function scanning(): HTMLElement {
           <span>食物精靈分析中…</span>
         </div>
       </div>
-      <p class="scan-meta">辨識食材與營養素，估計需要 2 秒</p>
+      <div class="scan-dev" id="scan-dev">
+        <div class="scan-dev-head">
+          <span class="ms">science</span>
+          <span>Prototype — 演示兩種流程</span>
+        </div>
+        <div class="scan-dev-actions">
+          <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="scan-veg">
+            🌱 無肉流程
+          </button>
+          <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="scan-meat">
+            🥩 有肉流程
+          </button>
+        </div>
+        <p class="scan-dev-hint">真實 AI 接上後，這個選擇器會自動拿掉。</p>
+      </div>
     </div>
   `;
 
-  const id = window.setTimeout(() => {
-    const result = mockScan();
-    if (result.scanFailed) {
-      const status = wrap.querySelector<HTMLElement>('#scan-status');
-      if (status) {
-        status.innerHTML = '<span class="ms">error</span><span>辨識失敗，請重試</span>';
-      }
-      const retry = document.createElement('button');
-      retry.className = 'btn text-btn-m btn-primary btn-l text-btn-l';
-      retry.textContent = '重新拍照';
-      retry.addEventListener('click', () => navigate('/check-in'));
-      wrap.querySelector('.checkin-body')?.appendChild(retry);
-      return;
-    }
-    setScan(result);
+  function pick(forceMeat: boolean): void {
+    const r = mockScan({ forceMeat, failRate: 0 });
+    setScan(r);
     navigate('/check-in/result');
-  }, SCAN_MS);
+  }
 
-  onUnmount(wrap, () => window.clearTimeout(id));
+  wrap.querySelector('#scan-veg')?.addEventListener('click', () => pick(false));
+  wrap.querySelector('#scan-meat')?.addEventListener('click', () => pick(true));
 
   return wrap;
 }

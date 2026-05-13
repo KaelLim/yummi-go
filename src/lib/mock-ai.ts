@@ -57,6 +57,8 @@ export interface MockScanOpts {
   failRate?: number;
   meatRate?: number;
   rng?: () => number;
+  /** Prototype hook: force the outcome instead of rolling against meatRate. */
+  forceMeat?: boolean;
 }
 
 export function mockScan(opts?: MockScanOpts): ScanResult {
@@ -67,9 +69,17 @@ export function mockScan(opts?: MockScanOpts): ScanResult {
   const meatRate = opts?.meatRate ?? 0.3;
   const veggies = FOOD_BANK.filter((f) => f.isVeg);
   const meats = FOOD_BANK.filter((f) => !f.isVeg);
-  const includeMeat = rng() < meatRate;
-  const pool = includeMeat ? [...veggies, ...meats] : veggies;
-  const shuffled = [...pool].sort(() => rng() - 0.5);
-  const items = shuffled.slice(0, count);
+  const includeMeat = opts?.forceMeat ?? rng() < meatRate;
+  let items: MockFood[];
+  if (includeMeat) {
+    // Guarantee at least one meat item when forced — otherwise a tiny RNG
+    // run could pick only veggies from the mixed pool and silently fall
+    // back to the no-meat flow.
+    const shuffledVeg = [...veggies].sort(() => rng() - 0.5).slice(0, Math.max(1, count - 1));
+    const shuffledMeat = [...meats].sort(() => rng() - 0.5).slice(0, 1);
+    items = [...shuffledVeg, ...shuffledMeat];
+  } else {
+    items = [...veggies].sort(() => rng() - 0.5).slice(0, count);
+  }
   return { items, hasMeat: items.some((i) => !i.isVeg), scanFailed: false };
 }

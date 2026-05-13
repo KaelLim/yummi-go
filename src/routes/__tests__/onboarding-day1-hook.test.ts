@@ -28,7 +28,7 @@ describe('onboarding/day1-hook', () => {
     vi.clearAllMocks();
     $onboardingDraft.set(emptyDraft());
     $profile.set({
-      id: 7, username: 'k', display_name: 'k',
+      id: 7, username: 'k', display_name: 'k', is_guest: 0,
       oath_signed_at: null, challenge_started_at: null,
       diet_type: 'vegan', challenge_level: null,
       eat_times: null, known_from: null, baseline: null, purpose: 'environment',

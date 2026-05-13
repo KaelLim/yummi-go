@@ -10,7 +10,7 @@ import type { UserFull } from '@/api/profile';
 
 function profileWith(overrides: Partial<UserFull> = {}): UserFull {
   return {
-    id: 7, username: 'u', display_name: 'u',
+    id: 7, username: 'u', display_name: 'u', is_guest: 0,
     oath_signed_at: null, challenge_started_at: null,
     diet_type: null, challenge_level: 2, eat_times: null,
     known_from: 'instagram', baseline: null, purpose: null,

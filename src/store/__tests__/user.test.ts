@@ -74,6 +74,7 @@ describe('user store', () => {
         id: 42,
         username: 'bob',
         display_name: 'Bob',
+        is_guest: 0,
         oath_signed_at: null,
         diet_type: null,
         challenge_level: null,

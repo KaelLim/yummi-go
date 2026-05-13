@@ -15,7 +15,7 @@ vi.mock('@/api/drust', () => {
 });
 
 import { drust } from '@/api/drust';
-import { register, login, logout, currentUserId } from '../auth';
+import { register, registerGuest, login, logout, currentUserId } from '../auth';
 import { sha256Salted } from '@/lib/hash';
 import { KEYS } from '@/lib/storage';
 
@@ -45,7 +45,12 @@ describe('auth', () => {
 
       const out = await register('alice', 'pw123', 'Alice');
 
-      expect(out).toEqual({ id: 42, username: 'alice', displayName: 'Alice' });
+      expect(out).toEqual({
+        id: 42,
+        username: 'alice',
+        displayName: 'Alice',
+        isGuest: false,
+      });
 
       // First insert: users with hashed password
       const expectedHash = await sha256Salted('pw123', 'alice');
@@ -53,6 +58,7 @@ describe('auth', () => {
         username: 'alice',
         password_hash: expectedHash,
         display_name: 'Alice',
+        is_guest: 0,
       });
 
       // Bootstrap order: collect all 4 collections (Promise.all so order may
@@ -115,7 +121,7 @@ describe('auth', () => {
         username: 'alice',
         password_hash: expectedHash,
       });
-      expect(out).toEqual({ id: 7, username: 'alice', displayName: 'Alice' });
+      expect(out).toEqual({ id: 7, username: 'alice', displayName: 'Alice', isGuest: false });
       expect(localStorage.getItem(KEYS.USER_ID)).toBe('7');
     });
 
@@ -130,6 +136,41 @@ describe('auth', () => {
 
       await expect(login('alice', 'wrong')).rejects.toThrow(/invalid credentials/i);
       expect(localStorage.getItem(KEYS.USER_ID)).toBeNull();
+    });
+  });
+
+  describe('registerGuest', () => {
+    it('creates a guest user with auto-generated username and is_guest=1', async () => {
+      mockedDrust.insert
+        .mockResolvedValueOnce({ id: 99, record: { id: 99 } }) // users
+        .mockResolvedValue({ id: 1, record: {} }); // remaining bootstrap rows
+
+      const out = await registerGuest();
+
+      expect(out.id).toBe(99);
+      expect(out.isGuest).toBe(true);
+      expect(out.username).toMatch(/^guest_[0-9a-f]{16}$/);
+      expect(out.displayName).toMatch(/^訪客 /);
+
+      const usersCall = mockedDrust.insert.mock.calls.find((c) => c[0] === 'users')!;
+      expect(usersCall[1]).toMatchObject({ is_guest: 1 });
+      // Random password is still hashed before send.
+      expect(typeof usersCall[1].password_hash).toBe('string');
+      expect(usersCall[1].password_hash.length).toBeGreaterThan(0);
+
+      // Same bootstrap as identified register — 5 dependent rows.
+      const collections = mockedDrust.insert.mock.calls.slice(1).map((c) => c[0]);
+      expect(collections).toEqual(
+        expect.arrayContaining([
+          'user_profiles',
+          'pet_states',
+          'gem_balances',
+          'makeup_cards',
+          'xp_balances',
+        ]),
+      );
+
+      expect(localStorage.getItem(KEYS.USER_ID)).toBe('99');
     });
   });
 

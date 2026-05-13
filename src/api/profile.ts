@@ -23,6 +23,7 @@ export interface UserFull {
   id: number;
   username: string;
   display_name: string;
+  is_guest: number;
   oath_signed_at: string | null;
   challenge_started_at: string | null;
   diet_type: string | null;

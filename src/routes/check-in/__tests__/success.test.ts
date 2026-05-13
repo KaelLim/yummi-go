@@ -13,7 +13,7 @@ const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> }
 
 function profileWith(level: number | null): UserFull {
   return {
-    id: 1, username: 'k', display_name: 'k',
+    id: 1, username: 'k', display_name: 'k', is_guest: 0,
     oath_signed_at: null, challenge_started_at: null,
     diet_type: 'omnivore', challenge_level: level,
     eat_times: null, known_from: null, baseline: null, purpose: 'body',

@@ -20,6 +20,7 @@ const seedProfile = (gems: number, fragments: number, cards: number): UserFull =
   id: 7,
   username: 'u',
   display_name: 'u',
+  is_guest: 0,
   oath_signed_at: null,
   challenge_started_at: null,
   diet_type: null,

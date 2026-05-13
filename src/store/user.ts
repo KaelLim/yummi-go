@@ -63,7 +63,13 @@ export async function bootstrapFromStorage(): Promise<boolean> {
   }
 }
 
-export function setLoggedInUser(u: authApi.LoggedInUser) {
+/**
+ * Set the in-memory session identity. Accepts the full LoggedInUser
+ * returned by auth.register / auth.login (or any narrower shape with
+ * id / username / displayName) — isGuest is not part of UserStoreShape
+ * because `$profile.is_guest` is the source of truth.
+ */
+export function setLoggedInUser(u: Pick<authApi.LoggedInUser, 'id' | 'username' | 'displayName'>) {
   $user.set({ id: u.id, username: u.username, displayName: u.displayName });
 }
 

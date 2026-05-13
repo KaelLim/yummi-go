@@ -51,6 +51,7 @@ describe('profile', () => {
           id: 5,
           username: 'alice',
           display_name: 'Alice',
+          is_guest: 0,
           oath_signed_at: null,
           challenge_started_at: null,
           diet_type: null,

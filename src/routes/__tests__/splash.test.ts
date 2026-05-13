@@ -2,21 +2,31 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/store/user', () => ({
   $isLoggedIn: { get: vi.fn().mockReturnValue(false) },
+  setLoggedInUser: vi.fn(),
 }));
 
 vi.mock('@/router', () => ({
   navigate: vi.fn(),
 }));
 
+vi.mock('@/api/auth', () => ({
+  registerGuest: vi.fn(),
+}));
+
 import splash from '../splash';
 import * as userStore from '@/store/user';
 import * as router from '@/router';
+import * as auth from '@/api/auth';
 
 const mockedUser = userStore as unknown as {
   $isLoggedIn: { get: ReturnType<typeof vi.fn> };
+  setLoggedInUser: ReturnType<typeof vi.fn>;
 };
 const mockedRouter = router as unknown as {
   navigate: ReturnType<typeof vi.fn>;
+};
+const mockedAuth = auth as unknown as {
+  registerGuest: ReturnType<typeof vi.fn>;
 };
 
 describe('splash route', () => {
@@ -58,6 +68,22 @@ describe('splash route', () => {
     await vi.advanceTimersByTimeAsync(1300);
     el.querySelector<HTMLButtonElement>('#goto-login')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/login');
+  });
+
+  it('Continue-as-guest CTA registers a guest and routes into onboarding', async () => {
+    mockedUser.$isLoggedIn.get.mockReturnValue(false);
+    mockedAuth.registerGuest.mockResolvedValueOnce({
+      id: 12, username: 'guest_abc', displayName: '訪客 abc', isGuest: true,
+    });
+    const el = splash();
+    await vi.advanceTimersByTimeAsync(1300);
+    el.querySelector<HTMLButtonElement>('#continue-guest')?.click();
+    vi.useRealTimers();
+    await vi.waitFor(() => expect(mockedAuth.registerGuest).toHaveBeenCalled());
+    expect(mockedUser.setLoggedInUser).toHaveBeenCalledWith({
+      id: 12, username: 'guest_abc', displayName: '訪客 abc', isGuest: true,
+    });
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/diet-survey');
   });
 
   it('navigates to /home after 1.2s when logged in', async () => {
