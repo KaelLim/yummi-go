@@ -4,6 +4,7 @@ const flow: Flow = {
   id: 'registration',
   name: '註冊與初次設定',
   description: 'Splash → Get Started 建匿名帳號 → 5-step onboarding → /home',
+  order: 1,
   nodes: [
     { id: 'splash',       routePath: '/splash',                    title: 'Splash',           description: 'Logo hold 1.2s，CTAs 露出', x: 1, y: 0 },
     { id: 'login',        routePath: '/login',                     title: '登入',             description: '已有帳號路徑',              x: 0, y: 1 },

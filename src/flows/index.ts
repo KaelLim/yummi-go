@@ -12,7 +12,8 @@ const modules = import.meta.glob<{ default?: Flow }>(
 export const flows: Flow[] = Object.values(modules)
   .map((m) => m.default)
   .filter((f): f is Flow => Boolean(f))
-  .sort((a, b) => a.id.localeCompare(b.id));
+  // Author-controlled order first, then id as a stable tiebreaker.
+  .sort((a, b) => ((a.order ?? 100) - (b.order ?? 100)) || a.id.localeCompare(b.id));
 
 export function getFlow(id: string): Flow | undefined {
   return flows.find((f) => f.id === id);

@@ -25,6 +25,8 @@ export interface Flow {
   id: string;
   name: string;
   description: string;
+  /** Lower numbers sort first in the sidebar. Default = 100. */
+  order?: number;
   nodes: readonly FlowNode[];
   edges: readonly FlowEdge[];
 }

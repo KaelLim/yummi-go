@@ -4,6 +4,7 @@ const flow: Flow = {
   id: 'first-checkin',
   name: '首次打卡',
   description: '從 /home 第一次走完打卡 → AHA banner → 選挑戰難度 → 設用餐時間 → 回 /home',
+  order: 2,
   nodes: [
     { id: 'home',          routePath: '/home',                          title: 'Home',                  description: '點「打卡」',                       x: 1, y: 0 },
     { id: 'capture',       routePath: '/check-in',                      title: '拍照',                   description: '相機 / 上傳圖片',                  x: 1, y: 1 },
