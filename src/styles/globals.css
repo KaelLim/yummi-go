@@ -416,7 +416,18 @@ body {
   display: flex; flex-direction: column; gap: var(--space-2);
   overflow-y: auto;
 }
-.flow-sidebar h3 { margin: 0 0 var(--space-2); color: var(--color-primary-dark); }
+.flow-sidebar-head {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.flow-sidebar-head h3 { margin: 0; color: var(--color-primary-dark); }
+.flow-back-btn {
+  background: transparent; border: 0; padding: 4px;
+  border-radius: 8px; cursor: pointer;
+  color: var(--color-foreground-alt);
+  display: flex; align-items: center;
+}
+.flow-back-btn:hover { background: var(--color-neutral-light-active); color: var(--color-primary-dark); }
 .flow-sidebar-item {
   background: transparent; border: 0; padding: var(--space-2) var(--space-3);
   text-align: left; border-radius: 8px; cursor: pointer;

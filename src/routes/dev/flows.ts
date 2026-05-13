@@ -12,6 +12,7 @@
 import { flows } from '@/flows';
 import type { Flow } from '@/flows';
 import createCard from '@/components/Card';
+import { navigate } from '@/router';
 
 const CELL_W = 220;
 const CELL_H = 140;
@@ -31,9 +32,26 @@ export default function devFlows(): HTMLElement {
 
   const sidebar = document.createElement('aside');
   sidebar.className = 'flow-sidebar';
+
+  // Header: back button + title. Since /dev/flows bypasses the app layout
+  // there's no TabBar to navigate away from — supply our own exit.
+  const head = document.createElement('div');
+  head.className = 'flow-sidebar-head';
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'flow-back-btn';
+  backBtn.id = 'flow-back';
+  backBtn.setAttribute('aria-label', '返回');
+  backBtn.innerHTML = '<span class="ms">arrow_back</span>';
+  backBtn.addEventListener('click', () => {
+    if (history.length > 1) history.back();
+    else navigate('/home');
+  });
   const heading = document.createElement('h3');
   heading.textContent = 'Flows';
-  sidebar.append(heading);
+  head.append(backBtn, heading);
+  sidebar.append(head);
+
   for (const f of flows) {
     const btn = document.createElement('button');
     btn.type = 'button';
