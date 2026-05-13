@@ -7,10 +7,19 @@
  * pet is in an active poison window the view forces mood='critical' and
  * adds the .poisoned class so CSS can layer a green sickly tint.
  */
+import type { ComponentSchema } from './_schema';
 import { $pet, effectiveMood, type PetStoreShape } from '@/store/pet';
 import { bind } from '@/lib/lifecycle';
 import { spriteFor } from '@/lib/pet-sprites';
 import type { PetStage } from '@/lib/pet-evolution';
+
+export const schema: ComponentSchema = {
+  name: 'PetView',
+  category: 'pattern',
+  description: 'Pet hero view — sprite-driven illustration that swaps art based on ($pet.stage, $pet.mood). Self-subscribes to $pet.',
+  props: {},
+  examples: [],
+};
 
 export interface PetViewHandle {
   el: HTMLElement;
@@ -53,3 +62,5 @@ export function fogOpacityForMissedDays(missed: number): number {
   if (missed === 1) return 0.3;
   return 0.6;
 }
+
+export default createPetView;

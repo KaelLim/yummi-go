@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createPetView, fogOpacityForMissedDays } from '../PetView';
+import createPetViewDefault, {
+  createPetView,
+  fogOpacityForMissedDays,
+  schema,
+} from '../PetView';
+import { registry } from '../registry';
 import { $pet } from '@/store/pet';
 
 describe('PetView', () => {
@@ -60,5 +65,18 @@ describe('PetView', () => {
     expect(fogOpacityForMissedDays(1)).toBe(0.3);
     expect(fogOpacityForMissedDays(2)).toBe(0.6);
     expect(fogOpacityForMissedDays(5)).toBe(0.6);
+  });
+
+  it('exports schema with name "PetView" + category "pattern"', () => {
+    expect(schema.name).toBe('PetView');
+    expect(schema.category).toBe('pattern');
+  });
+
+  it('default export points to createPetView', () => {
+    expect(createPetViewDefault).toBe(createPetView);
+  });
+
+  it('is registered', () => {
+    expect(registry.PetView).toBeDefined();
   });
 });
