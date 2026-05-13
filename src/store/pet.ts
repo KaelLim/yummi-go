@@ -117,6 +117,10 @@ export interface AwardXpResult {
  * Each leg emits its own xp_events / gem_events row so the history shows
  * the wallet credit, the wallet→pet transfer, and the overflow→gem swap
  * as discrete entries.
+ *
+ * Local stores ($pet, $gems) are also synced here so the SPA UI reacts
+ * immediately — without this, home's level-bar / resource chips would
+ * sit on stale values until the next bootstrap (i.e. a page refresh).
  */
 export async function awardXp(
   userId: number,
@@ -134,6 +138,12 @@ export async function awardXp(
     const conv = await xpWallet.convertXpToGems(userId);
     gemsFromXp = conv.gemsEarned;
   }
+  // Push the new pet row into $pet so the level-bar + sprite re-render
+  // immediately. fed.pet is null only when fed.fed === 0 (cap already
+  // hit) — in that case the existing $pet is already correct.
+  if (fed.pet) setPetFromRow(fed.pet);
+  // Refresh wallet / gem / makeup-card totals for the resource chips.
+  void reloadWallet(userId);
   return { credited: deltaXp, xpFedToPet: fed.fed, gemsFromXp };
 }
 

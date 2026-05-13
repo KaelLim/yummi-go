@@ -25,7 +25,7 @@ import type { MockFood } from '@/lib/mock-ai';
 import { mealXp, type MealIndex } from '@/lib/xp-calc';
 import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
 import { createCheckIn, listCheckIns } from '@/api/check-ins';
-import { awardXp, reloadWallet } from '@/store/pet';
+import { awardXp } from '@/store/pet';
 
 const MEAL_LABEL: Record<MealIndex, string> = { 1: '早餐', 2: '午餐', 3: '晚餐' };
 
@@ -168,10 +168,11 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
     let xpFedToPet = 0;
     let gemsFromXp = 0;
     try {
+      // awardXp does the full credit → feed → convert chain and syncs
+      // $pet + $gems locally, so no reloadWallet/reloadPet needed here.
       const award = await awardXp(u.id, xp, 'check_in', checkInRow.id);
       xpFedToPet = award.xpFedToPet;
       gemsFromXp = award.gemsFromXp;
-      void reloadWallet(u.id);
     } catch {
       /* server XP soft fail — UI still shows xpEarned via the burst */
     }
