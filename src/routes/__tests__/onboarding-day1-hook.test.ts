@@ -30,7 +30,7 @@ describe('onboarding/day1-hook', () => {
     $profile.set({
       id: 7, username: 'k', display_name: 'k',
       oath_signed_at: null, challenge_started_at: null,
-      diet_type: 'vegan', challenge_level: 2,
+      diet_type: 'vegan', challenge_level: null,
       eat_times: null, known_from: null, baseline: null, purpose: 'environment',
       level: 1, current_xp: 0, accumulated_xp: 0, stage: 'egg', mood: 'normal',
       strikes: 0, poisoned_until: null,
@@ -38,50 +38,50 @@ describe('onboarding/day1-hook', () => {
     });
   });
 
-  it('renders the fog overlay, egg, and CTA at step 7 of 8', () => {
+  it('renders the fog overlay, egg, and CTA at step 4 of 6', () => {
     const el = day1Hook();
     expect(el.classList.contains('day1')).toBe(true);
     expect(el.querySelector('.fog-overlay')).not.toBeNull();
     expect(el.querySelector('.day1-egg')).not.toBeNull();
     expect(el.querySelector('#enter-btn')).not.toBeNull();
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(8);
-    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(7);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(6);
+    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(4);
   });
 
-  it('CTA navigates to /onboarding/pet-name', () => {
+  it('CTA navigates to /onboarding/eat-times', () => {
     const el = day1Hook();
     (el.querySelector('#enter-btn') as HTMLButtonElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/pet-name');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/eat-times');
   });
 
-  it('back button navigates to /onboarding/known-from', () => {
+  it('back button navigates to /onboarding/purpose', () => {
     const el = day1Hook();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/known-from');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/purpose');
   });
 
-  it('shows diet-typed egg + level rule + purpose line from profile', () => {
+  it('shows diet-typed egg + purpose line from profile (no level rule yet)', () => {
     const el = day1Hook();
     expect(el.querySelector('.day1-egg')?.getAttribute('data-tint')).toBe('vegan');
-    expect(el.textContent).toContain('三餐無肉，3 次容錯');
     expect(el.textContent).toContain('每替代一公斤肉');
+    // Challenge level isn't picked yet at this point — no rule line.
+    expect(el.textContent).not.toContain('容錯');
+    expect(el.textContent).not.toContain('每天 1 餐無肉');
   });
 
-  it('reads from the draft when profile is null (first-time flow)', () => {
+  it('reads diet/purpose from the draft when profile is null (first-time flow)', () => {
     $profile.set(null);
     $onboardingDraft.set({
       ...emptyDraft(),
       diet_type: 'vegan',
-      challenge_level: 1,
       purpose: 'body',
     });
     const el = day1Hook();
     expect(el.querySelector('.day1-egg')?.getAttribute('data-tint')).toBe('vegan');
-    expect(el.textContent).toContain('每天 1 餐無肉');
     expect(el.textContent).toContain('為了照顧自己的身體');
   });
 
-  it('falls back to neutral content when both profile and draft are empty', () => {
+  it('falls back to neutral tint when both profile and draft are empty', () => {
     $profile.set(null);
     const el = day1Hook();
     expect(el.querySelector('.day1-egg')?.getAttribute('data-tint')).toBe('neutral');

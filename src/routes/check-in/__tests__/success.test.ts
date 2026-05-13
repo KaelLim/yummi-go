@@ -6,8 +6,22 @@ import success from '../success';
 import * as router from '@/router';
 import { setLastResult, setMealIndex } from '@/store/checkin';
 import { $today } from '@/store/today';
+import { $profile, $user } from '@/store/user';
+import type { UserFull } from '@/api/profile';
 
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
+
+function profileWith(level: number | null): UserFull {
+  return {
+    id: 1, username: 'k', display_name: 'k',
+    oath_signed_at: null, challenge_started_at: null,
+    diet_type: 'omnivore', challenge_level: level,
+    eat_times: null, known_from: null, baseline: null, purpose: 'body',
+    level: 1, current_xp: 0, accumulated_xp: 0, stage: 'egg', mood: 'normal',
+    strikes: 0, poisoned_until: null,
+    gems: 0, total_earned: 0, card_count: 0, fragment_count: 0,
+  };
+}
 
 describe('check-in/success', () => {
   beforeEach(() => {
@@ -16,6 +30,8 @@ describe('check-in/success', () => {
     $today.set({ dayNumber: 5, totalXpToday: 20, missionsDone: ['meal:lunch'], luckyColor: '' });
     setMealIndex(2);
     setLastResult({ xpEarned: 20, luckyColorMatched: false, fogReductionPct: 3 });
+    $user.set({ id: 1, username: 'k', displayName: 'k' });
+    $profile.set(profileWith(2));
   });
 
   it('renders xp burst, progress, and pet/title acts', () => {
@@ -57,9 +73,16 @@ describe('check-in/success', () => {
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
   });
 
-  it('Continue resets and navigates to /home', () => {
+  it('Continue navigates to /home when challenge_level is already picked', () => {
     const el = success();
     el.querySelector<HTMLButtonElement>('#next')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
+  });
+
+  it('Continue routes through challenge-level picker when challenge_level is null (first check-in)', () => {
+    $profile.set(profileWith(null));
+    const el = success();
+    el.querySelector<HTMLButtonElement>('#next')?.click();
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
   });
 });

@@ -44,9 +44,9 @@ describe('onboarding/purpose', () => {
     expect(el.querySelector('#skip-btn')).toBeNull();
   });
 
-  it('shows progress 3/8', () => {
+  it('shows progress 3/6', () => {
     const el = purpose();
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(8);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(6);
     expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(3);
   });
 
@@ -62,7 +62,7 @@ describe('onboarding/purpose', () => {
     expect(el.querySelector('.choice[data-value="family"]')).not.toBeNull();
   });
 
-  it('clicking a purpose updates profile and advances to /onboarding/challenge-level', async () => {
+  it('clicking a purpose updates profile and advances to /onboarding/day1-hook', async () => {
     const el = purpose();
     await vi.waitFor(() =>
       expect(el.querySelectorAll('.choice').length).toBe(3),
@@ -72,7 +72,7 @@ describe('onboarding/purpose', () => {
     await Promise.resolve();
     expect(mockedProfile.updateProfile).toHaveBeenCalledWith(7, { purpose: 'environment' });
     await Promise.resolve();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/day1-hook');
   });
 
   it('without a user, the click writes the draft instead of drust', async () => {
@@ -93,7 +93,7 @@ describe('onboarding/purpose', () => {
     await Promise.resolve();
     expect(mockedProfile.updateProfile).not.toHaveBeenCalled();
     expect($onboardingDraft.get().purpose).toBe('vow');
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/day1-hook');
     spy.mockRestore();
   });
 });

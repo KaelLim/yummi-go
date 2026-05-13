@@ -46,10 +46,10 @@ describe('onboarding/pet-name', () => {
     mockedContent.listPetNameSuggestions.mockReturnValue(new Promise(() => {}));
   });
 
-  it('renders 8/8 progress, input with default name, and continue button', () => {
+  it('renders 6/6 progress, input with default name, and continue button', () => {
     const el = petName();
-    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(8);
-    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(8);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(6);
+    expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(6);
     const input = el.querySelector('#pet-name-input') as HTMLInputElement;
     expect(input).not.toBeNull();
     expect(input.value).toBe('小綠');
@@ -154,9 +154,9 @@ describe('onboarding/pet-name', () => {
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
-  it('back button returns to /onboarding/day1-hook', () => {
+  it('back button returns to /onboarding/eat-times', () => {
     const el = petName();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/day1-hook');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/eat-times');
   });
 });

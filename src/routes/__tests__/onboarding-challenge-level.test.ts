@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/api/profile', () => ({
   updateProfile: vi.fn(),
+  getUserFull: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/store/user', () => ({
   $user: { get: vi.fn() },
+  $profile: { get: vi.fn(), set: vi.fn() },
 }));
 
 vi.mock('@/router', () => ({
@@ -17,7 +19,10 @@ import * as profileApi from '@/api/profile';
 import * as userStore from '@/store/user';
 import * as router from '@/router';
 
-const mockedProfile = profileApi as unknown as { updateProfile: ReturnType<typeof vi.fn> };
+const mockedProfile = profileApi as unknown as {
+  updateProfile: ReturnType<typeof vi.fn>;
+  getUserFull: ReturnType<typeof vi.fn>;
+};
 const mockedUser = userStore as unknown as { $user: { get: ReturnType<typeof vi.fn> } };
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
 
@@ -25,30 +30,31 @@ function flush() {
   return new Promise((r) => setTimeout(r, 0));
 }
 
-describe('onboarding/challenge-level', () => {
+describe('challenge-level (post-first-checkin picker)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedUser.$user.get.mockReturnValue({ id: 11, username: 'a', displayName: 'A' });
   });
 
-  it('renders 3 level choices', () => {
+  it('renders 3 level choices and no onboarding progress dots', () => {
     const el = challengeLevel();
     expect(el.querySelectorAll('.level-choice').length).toBe(3);
+    expect(el.querySelectorAll('.onb-progress-dot').length).toBe(0);
   });
 
-  it('clicking a level writes challenge_level number and advances', async () => {
+  it('clicking a level writes challenge_level and navigates to /home', async () => {
     mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
     const el = challengeLevel();
     const lvl2 = el.querySelector('.level-choice[data-value="2"]') as HTMLButtonElement;
     lvl2.click();
     await flush();
     expect(mockedProfile.updateProfile).toHaveBeenCalledWith(11, { challenge_level: 2 });
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/eat-times');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
-  it('back button navigates to baseline', () => {
+  it('back button navigates to /home (does not block the user)', () => {
     const el = challengeLevel();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/purpose');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 });

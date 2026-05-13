@@ -74,6 +74,7 @@ export default function tasks(): HTMLElement {
   function buildMissions(): Mission[] {
     const t = $today.get();
     const cur = $challenge.get().currentDay;
+    const profile = $profile.get();
     const mealsDone = serverCheckIns.length || t.missionsDone.filter((k) => k.startsWith('meal:')).length;
     const luckyHit =
       serverCheckIns.some((c) => c.lucky_color_matched === 1) ||
@@ -81,8 +82,10 @@ export default function tasks(): HTMLElement {
     const quizDone = t.missionsDone.includes('quiz');
     const reviewDone = t.missionsDone.some((k) => k.startsWith('review:'));
     const ecoDone = t.missionsDone.includes('eco');
+    // One-time task: only surfaces while the user hasn't told us yet.
+    const knownFromDone = !!profile?.known_from;
 
-    return [
+    const missions: Mission[] = [
       {
         key: 'meal',
         icon: 'restaurant',
@@ -125,6 +128,19 @@ export default function tasks(): HTMLElement {
         cta: reviewDone ? null : { label: '前往地圖', route: '/map' },
       },
     ];
+
+    if (!knownFromDone) {
+      missions.unshift({
+        key: 'known-from',
+        icon: 'share',
+        title: '如何得知這個 App？',
+        reward: 15,
+        done: false,
+        cta: { label: '回答', route: '/tasks/known-from' },
+      });
+    }
+
+    return missions;
   }
 
   function renderToday() {

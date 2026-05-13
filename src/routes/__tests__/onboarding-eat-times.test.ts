@@ -55,14 +55,14 @@ describe('onboarding/eat-times', () => {
     const parsed = JSON.parse(patch.eat_times);
     expect(parsed.lunch).toBe('13:15');
     expect(parsed.breakfast).toBe('08:00');
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/known-from');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/pet-name');
     document.body.removeChild(el);
   });
 
-  it('back button navigates to challenge-level', () => {
+  it('back button navigates to /onboarding/day1-hook', () => {
     const el = eatTimes();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/day1-hook');
   });
 
   it('clicking ✕ removes a meal row and excludes it from the JSON', async () => {

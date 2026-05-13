@@ -19,7 +19,7 @@ export default function purpose(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(3, 8).outerHTML}
+      ${createProgress(3, 6).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">參加挑戰的目的</h1>
@@ -77,7 +77,7 @@ function renderOptions(wrap: HTMLElement, purposes: ChallengePurpose[]): void {
       } else {
         patchDraft({ purpose: value });
       }
-      navigate('/onboarding/challenge-level');
+      navigate('/onboarding/day1-hook');
     });
   });
 }

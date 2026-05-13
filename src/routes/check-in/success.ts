@@ -17,7 +17,7 @@
 import { navigate } from '@/router';
 import { $checkin, resetCheckin } from '@/store/checkin';
 import { $today } from '@/store/today';
-import { $user } from '@/store/user';
+import { $user, $profile } from '@/store/user';
 import { reloadWallet } from '@/store/pet';
 import {
   PET_DAILY_XP_CAP,
@@ -112,7 +112,10 @@ export default function success(): HTMLElement {
   wrap.querySelector('#next')?.addEventListener('click', () => {
     timers.forEach(window.clearTimeout);
     resetCheckin();
-    navigate('/home');
+    // First-time picker: if the user hasn't set their challenge level yet,
+    // route through it once before landing on /home.
+    const level = $profile.get()?.challenge_level;
+    navigate(level == null ? '/onboarding/challenge-level' : '/home');
   });
 
   wrap.querySelector('#share')?.addEventListener('click', () => {

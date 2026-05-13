@@ -1,14 +1,16 @@
 /**
- * Onboarding step 4 — Challenge level (1/2/3).
+ * Challenge difficulty picker — shown right after the user's FIRST
+ * check-in (no longer part of the onboarding chain).
  *
- * Tapping a level PATCHes challenge_level into the profile and advances.
- * Errors soft-fail to keep onboarding unblocked.
+ * The success page detects challenge_level === null and routes here
+ * before /home, so the user gets to set their target difficulty once
+ * they've actually tasted the flow. Re-entering later (e.g. from the
+ * profile) is intentionally fine — tapping a level just patches
+ * challenge_level and bounces to /home.
  */
 import { navigate } from '@/router';
-import { $user } from '@/store/user';
-import { updateProfile } from '@/api/profile';
-import { patchDraft } from '@/store/onboarding-draft';
-import { createProgress } from '@/components/Progress';
+import { $user, $profile } from '@/store/user';
+import { updateProfile, getUserFull } from '@/api/profile';
 
 const LEVELS = [
   { value: 1, label: '等級一', desc: '每天有一餐無肉就達標', tag: '輕鬆挑戰' },
@@ -22,11 +24,10 @@ export default function challengeLevel(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(4, 8).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">挑戰難度</h1>
-      <p class="onb-sub text-mini">選擇你能堅持 30 天的挑戰</p>
+      <p class="onb-sub text-mini">第一次打卡完成！選一個你能堅持 30 天的挑戰目標</p>
       <div class="onb-options">
         ${LEVELS.map(l => `
           <button class="choice level-choice" data-value="${l.value}">
@@ -42,7 +43,7 @@ export default function challengeLevel(): HTMLElement {
     </div>
   `;
 
-  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/onboarding/purpose'));
+  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/home'));
 
   wrap.querySelectorAll<HTMLButtonElement>('.level-choice').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -50,10 +51,11 @@ export default function challengeLevel(): HTMLElement {
       const u = $user.get();
       if (u) {
         try { await updateProfile(u.id, { challenge_level: value }); } catch { /* soft fail */ }
-      } else {
-        patchDraft({ challenge_level: value });
+        // Refresh $profile so home's tolerance pill + future check-in
+        // success branch see the new level immediately.
+        void getUserFull(u.id).then((full) => { if (full) $profile.set(full); });
       }
-      navigate('/onboarding/eat-times');
+      navigate('/home');
     });
   });
 
