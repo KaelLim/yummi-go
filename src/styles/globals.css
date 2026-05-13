@@ -326,6 +326,20 @@ body {
 .level-choice small { font-size: var(--text-mini-size); color: var(--color-neutral-darker); font-weight: var(--font-weight-medium); line-height: 1.5; }
 .level-choice small.level-speed { color: var(--color-secondary-dark); font-weight: var(--font-weight-bold); margin-top: 2px; }
 
+/* Generic Tag primitive — small inline badge. */
+.tag {
+  display: inline-block;
+  font-size: var(--text-caption-size);
+  font-weight: var(--font-weight-bold);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  vertical-align: middle;
+}
+.tag-default   { background: var(--color-neutral-light-active); color: var(--color-foreground-alt); }
+.tag-secondary { background: var(--color-secondary-light);      color: var(--color-secondary-dark); }
+.tag-success   { background: var(--color-primary-light);        color: var(--color-primary-dark); }
+.tag-warning   { background: #fde68a;                           color: #92400e; }
+
 /* Eat times pickers (Task 45) */
 .meal-list { display: flex; flex-direction: column; gap: 12px; margin-top: var(--space-4); }
 .meal-row { display: flex; align-items: center; gap: 12px; padding: var(--space-4) var(--space-5); background: var(--color-card, #fff); border: 1.5px solid var(--color-neutral-light-active); border-radius: var(--radius-md); }
