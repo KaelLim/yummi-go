@@ -340,6 +340,17 @@ body {
 .tag-success   { background: var(--color-primary-light);        color: var(--color-primary-dark); }
 .tag-warning   { background: #fde68a;                           color: #92400e; }
 
+/* Generic ListRow primitive — three-slot horizontal layout. */
+.list-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-neutral-light);
+  border-radius: 10px;
+}
+.list-row-leading  { flex: 0 0 auto; display: flex; align-items: center; }
+.list-row-body     { flex: 1; min-width: 0; }
+.list-row-trailing { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-2); }
+
 /* Eat times pickers (Task 45) */
 .meal-list { display: flex; flex-direction: column; gap: 12px; margin-top: var(--space-4); }
 .meal-row { display: flex; align-items: center; gap: 12px; padding: var(--space-4) var(--space-5); background: var(--color-card, #fff); border: 1.5px solid var(--color-neutral-light-active); border-radius: var(--radius-md); }
