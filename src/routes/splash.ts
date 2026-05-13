@@ -10,10 +10,15 @@
  * real users.id row with is_guest=1 first, so the user has an identity
  * (pet / XP wallet / check-ins) attached from step 1. Binding a Google
  * account later upgrades the same row; no data is lost in the swap.
+ *
+ * Both CTAs come from the schema-driven `createButton` factory — this
+ * route is the first end-to-end proof that the component registry works
+ * in production code.
  */
 import { $isLoggedIn, setLoggedInUser } from '@/store/user';
 import { navigate } from '@/router';
 import { registerGuest } from '@/api/auth';
+import createButton from '@/components/Button';
 
 export default function splash(): HTMLElement {
   const wrap = document.createElement('div');
@@ -28,15 +33,29 @@ export default function splash(): HTMLElement {
       <div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>
     <div class="splash-actions" id="splash-actions" hidden>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="get-started">
-        Get Started
-      </button>
-      <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="goto-login">
-        已有帳號 — 登入
-      </button>
       <p class="splash-error" id="guest-error" hidden></p>
     </div>
   `;
+
+  const actions = wrap.querySelector<HTMLElement>('#splash-actions')!;
+  const errorEl = wrap.querySelector<HTMLElement>('#guest-error')!;
+
+  const startBtn = createButton({
+    label: 'Get Started',
+    variant: 'primary',
+    size: 'lg',
+  });
+  startBtn.id = 'get-started';
+  actions.insertBefore(startBtn, errorEl);
+
+  const loginBtn = createButton({
+    label: '已有帳號 — 登入',
+    variant: 'secondary',
+    size: 'lg',
+    onClick: () => navigate('/login'),
+  });
+  loginBtn.id = 'goto-login';
+  actions.insertBefore(loginBtn, errorEl);
 
   setTimeout(() => {
     if ($isLoggedIn.get()) {
@@ -44,14 +63,11 @@ export default function splash(): HTMLElement {
       return;
     }
     const loader = wrap.querySelector<HTMLElement>('#splash-loader');
-    const actions = wrap.querySelector<HTMLElement>('#splash-actions');
     if (loader) loader.hidden = true;
-    if (actions) actions.hidden = false;
+    actions.hidden = false;
   }, 1200);
 
-  const startBtn = wrap.querySelector<HTMLButtonElement>('#get-started');
-  startBtn?.addEventListener('click', async () => {
-    const err = wrap.querySelector<HTMLElement>('#guest-error');
+  startBtn.addEventListener('click', async () => {
     startBtn.disabled = true;
     startBtn.textContent = '準備中…';
     try {
@@ -62,16 +78,10 @@ export default function splash(): HTMLElement {
       console.error('[splash] registerGuest failed:', e);
       startBtn.disabled = false;
       startBtn.textContent = 'Get Started';
-      if (err) {
-        err.hidden = false;
-        err.textContent = '建立帳號失敗，請稍後再試或選擇登入。';
-      }
+      errorEl.hidden = false;
+      errorEl.textContent = '建立帳號失敗，請稍後再試或選擇登入。';
     }
   });
-
-  wrap.querySelector('#goto-login')?.addEventListener('click', () =>
-    navigate('/login'),
-  );
 
   return wrap;
 }
