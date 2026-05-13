@@ -443,16 +443,31 @@ body {
 
 .flow-board { position: relative; }
 .flow-edges { position: absolute; inset: 0; pointer-events: none; }
-.flow-edge-label { font-size: 11px; fill: #5b6770; font-family: var(--font-sans); }
+/* paint-order trick: stroke first with the card background colour, then
+   fill with the actual text colour — gives every label a white halo so
+   it's readable wherever the edge runs (over nodes, over other lines). */
+.flow-edge-label {
+  font-size: 11px;
+  fill: #5b6770;
+  font-family: var(--font-sans);
+  paint-order: stroke fill;
+  stroke: var(--color-card, #fff);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
 
 .flow-node {
   cursor: default;
   font-size: var(--text-caption-size);
+  /* Card-shell padding is too generous for the dense node layout —
+     tighten it just for flow nodes. */
+  padding: var(--space-3);
+  overflow: hidden;
 }
 .flow-node-content { display: flex; flex-direction: column; gap: 2px; }
-.flow-node-content strong { color: var(--color-primary-dark); font-size: var(--text-mini-size); }
-.flow-node-content code  { color: var(--color-neutral-darker); font-size: 10px; font-family: ui-monospace, SFMono-Regular, monospace; }
-.flow-node-content p     { margin: 0; font-size: 11px; color: var(--color-foreground-alt); line-height: 1.4; }
+.flow-node-content strong { color: var(--color-primary-dark); font-size: 13px; line-height: 1.2; }
+.flow-node-content code  { color: var(--color-neutral-darker); font-size: 10px; font-family: ui-monospace, SFMono-Regular, monospace; line-height: 1.3; }
+.flow-node-content p     { margin: 2px 0 0; font-size: 11px; color: var(--color-foreground-alt); line-height: 1.35; }
 
 .flow-empty { padding: var(--space-5); color: var(--color-neutral-darker); }
 

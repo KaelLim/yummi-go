@@ -14,12 +14,14 @@ import type { Flow } from '@/flows';
 import createCard from '@/components/Card';
 import { navigate } from '@/router';
 
-const CELL_W = 220;
-const CELL_H = 140;
-const NODE_W = 200;
-const NODE_H = 110;
+const CELL_W = 260;
+const CELL_H = 180;
+const NODE_W = 220;
+const NODE_H = 120;
 const PADDING = 24;
 const SVG_NS = 'http://www.w3.org/2000/svg';
+/** Where the label sits along an edge (0 = at source, 1 = at target). */
+const LABEL_T = 0.4;
 
 export default function devFlows(): HTMLElement {
   const wrap = document.createElement('div');
@@ -142,9 +144,13 @@ function renderFlow(flow: Flow): HTMLElement {
     line.setAttribute('marker-end', 'url(#flow-arrow)');
     svg.append(line);
 
+    // Label sits at LABEL_T along the edge (closer to source than midpoint)
+    // so it stays away from the target node's top edge.
+    const lx = fx + (tx - fx) * LABEL_T;
+    const ly = fy + (ty - fy) * LABEL_T - 4;
     const label = document.createElementNS(SVG_NS, 'text');
-    label.setAttribute('x', String((fx + tx) / 2));
-    label.setAttribute('y', String((fy + ty) / 2 - 4));
+    label.setAttribute('x', String(lx));
+    label.setAttribute('y', String(ly));
     label.setAttribute('text-anchor', 'middle');
     label.setAttribute('class', 'flow-edge-label');
     label.textContent = e.trigger;
