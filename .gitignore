@@ -30,3 +30,6 @@ coverage/
 tsconfig.tsbuildinfo
 src/**/*.js
 dev-dist/
+
+# Local agent state — worktrees here are embedded git repos, must not be committed.
+.claude/
