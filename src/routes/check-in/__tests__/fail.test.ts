@@ -19,11 +19,13 @@ describe('check-in/fail', () => {
     });
   });
 
-  it('renders fail copy, Try Again, and 回首頁 buttons', () => {
+  it('renders next-meal encouragement copy + both CTAs', () => {
     const el = fail();
-    expect(el.textContent).toContain('蔬食餐不能有肉');
-    expect(el.querySelector('#try-again')).not.toBeNull();
-    expect(el.querySelector('#go-home')).not.toBeNull();
+    // mealIndex 2 (lunch) → next meal is 晚餐.
+    expect(el.textContent).toContain('晚餐一起加油');
+    expect(el.textContent).toContain('小綠相信你');
+    expect(el.querySelector('#try-again')?.textContent).toContain('換個方式打卡');
+    expect(el.querySelector('#go-home')?.textContent).toContain('下次再來');
   });
 
   it('writes meal_fail mission for the current meal slot on mount', () => {

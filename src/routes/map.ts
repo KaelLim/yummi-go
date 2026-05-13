@@ -17,6 +17,16 @@ import L from 'leaflet';
 import { navigate } from '@/router';
 import { listRestaurants, type Restaurant } from '@/api/content';
 import { onUnmount } from '@/lib/lifecycle';
+import { $user, $profile } from '@/store/user';
+import { updateDisplayName, getUserFull } from '@/api/profile';
+
+/**
+ * Auto-generated guest display names follow the `訪客 xxxx` shape from
+ * registerGuest(). If the user still has that placeholder, the map is
+ * the first social-ish surface where the name actually matters — prompt
+ * once on entry so they can pick something real.
+ */
+const GUEST_NAME_PREFIX = '訪客 ';
 
 const PLACE_LABEL: Record<string, string> = {
   chinese: '中式',
@@ -57,7 +67,21 @@ export default function map(): HTMLElement {
     </div>
     <div class="map-canvas" id="canvas"></div>
     <div class="map-card" id="card" hidden></div>
+    <div class="name-prompt" id="name-prompt" hidden role="dialog" aria-modal="true" aria-labelledby="name-prompt-title">
+      <div class="name-prompt-card">
+        <h2 class="name-prompt-title text-h3" id="name-prompt-title">嗨，先取個名字吧</h2>
+        <p class="name-prompt-sub text-mini">讓小綠在地圖上認得你</p>
+        <input type="text" class="input" id="name-prompt-input" maxlength="20" autocomplete="off" />
+        <p class="name-prompt-error" id="name-prompt-error" hidden></p>
+        <div class="name-prompt-actions">
+          <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" id="name-prompt-skip">先跳過</button>
+          <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" id="name-prompt-save">儲存</button>
+        </div>
+      </div>
+    </div>
   `;
+
+  void maybeShowNamePrompt(wrap);
 
   const canvas = wrap.querySelector<HTMLDivElement>('#canvas')!;
   const card = wrap.querySelector<HTMLDivElement>('#card')!;
@@ -199,4 +223,61 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;',
   );
+}
+
+async function maybeShowNamePrompt(wrap: HTMLElement): Promise<void> {
+  const u = $user.get();
+  if (!u) return;
+  if (!u.displayName.startsWith(GUEST_NAME_PREFIX)) return;
+
+  const prompt = wrap.querySelector<HTMLElement>('#name-prompt');
+  const input = wrap.querySelector<HTMLInputElement>('#name-prompt-input');
+  const errorEl = wrap.querySelector<HTMLElement>('#name-prompt-error');
+  const skipBtn = wrap.querySelector<HTMLButtonElement>('#name-prompt-skip');
+  const saveBtn = wrap.querySelector<HTMLButtonElement>('#name-prompt-save');
+  if (!prompt || !input || !errorEl || !skipBtn || !saveBtn) return;
+
+  prompt.hidden = false;
+  input.value = '';
+  input.focus();
+
+  function close(): void {
+    if (prompt) prompt.hidden = true;
+  }
+
+  function showError(msg: string): void {
+    if (!errorEl) return;
+    errorEl.hidden = false;
+    errorEl.textContent = msg;
+  }
+
+  skipBtn.addEventListener('click', close);
+
+  saveBtn.addEventListener('click', async () => {
+    const name = input.value.trim();
+    if (!name) {
+      showError('幫自己取個名字吧');
+      return;
+    }
+    if (name.startsWith(GUEST_NAME_PREFIX)) {
+      showError('換一個吧，這個是預設訪客名');
+      return;
+    }
+    saveBtn.disabled = true;
+    saveBtn.textContent = '儲存中…';
+    try {
+      await updateDisplayName(u.id, name);
+      $user.set({ ...u, displayName: name });
+      // Refresh $profile in the background so other screens see the
+      // new name on their next render. Soft fail is fine — the local
+      // store update is enough for the user's current session.
+      void getUserFull(u.id).then((full) => { if (full) $profile.set(full); });
+      close();
+    } catch (err) {
+      console.error('[map] updateDisplayName failed:', err);
+      showError('儲存失敗，請稍後再試');
+      saveBtn.disabled = false;
+      saveBtn.textContent = '儲存';
+    }
+  });
 }

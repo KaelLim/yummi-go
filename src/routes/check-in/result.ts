@@ -165,11 +165,13 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
     }
 
     setLastResult({
+      checkInId: checkInRow.id,
       xpEarned: xp,
       luckyColorMatched: luckyMatch,
       fogReductionPct,
       xpFedToPet,
       gemsFromXp,
+      items: d.items,
       nutrition,
     });
     navigate('/check-in/success');

@@ -193,11 +193,13 @@ export default function review(params: Record<string, string>): HTMLElement {
           mealIndex,
         });
         setLastResult({
+          checkInId: null,
           xpEarned: xpForCheckin,
           luckyColorMatched: luckyMatch,
           fogReductionPct,
           xpFedToPet: 0,
           gemsFromXp: 0,
+          items: [],
           nutrition: null,
         });
       }

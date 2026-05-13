@@ -20,6 +20,8 @@ export interface CheckinDraft {
   mealIndex: 1 | 2 | 3;
   /** Populated after createCheckIn returns; read by /check-in/success. */
   lastResult: {
+    /** Row id from check_ins — needed so 修改內容 can patch in place. */
+    checkInId: number | null;
     xpEarned: number;
     luckyColorMatched: boolean;
     fogReductionPct: number;
@@ -27,6 +29,8 @@ export interface CheckinDraft {
     xpFedToPet: number;
     /** Gem balance increase from the auto-convert of XP earned past the cap. */
     gemsFromXp: number;
+    /** Editable item list — mirrors check_ins.food_items in memory. */
+    items: MockFood[];
     nutrition: {
       cal: number;
       protein: number;

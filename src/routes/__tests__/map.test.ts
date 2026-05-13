@@ -31,11 +31,22 @@ vi.mock('leaflet', () => {
   };
 });
 
+vi.mock('@/api/profile', () => ({
+  updateDisplayName: vi.fn().mockResolvedValue(undefined),
+  getUserFull: vi.fn().mockResolvedValue(null),
+}));
+
 import map from '../map';
 import * as content from '@/api/content';
+import * as profileApi from '@/api/profile';
+import { $user } from '@/store/user';
 
 const mockedContent = content as unknown as {
   listRestaurants: ReturnType<typeof vi.fn>;
+};
+const mockedProfile = profileApi as unknown as {
+  updateDisplayName: ReturnType<typeof vi.fn>;
+  getUserFull: ReturnType<typeof vi.fn>;
 };
 
 const sampleRestaurants = [
@@ -53,6 +64,7 @@ describe('map route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedContent.listRestaurants.mockResolvedValue(sampleRestaurants);
+    $user.set(null);
   });
 
   it('renders header, filter chips, and a map canvas', () => {
@@ -87,5 +99,40 @@ describe('map route', () => {
     chinese.click();
     expect(chinese.classList.contains('selected')).toBe(true);
     expect(all.classList.contains('selected')).toBe(false);
+  });
+
+  describe('first-visit name prompt', () => {
+    it('stays hidden when display name is already customised', () => {
+      $user.set({ id: 1, username: 'kael', displayName: 'Kael' });
+      const el = map();
+      expect(el.querySelector<HTMLElement>('#name-prompt')?.hidden).toBe(true);
+    });
+
+    it('shows the prompt when display name still has the 訪客 prefix', () => {
+      $user.set({ id: 1, username: 'guest_a', displayName: '訪客 ab12' });
+      const el = map();
+      expect(el.querySelector<HTMLElement>('#name-prompt')?.hidden).toBe(false);
+    });
+
+    it('saves the new name via updateDisplayName and closes the prompt', async () => {
+      $user.set({ id: 7, username: 'guest_a', displayName: '訪客 ab12' });
+      const el = map();
+      const input = el.querySelector<HTMLInputElement>('#name-prompt-input')!;
+      input.value = '阿綠';
+      el.querySelector<HTMLButtonElement>('#name-prompt-save')?.click();
+      await vi.waitFor(() => {
+        expect(mockedProfile.updateDisplayName).toHaveBeenCalledWith(7, '阿綠');
+      });
+      expect($user.get()?.displayName).toBe('阿綠');
+      expect(el.querySelector<HTMLElement>('#name-prompt')?.hidden).toBe(true);
+    });
+
+    it('skip button dismisses without writing', () => {
+      $user.set({ id: 7, username: 'guest_a', displayName: '訪客 ab12' });
+      const el = map();
+      el.querySelector<HTMLButtonElement>('#name-prompt-skip')?.click();
+      expect(mockedProfile.updateDisplayName).not.toHaveBeenCalled();
+      expect(el.querySelector<HTMLElement>('#name-prompt')?.hidden).toBe(true);
+    });
   });
 });

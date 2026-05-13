@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "NODE_OPTIONS=--no-experimental-webstorage vitest",
     "test:run": "NODE_OPTIONS=--no-experimental-webstorage vitest run",
-    "deploy": "set -a && . ./.env.local && set +a && npm run build && npx wrangler pages deploy dist --project-name=yummi-go --branch=main --commit-dirty=true"
+    "deploy": "set -a && . ./.env.local && set +a && npm run build && npx wrangler pages deploy dist --project-name=yummi-go --branch=main --commit-dirty=true --commit-message=deploy"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",

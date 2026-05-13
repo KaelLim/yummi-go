@@ -14,9 +14,9 @@ import { $user, $profile } from '@/store/user';
 import { updateProfile, getUserFull } from '@/api/profile';
 
 const LEVELS = [
-  { value: 1, label: '等級一', desc: '每天有一餐無肉就達標', tag: '輕鬆挑戰' },
-  { value: 2, label: '等級二', desc: '挑戰 30 天三餐無肉，給予 3 次容錯機會', tag: '推薦' },
-  { value: 3, label: '等級三', desc: '挑戰 30 天三餐無肉，零容錯，極限意志力', tag: '硬核' },
+  { value: 1, label: '等級一', desc: '每天有一餐無肉就達標', speed: '寵物進化速度 1×（標準）', tag: '輕鬆挑戰' },
+  { value: 2, label: '等級二', desc: '挑戰 30 天三餐無肉，給予 3 次容錯機會', speed: '寵物進化速度 1.5×', tag: '推薦' },
+  { value: 3, label: '等級三', desc: '挑戰 30 天三餐無肉，零容錯，極限意志力', speed: '寵物進化速度 2×（最快）', tag: '硬核' },
 ];
 
 export default function challengeLevel(): HTMLElement {
@@ -36,6 +36,7 @@ export default function challengeLevel(): HTMLElement {
               <strong>${l.label}</strong>
               <span class="level-tag">${l.tag}</span>
               <small>${l.desc}</small>
+              <small class="level-speed">⚡ ${l.speed}</small>
             </span>
             <span class="ms ch-arrow">arrow_forward</span>
           </button>

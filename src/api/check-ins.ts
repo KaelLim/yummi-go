@@ -55,6 +55,24 @@ export async function createCheckIn(
   return result.record;
 }
 
+/**
+ * Patch the food items + nutrition snapshot of an existing check-in. Used
+ * by the /check-in/success "修改內容" sheet so the user can correct what
+ * the AI mis-detected. Both fields land as JSON strings to mirror how
+ * createCheckIn writes them; XP/gems are intentionally not touched here
+ * (the reward already paid out at submit time).
+ */
+export async function updateCheckInItems(
+  checkInId: number,
+  foodItems: unknown,
+  nutrition: unknown,
+): Promise<void> {
+  await drust.update('check_ins', checkInId, {
+    food_items: JSON.stringify(foodItems),
+    nutrition: JSON.stringify(nutrition),
+  });
+}
+
 export async function listCheckIns(
   userId: number,
   dayNumber?: number,

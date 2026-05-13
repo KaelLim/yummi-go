@@ -324,6 +324,7 @@ body {
   vertical-align: middle;
 }
 .level-choice small { font-size: var(--text-mini-size); color: var(--color-neutral-darker); font-weight: var(--font-weight-medium); line-height: 1.5; }
+.level-choice small.level-speed { color: var(--color-secondary-dark); font-weight: var(--font-weight-bold); margin-top: 2px; }
 
 /* Eat times pickers (Task 45) */
 .meal-list { display: flex; flex-direction: column; gap: 12px; margin-top: var(--space-4); }
@@ -932,6 +933,29 @@ body {
 .map-card-name { font-size: var(--text-body-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); margin-top: 2px /* hairline, not spacing */; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .map-card-addr { font-size: var(--text-mini-size); color: var(--color-neutral-darker); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .map-card-disc { font-size: var(--text-caption-size); color: var(--color-secondary-dark); margin-top: var(--space-1); font-weight: var(--font-weight-bold); }
+
+/* First-visit name prompt (overlays the map until the user picks a name). */
+.name-prompt {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  background: rgba(15, 23, 25, 0.45);
+  z-index: 100;
+}
+.name-prompt[hidden] { display: none; }
+.name-prompt-card {
+  width: 100%; max-width: 360px;
+  background: var(--color-card, #fff);
+  border-radius: 18px;
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.name-prompt-title { margin: 0; color: var(--color-primary-dark); }
+.name-prompt-sub { margin: 0; color: var(--color-foreground-alt); }
+.name-prompt-error { margin: 0; color: var(--color-error, #d63b3b); font-size: var(--text-mini-size); }
+.name-prompt-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
+.name-prompt-actions .btn { flex: 1; }
 
 /* =============================================================================
  * Restaurant detail
@@ -1611,7 +1635,7 @@ body {
   min-height: 70vh; padding: var(--space-6) var(--space-4); gap: var(--space-4);
 }
 .fail-emoji { font-size: 64px; }
-.fail-title { font-size: var(--text-h2-size); font-weight: var(--font-weight-black); color: var(--color-error, #d63b3b); margin: 0; }
+.fail-title { font-size: var(--text-h2-size); font-weight: var(--font-weight-black); color: var(--color-primary-dark); margin: 0; }
 .fail-text  { font-size: var(--text-mini-size); color: var(--color-foreground-alt); text-align: center; line-height: 1.7; }
 .fail-actions { display: flex; gap: var(--space-3); width: 100%; max-width: 360px; }
 
@@ -1622,23 +1646,27 @@ body {
 .checkin-success.act-1 .success-title,
 .checkin-success.act-1 .success-text,
 .checkin-success.act-1 .success-distribution,
+.checkin-success.act-1 .success-secondary,
 .checkin-success.act-1 .success-actions { opacity: 0; transform: translateY(8px); }
 .checkin-success.act-2 .success-progress { opacity: 1; transform: translateY(0); transition: 0.5s ease; }
 .checkin-success.act-2 .success-pet,
 .checkin-success.act-2 .success-title,
 .checkin-success.act-2 .success-text,
 .checkin-success.act-2 .success-distribution,
+.checkin-success.act-2 .success-secondary,
 .checkin-success.act-2 .success-actions { opacity: 0; }
 .checkin-success.act-3 .success-pet,
 .checkin-success.act-3 .success-title,
 .checkin-success.act-3 .success-text { opacity: 1; transform: translateY(0); transition: 0.5s ease; animation: pet-glow 1.6s ease-in-out; }
 .checkin-success.act-3 .success-distribution { opacity: 1; transform: translateY(0); transition: 0.5s ease 0.15s; }
+.checkin-success.act-3 .success-secondary,
 .checkin-success.act-3 .success-actions { opacity: 0; }
 .checkin-success.settled .success-progress,
 .checkin-success.settled .success-pet,
 .checkin-success.settled .success-title,
 .checkin-success.settled .success-text,
 .checkin-success.settled .success-distribution,
+.checkin-success.settled .success-secondary,
 .checkin-success.settled .success-actions { opacity: 1; transform: translateY(0); transition: 0.4s ease; }
 
 .success-progress {
@@ -1658,6 +1686,55 @@ body {
 
 .success-actions { display: flex; gap: var(--space-3); width: 100%; max-width: 360px; }
 .success-actions .btn { flex: 1; }
+.success-secondary { display: flex; gap: var(--space-3); width: 100%; max-width: 360px; }
+.success-secondary .btn { flex: 1; }
+
+/* Edit-this-checkin modal — same overlay style as the map name prompt. */
+.edit-sheet {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  background: rgba(15, 23, 25, 0.45);
+  z-index: 100;
+}
+.edit-sheet[hidden] { display: none; }
+.edit-sheet-card {
+  width: 100%; max-width: 420px;
+  max-height: 85vh; overflow-y: auto;
+  background: var(--color-card, #fff);
+  border-radius: 18px;
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.edit-sheet-title { margin: 0; color: var(--color-primary-dark); }
+.edit-sheet-sub { margin: 0; color: var(--color-foreground-alt); }
+.edit-sheet-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.edit-row {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: var(--color-neutral-light);
+  border-radius: 10px;
+  padding: var(--space-2);
+}
+.edit-row-name { flex: 1; min-width: 0; }
+.edit-row-weight { width: 72px; text-align: right; }
+.edit-row-unit { color: var(--color-neutral-darker); }
+.edit-row-remove {
+  background: transparent; border: 0; padding: 4px;
+  color: var(--color-neutral-darker);
+  cursor: pointer;
+}
+.edit-row-remove:hover { color: var(--color-error, #d63b3b); }
+.edit-sheet-add {
+  background: transparent; border: 1px dashed var(--color-neutral-darker);
+  border-radius: 10px; padding: var(--space-2);
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  color: var(--color-primary-dark); font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+.edit-sheet-error { margin: 0; color: var(--color-error, #d63b3b); font-size: var(--text-mini-size); }
+.edit-sheet-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
+.edit-sheet-actions .btn { flex: 1; }
 .fail-actions .btn { flex: 1; }
 
 .lucky-card.hit {

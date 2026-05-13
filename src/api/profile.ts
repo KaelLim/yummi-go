@@ -75,6 +75,18 @@ export async function signOath(userId: number): Promise<void> {
 }
 
 /**
+ * Rename the user. Used by the first-map-visit prompt to let guests
+ * upgrade from the auto-generated "訪客 xxxx" placeholder to a real
+ * display name without going through /register.
+ */
+export async function updateDisplayName(
+  userId: number,
+  displayName: string,
+): Promise<void> {
+  await drust.update('users', userId, { display_name: displayName });
+}
+
+/**
  * Set users.challenge_started_at — fired by the day-1 hook CTA. ISO 8601.
  * Single source of truth: drust. localStorage no longer mirrors this.
  */

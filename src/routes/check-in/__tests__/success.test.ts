@@ -2,14 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/router', () => ({ navigate: vi.fn() }));
 
+vi.mock('@/api/check-ins', () => ({
+  updateCheckInItems: vi.fn().mockResolvedValue(undefined),
+}));
+
 import success from '../success';
 import * as router from '@/router';
-import { setLastResult, setMealIndex } from '@/store/checkin';
+import * as checkInsApi from '@/api/check-ins';
+import { setLastResult, setMealIndex, $checkin } from '@/store/checkin';
 import { $today } from '@/store/today';
 import { $profile, $user } from '@/store/user';
 import type { UserFull } from '@/api/profile';
 
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
+const mockedCheckIns = checkInsApi as unknown as {
+  updateCheckInItems: ReturnType<typeof vi.fn>;
+};
 
 function profileWith(level: number | null): UserFull {
   return {
@@ -30,11 +38,15 @@ describe('check-in/success', () => {
     $today.set({ dayNumber: 5, totalXpToday: 20, missionsDone: ['meal:lunch'], luckyColor: '' });
     setMealIndex(2);
     setLastResult({
+      checkInId: 99,
       xpEarned: 20,
       luckyColorMatched: false,
       fogReductionPct: 3,
       xpFedToPet: 20,
       gemsFromXp: 0,
+      items: [
+        { name: '青菜', cal: 30, protein: 2, carb: 5, fat: 0, fiber: 2, isVeg: true, colors: ['green'], weightG: 80 },
+      ],
       nutrition: { cal: 320, protein: 12, carb: 40, fat: 8, fiber: 4 },
     });
     $user.set({ id: 1, username: 'k', displayName: 'k' });
@@ -91,6 +103,49 @@ describe('check-in/success', () => {
     const el = success();
     el.querySelector<HTMLButtonElement>('#next')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+  });
+
+  describe('modify-content sheet', () => {
+    it('opens when 修改內容 is clicked, populated from lastResult.items', () => {
+      const el = success();
+      const sheet = el.querySelector<HTMLElement>('#edit-sheet')!;
+      expect(sheet.hidden).toBe(true);
+      el.querySelector<HTMLButtonElement>('#edit-items')?.click();
+      expect(sheet.hidden).toBe(false);
+      expect(el.querySelectorAll('.edit-row').length).toBe(1);
+      expect(el.querySelector<HTMLInputElement>('.edit-row-name')?.value).toBe('青菜');
+    });
+
+    it('+新增食材 appends a blank row to the editor list', () => {
+      const el = success();
+      el.querySelector<HTMLButtonElement>('#edit-items')?.click();
+      el.querySelector<HTMLButtonElement>('#edit-sheet-add')?.click();
+      expect(el.querySelectorAll('.edit-row').length).toBe(2);
+    });
+
+    it('儲存 calls updateCheckInItems, patches lastResult, and closes the sheet', async () => {
+      const el = success();
+      el.querySelector<HTMLButtonElement>('#edit-items')?.click();
+      const nameInput = el.querySelector<HTMLInputElement>('.edit-row-name')!;
+      nameInput.value = '空心菜';
+      nameInput.dispatchEvent(new Event('input'));
+      vi.useRealTimers();
+      el.querySelector<HTMLButtonElement>('#edit-sheet-save')?.click();
+      await vi.waitFor(() => expect(mockedCheckIns.updateCheckInItems).toHaveBeenCalled());
+      const [id, items] = mockedCheckIns.updateCheckInItems.mock.calls[0];
+      expect(id).toBe(99);
+      expect(items[0].name).toBe('空心菜');
+      expect($checkin.get().lastResult?.items[0].name).toBe('空心菜');
+      expect(el.querySelector<HTMLElement>('#edit-sheet')?.hidden).toBe(true);
+    });
+
+    it('取消 closes without writing', () => {
+      const el = success();
+      el.querySelector<HTMLButtonElement>('#edit-items')?.click();
+      el.querySelector<HTMLButtonElement>('#edit-sheet-cancel')?.click();
+      expect(mockedCheckIns.updateCheckInItems).not.toHaveBeenCalled();
+      expect(el.querySelector<HTMLElement>('#edit-sheet')?.hidden).toBe(true);
+    });
   });
 
   it('nutrition details start collapsed and open when toggled', () => {
