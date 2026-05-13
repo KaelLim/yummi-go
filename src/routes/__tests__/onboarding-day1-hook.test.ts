@@ -48,10 +48,10 @@ describe('onboarding/day1-hook', () => {
     expect(el.querySelectorAll('.onb-progress-dot.done').length).toBe(4);
   });
 
-  it('CTA navigates to /onboarding/eat-times', () => {
+  it('CTA navigates to /onboarding/pet-name', () => {
     const el = day1Hook();
     (el.querySelector('#enter-btn') as HTMLButtonElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/eat-times');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/pet-name');
   });
 
   it('back button navigates to /onboarding/purpose', () => {

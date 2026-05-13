@@ -39,7 +39,7 @@ export default function petName(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(6, 6).outerHTML}
+      ${createProgress(5, 6).outerHTML}
     </div>
     <div class="onb-body">
       <div class="day1-egg" data-tint="neutral" style="font-size:64px;margin:0 auto;">🥚</div>
@@ -107,20 +107,18 @@ export default function petName(): HTMLElement {
   });
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () =>
-    navigate('/onboarding/eat-times'),
+    navigate('/onboarding/day1-hook'),
   );
 
   wrap.querySelector('#continue-btn')?.addEventListener('click', () => {
-    const u = $user.get();
-    if (u) { navigate('/home'); return; }
     const name = input.value.trim();
     if (!name) {
       error.hidden = false;
       error.textContent = '請為你的守護者取個名字';
       return;
     }
-    patchDraft({ pet_name: name });
-    navigate('/register');
+    if (!$user.get()) patchDraft({ pet_name: name });
+    navigate('/onboarding/eat-times');
   });
 
   return wrap;

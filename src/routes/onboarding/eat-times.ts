@@ -43,7 +43,7 @@ export default function eatTimes(): HTMLElement {
   wrap.innerHTML = `
     <div class="onb-header">
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
-      ${createProgress(5, 6).outerHTML}
+      ${createProgress(6, 6).outerHTML}
     </div>
     <div class="onb-body">
       <h1 class="onb-title text-h2">用餐時間</h1>
@@ -54,7 +54,7 @@ export default function eatTimes(): HTMLElement {
   `;
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () =>
-    navigate('/onboarding/day1-hook'),
+    navigate('/onboarding/pet-name'),
   );
 
   function renderList(): void {
@@ -126,7 +126,10 @@ export default function eatTimes(): HTMLElement {
       patchDraft({ eat_times: eatTimesJson });
     }
     void requestMealNotificationPermission();
-    navigate('/onboarding/pet-name');
+    // Last onboarding step: logged-in users (returning visitors) jump
+    // straight to /home; guests hand off to /register to create an
+    // account, which then drains the draft onto the new user row.
+    navigate(u ? '/home' : '/register');
   });
 
   return wrap;

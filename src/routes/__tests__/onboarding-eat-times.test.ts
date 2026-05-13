@@ -55,14 +55,31 @@ describe('onboarding/eat-times', () => {
     const parsed = JSON.parse(patch.eat_times);
     expect(parsed.lunch).toBe('13:15');
     expect(parsed.breakfast).toBe('08:00');
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/pet-name');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
     document.body.removeChild(el);
   });
 
-  it('back button navigates to /onboarding/day1-hook', () => {
+  it('back button navigates to /onboarding/pet-name', () => {
     const el = eatTimes();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/day1-hook');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/pet-name');
+  });
+
+  it('guest continue stamps the draft and advances to /register', async () => {
+    mockedUser.$user.get.mockReturnValue(null);
+    const { $onboardingDraft } = await import('@/store/onboarding-draft');
+    $onboardingDraft.set({
+      diet_type: null, baseline: null, purpose: null, challenge_level: null,
+      eat_times: null, known_from: null, pet_name: null,
+    });
+    const el = eatTimes();
+    document.body.appendChild(el);
+    (el.querySelector('#continue-btn') as HTMLButtonElement).click();
+    await flush();
+    expect(mockedProfile.updateProfile).not.toHaveBeenCalled();
+    expect($onboardingDraft.get().eat_times).toContain('breakfast');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/register');
+    document.body.removeChild(el);
   });
 
   it('clicking ✕ removes a meal row and excludes it from the JSON', async () => {

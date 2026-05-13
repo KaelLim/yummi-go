@@ -69,7 +69,7 @@ export default function day1Hook(): HTMLElement {
     navigate('/onboarding/purpose');
   });
   wrap.querySelector('#enter-btn')?.addEventListener('click', () => {
-    navigate('/onboarding/eat-times');
+    navigate('/onboarding/pet-name');
   });
 
   return wrap;
