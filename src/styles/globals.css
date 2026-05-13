@@ -361,6 +361,24 @@ body {
 .card-flat    { box-shadow: none; }
 .card-raised  { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10); }
 
+/* Generic Banner primitive — highlighted callout. */
+.banner-shell {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: 14px;
+  border: 1px solid transparent;
+}
+.banner-emoji { font-size: 26px; line-height: 1; }
+.banner-body-wrap { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.banner-title { font-size: var(--text-button-m-size); color: var(--color-foreground); font-weight: var(--font-weight-extrabold); }
+.banner-body  { font-size: var(--text-mini-size); color: var(--color-foreground-alt); margin: 0; line-height: 1.5; }
+.banner-actions { display: flex; gap: var(--space-2); align-items: center; }
+
+.banner-info        { background: var(--color-neutral-light);   border-color: var(--color-neutral-light-active); }
+.banner-success     { background: var(--color-primary-light);   border-color: var(--color-primary); }
+.banner-warning     { background: #fef3c7;                      border-color: #f59e0b; }
+.banner-meat-prompt { background: #fef3c7;                      border-color: #f59e0b; }
+
 /* Eat times pickers (Task 45) */
 .meal-list { display: flex; flex-direction: column; gap: 12px; margin-top: var(--space-4); }
 .meal-row { display: flex; align-items: center; gap: 12px; padding: var(--space-4) var(--space-5); background: var(--color-card, #fff); border: 1.5px solid var(--color-neutral-light-active); border-radius: var(--radius-md); }
