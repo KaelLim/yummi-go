@@ -54,11 +54,19 @@ describe('splash route', () => {
     expect(el.querySelector<HTMLElement>('#splash-loader')?.hidden).toBe(true);
   });
 
-  it('Get Started CTA navigates to /onboarding/diet-survey', async () => {
+  it('Get Started provisions a guest user and routes to /onboarding/diet-survey', async () => {
     mockedUser.$isLoggedIn.get.mockReturnValue(false);
+    mockedAuth.registerGuest.mockResolvedValueOnce({
+      id: 21, username: 'guest_xyz', displayName: '訪客 xyz', isGuest: true,
+    });
     const el = splash();
     await vi.advanceTimersByTimeAsync(1300);
     el.querySelector<HTMLButtonElement>('#get-started')?.click();
+    vi.useRealTimers();
+    await vi.waitFor(() => expect(mockedAuth.registerGuest).toHaveBeenCalled());
+    expect(mockedUser.setLoggedInUser).toHaveBeenCalledWith({
+      id: 21, username: 'guest_xyz', displayName: '訪客 xyz', isGuest: true,
+    });
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/diet-survey');
   });
 
@@ -70,21 +78,6 @@ describe('splash route', () => {
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/login');
   });
 
-  it('Continue-as-guest CTA registers a guest and routes into onboarding', async () => {
-    mockedUser.$isLoggedIn.get.mockReturnValue(false);
-    mockedAuth.registerGuest.mockResolvedValueOnce({
-      id: 12, username: 'guest_abc', displayName: '訪客 abc', isGuest: true,
-    });
-    const el = splash();
-    await vi.advanceTimersByTimeAsync(1300);
-    el.querySelector<HTMLButtonElement>('#continue-guest')?.click();
-    vi.useRealTimers();
-    await vi.waitFor(() => expect(mockedAuth.registerGuest).toHaveBeenCalled());
-    expect(mockedUser.setLoggedInUser).toHaveBeenCalledWith({
-      id: 12, username: 'guest_abc', displayName: '訪客 abc', isGuest: true,
-    });
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/diet-survey');
-  });
 
   it('navigates to /home after 1.2s when logged in', async () => {
     mockedUser.$isLoggedIn.get.mockReturnValue(true);
