@@ -48,9 +48,9 @@ export default function home(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="home-resources" aria-label="resources">
-      <div class="resource-chip" data-resource="xp" title="食物袋 XP">
+      <div class="resource-chip" data-resource="xp" title="累計總 XP">
         <span class="ms">eco</span>
-        <span class="resource-num" data-bind="wallet-xp">0</span>
+        <span class="resource-num" data-bind="total-xp">0</span>
         <span class="resource-unit">XP</span>
       </div>
       <div class="resource-chip" data-resource="gem" title="寶石">
@@ -188,8 +188,8 @@ export default function home(): HTMLElement {
   }
 
   function renderWallet(g: GemsStoreShape) {
-    const xp = $$('[data-bind="wallet-xp"]');
-    if (xp) xp.textContent = String(g.walletXp);
+    const xp = $$('[data-bind="total-xp"]');
+    if (xp) xp.textContent = String(g.totalXp);
     const gem = $$('[data-bind="gems"]');
     if (gem) gem.textContent = String(g.balance);
     const cards = $$('[data-bind="cards"]');

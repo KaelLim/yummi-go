@@ -33,7 +33,10 @@ export interface PetStoreShape {
 }
 
 export interface GemsStoreShape {
-  walletXp: number;
+  /** All-time XP earned by this user (xp_balances.total_earned). The
+   *  per-day wallet balance is no longer surfaced since awardXp auto-
+   *  distributes; total_earned is the meaningful counter to show. */
+  totalXp: number;
   balance: number;
   fragments: number;
   makeupCards: number;
@@ -41,7 +44,7 @@ export interface GemsStoreShape {
 
 export const $pet = atom<PetStoreShape | null>(null);
 export const $gems = atom<GemsStoreShape>({
-  walletXp: 0,
+  totalXp: 0,
   balance: 0,
   fragments: 0,
   makeupCards: 0,
@@ -87,7 +90,7 @@ export async function reloadWallet(userId: number): Promise<void> {
     walletApi.getMakeupCards(userId),
   ]);
   $gems.set({
-    walletXp: xp.balance,
+    totalXp: xp.total_earned,
     balance: gem?.balance ?? 0,
     fragments: mu?.fragment_count ?? 0,
     makeupCards: mu?.card_count ?? 0,
