@@ -14,6 +14,7 @@ import { bootstrapFromStorage } from './store/user';
 import { $ui } from './store/ui';
 import { setupDaySync } from './store/day-sync';
 import { setupMealNotifier } from './lib/meal-notifier';
+import { setupGemToast } from './lib/gem-toast';
 
 // Reflect the active theme onto <html data-theme="..."> so CSS can pivot
 // the colour tokens. Subscribed once at boot — the atom's initial-value
@@ -73,6 +74,7 @@ async function boot() {
   setupDaySync();
   setupInstallPrompt();
   setupMealNotifier();          // NEW
+  setupGemToast();
   startRouter();
 }
 void boot();

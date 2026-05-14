@@ -2006,3 +2006,35 @@ body {
   color: var(--color-neutral-darker);
   opacity: 0.7;
 }
+
+/* =============================================================================
+ * Global gem-gain toast — fired by lib/gem-toast.ts on any $gems balance rise
+ * ============================================================================= */
+#gem-toast-host {
+  position: fixed; top: 0; right: 0; left: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding-top: 72px;
+  pointer-events: none;
+  z-index: 9000;
+}
+.gem-toast {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, #b8e2ff, var(--color-primary-dark));
+  color: #fff;
+  font-weight: var(--font-weight-extrabold);
+  font-size: var(--text-mini-size);
+  box-shadow: 0 8px 20px -6px rgba(0,0,0,0.25), 0 0 0 2px rgba(255,255,255,0.6) inset;
+  transform: translateY(-12px);
+  opacity: 0;
+  animation: gem-toast-rise 1.4s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+.gem-toast .ms { font-size: 18px; }
+@keyframes gem-toast-rise {
+  0%   { transform: translateY(-12px) scale(0.7); opacity: 0; }
+  20%  { transform: translateY(0)      scale(1.1); opacity: 1; }
+  35%  { transform: translateY(0)      scale(1);   opacity: 1; }
+  85%  { transform: translateY(-8px)   scale(1);   opacity: 1; }
+  100% { transform: translateY(-28px)  scale(0.9); opacity: 0; }
+}
