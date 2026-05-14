@@ -1134,13 +1134,15 @@ body {
 .map-card-addr { font-size: var(--text-mini-size); color: var(--color-neutral-darker); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .map-card-disc { font-size: var(--text-caption-size); color: var(--color-secondary-dark); margin-top: var(--space-1); font-weight: var(--font-weight-bold); }
 
-/* First-visit name prompt (overlays the map until the user picks a name). */
+/* First-visit name prompt (overlays the map until the user picks a name).
+ * Must sit above Leaflet's control pane (z-index 1000), so we park it at
+ * 2000 — clear of the map, still below the gem toast host (9000). */
 .name-prompt {
   position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
   padding: var(--space-4);
   background: rgba(15, 23, 25, 0.45);
-  z-index: 100;
+  z-index: 2000;
 }
 .name-prompt[hidden] { display: none; }
 .name-prompt-card {
