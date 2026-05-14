@@ -16,7 +16,13 @@ import {
   decodeMissions,
   type DailyProgressRow,
 } from '@/api/daily-progress';
+import { addGems } from '@/api/wallet';
 import { $user } from './user';
+import { reloadWallet } from './pet';
+
+export const XP_MILESTONE_KEY = 'xp-100-gem';
+export const XP_MILESTONE_THRESHOLD = 100;
+export const XP_MILESTONE_GEM_REWARD = 1;
 
 export interface TodayStoreShape {
   dayNumber: number;
@@ -57,6 +63,33 @@ export function markMissionDone(key: string, xpEarned: number): void {
   };
   $today.set(next);
   fireUpsert(next);
+  maybeAwardXpMilestone(next);
+}
+
+/**
+ * Bonus reward: crossing 100 XP today auto-credits 1 gem (on top of any
+ * gems already earned from XP-overflow). Idempotent — the milestone key
+ * is persisted into missions_done so a page reload doesn't re-award.
+ */
+function maybeAwardXpMilestone(next: TodayStoreShape): void {
+  if (next.totalXpToday < XP_MILESTONE_THRESHOLD) return;
+  if (next.missionsDone.includes(XP_MILESTONE_KEY)) return;
+  const user = $user.get();
+  if (!user) return;
+  const claimed: TodayStoreShape = {
+    ...next,
+    missionsDone: [...next.missionsDone, XP_MILESTONE_KEY],
+  };
+  $today.set(claimed);
+  fireUpsert(claimed);
+  void (async () => {
+    try {
+      await addGems(user.id, XP_MILESTONE_GEM_REWARD, 'mission');
+      await reloadWallet(user.id);
+    } catch (err) {
+      console.warn('[today] xp milestone award failed:', err);
+    }
+  })();
 }
 
 /**
@@ -120,10 +153,12 @@ export function loadDailyProgress(
     });
     return;
   }
-  $today.set({
+  const hydrated: TodayStoreShape = {
     dayNumber,
     totalXpToday: row.total_xp,
     missionsDone: decodeMissions(row),
     luckyColor: row.lucky_color ?? fallbackLuckyColor,
-  });
+  };
+  $today.set(hydrated);
+  maybeAwardXpMilestone(hydrated);
 }

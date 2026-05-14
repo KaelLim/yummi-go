@@ -1251,6 +1251,12 @@ body {
   background: var(--color-secondary-light);
   padding: 2px var(--space-2); border-radius: 4px; /* tiny accent radius — not card-shaped */
 }
+.mission-reward-gem {
+  display: inline-flex; align-items: center; gap: 2px;
+  color: var(--color-primary-dark, var(--color-primary));
+  background: var(--color-primary-light, var(--color-secondary-light));
+}
+.mission-reward-gem .ms { font-size: 14px; }
 .mission-cta {
   background: var(--color-primary); color: #fff;
   border: none; border-radius: var(--radius-pill);

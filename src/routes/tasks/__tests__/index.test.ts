@@ -37,13 +37,13 @@ describe('tasks hub route', () => {
     expect(el.classList.contains('tasks-screen')).toBe(true);
     expect(el.querySelector('.tasks-title')?.textContent).toBe('任務');
     expect(el.querySelectorAll('.seg').length).toBe(3);
-    expect(el.querySelectorAll('.mission').length).toBe(5);
+    expect(el.querySelectorAll('.mission').length).toBe(6);
   });
 
   it('surfaces the known-from task while profile.known_from is null', () => {
     $profile.set(profileWith({ known_from: null }));
     const el = tasks();
-    expect(el.querySelectorAll('.mission').length).toBe(6);
+    expect(el.querySelectorAll('.mission').length).toBe(7);
     const knownFromMission = Array.from(el.querySelectorAll('.mission')).find((m) =>
       m.textContent?.includes('如何得知這個 App'),
     );

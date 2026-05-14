@@ -12,7 +12,14 @@
  */
 import { navigate } from '@/router';
 import { $user, $profile } from '@/store/user';
-import { $today, $challenge, markMissionDone } from '@/store/today';
+import {
+  $today,
+  $challenge,
+  markMissionDone,
+  XP_MILESTONE_KEY,
+  XP_MILESTONE_THRESHOLD,
+  XP_MILESTONE_GEM_REWARD,
+} from '@/store/today';
 import { bind } from '@/lib/lifecycle';
 import { listCheckIns, type CheckInRow } from '@/api/check-ins';
 
@@ -31,6 +38,8 @@ interface Mission {
   icon: string;
   title: string;
   reward: number;
+  /** What the reward number refers to. Defaults to 'xp'. */
+  rewardType?: 'xp' | 'gem';
   done: boolean;
   cta?: { label: string; route: string } | null;
   progress?: { current: number; total: number };
@@ -140,6 +149,23 @@ export default function tasks(): HTMLElement {
       });
     }
 
+    // Daily XP milestone — auto-awarded by store/today.ts the moment
+    // totalXpToday crosses the threshold. This card is purely a UI
+    // surface so users can see the progress + reward.
+    missions.push({
+      key: XP_MILESTONE_KEY,
+      icon: 'bolt',
+      title: `今日累積 ${XP_MILESTONE_THRESHOLD} XP`,
+      reward: XP_MILESTONE_GEM_REWARD,
+      rewardType: 'gem',
+      done: t.missionsDone.includes(XP_MILESTONE_KEY),
+      cta: null,
+      progress: {
+        current: Math.min(t.totalXpToday, XP_MILESTONE_THRESHOLD),
+        total: XP_MILESTONE_THRESHOLD,
+      },
+    });
+
     return missions;
   }
 
@@ -157,7 +183,11 @@ export default function tasks(): HTMLElement {
                 ${m.progress ? `<div class="mission-progress"><span class="bar"><span style="width:${(m.progress.current / m.progress.total) * 100}%"></span></span><span class="muted">${m.progress.current}/${m.progress.total}</span></div>` : ''}
               </div>
               <div class="mission-tail">
-                <span class="mission-xp">+${m.reward} XP</span>
+                ${
+                  m.rewardType === 'gem'
+                    ? `<span class="mission-xp mission-reward-gem"><span class="ms">diamond</span>+${m.reward}</span>`
+                    : `<span class="mission-xp">+${m.reward} XP</span>`
+                }
                 ${m.cta ? `<button class="mission-cta" data-cta="${escapeHtml(m.cta.route)}" data-key="${m.key}">${escapeHtml(m.cta.label)}</button>` : ''}
               </div>
             </li>`,
