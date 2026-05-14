@@ -1022,11 +1022,66 @@ body {
 .xp-bubble.xp-1 { animation-delay: 0.1s; }
 .xp-bubble.xp-2 { animation-delay: 0.4s; background: linear-gradient(135deg, #f6fca7, #d3f56b); color: var(--color-primary-dark); }
 .xp-bubble.xp-3 { animation-delay: 0.7s; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); }
+.xp-bubble.gem-bubble {
+  animation-delay: 1.0s;
+  background: linear-gradient(135deg, #b8e2ff, var(--color-primary-dark));
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.xp-bubble.gem-bubble .ms { font-size: 16px; }
 @keyframes xp-rise {
   0% { transform: translateY(20px); opacity: 0; }
   20% { opacity: 1; }
   80% { opacity: 1; transform: translateY(-12px); }
   100% { transform: translateY(-32px); opacity: 0; }
+}
+
+/* Gem conversion pop — fires when the dist-gems row enters (act-3). */
+@keyframes gem-icon-pop {
+  0% { transform: scale(0.3) rotate(-30deg); opacity: 0; }
+  60% { transform: scale(1.3) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@keyframes gem-glow {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+  50% { filter: drop-shadow(0 0 8px var(--color-primary)); }
+}
+.checkin-success.act-3 .dist-gems .dist-icon,
+.checkin-success.settled .dist-gems .dist-icon {
+  animation:
+    gem-icon-pop 0.5s cubic-bezier(.34,1.56,.64,1) 0.15s backwards,
+    gem-glow 1.4s ease-in-out 0.65s 2;
+}
+.checkin-success.act-3 .dist-gems strong,
+.checkin-success.settled .dist-gems strong {
+  display: inline-block;
+  animation: gem-icon-pop 0.5s cubic-bezier(.34,1.56,.64,1) 0.3s backwards;
+}
+
+/* Sparkles next to the dist-gems icon. */
+.dist-row.dist-gems { position: relative; }
+.gem-sparkle {
+  position: absolute; left: 12px; top: 50%;
+  width: 0; height: 0; pointer-events: none;
+}
+.gem-sparkle > span {
+  position: absolute;
+  width: 5px; height: 5px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow: 0 0 6px var(--color-primary);
+}
+.checkin-success.act-3 .gem-sparkle > span,
+.checkin-success.settled .gem-sparkle > span {
+  animation: gem-spark 0.9s ease-out 0.5s 1 forwards;
+}
+.gem-sparkle > span:nth-child(1) { left:  18px; top: -18px; }
+.gem-sparkle > span:nth-child(2) { left: -10px; top: -22px; animation-delay: 0.65s !important; }
+.gem-sparkle > span:nth-child(3) { left:  24px; top:   8px; animation-delay: 0.8s  !important; }
+@keyframes gem-spark {
+  0%   { transform: scale(0); opacity: 0; }
+  30%  { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(0.3) translate(6px, -10px); opacity: 0; }
 }
 
 /* =============================================================================

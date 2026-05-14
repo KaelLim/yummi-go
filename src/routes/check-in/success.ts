@@ -65,7 +65,8 @@ export default function success(): HTMLElement {
   const gemRow = r.gemsFromXp > 0
     ? `<div class="dist-row dist-gems">
          <span class="ms dist-icon">diamond</span>
-         <span class="dist-text">今日小綠已吃飽，多的 XP 換成 <strong>+${r.gemsFromXp} 寶石</strong></span>
+         <span class="dist-text">今日小綠已吃飽，多的 XP 換成 <strong data-gem-count="${r.gemsFromXp}">+0 寶石</strong></span>
+         <span class="gem-sparkle" aria-hidden="true"><span></span><span></span><span></span></span>
        </div>`
     : '';
   const emptyRow = r.xpFedToPet === 0 && r.gemsFromXp === 0
@@ -99,6 +100,7 @@ export default function success(): HTMLElement {
         ${firstBubble}
         ${r.luckyColorMatched ? '<span class="xp-bubble xp-2">幸運色 +15 XP</span>' : ''}
         ${replaced ? '<span class="xp-bubble xp-3">替代為植物肉</span>' : ''}
+        ${r.gemsFromXp > 0 ? `<span class="xp-bubble gem-bubble"><span class="ms">diamond</span>+${r.gemsFromXp}</span>` : ''}
       </div>
       <div class="success-progress" aria-label="30-day progress">${segments}</div>
       <div class="success-pet">🐸</div>
@@ -157,6 +159,7 @@ export default function success(): HTMLElement {
     timers.push(window.setTimeout(() => {
       wrap.classList.remove('act-1', 'act-2', 'act-3');
       wrap.classList.add(cls);
+      if (cls === 'act-3') startGemCountUp(wrap);
     }, ms));
   }
 
@@ -164,6 +167,7 @@ export default function success(): HTMLElement {
     timers.forEach(window.clearTimeout);
     wrap.classList.remove('act-1', 'act-2', 'act-3');
     wrap.classList.add('settled');
+    startGemCountUp(wrap);
   }
   wrap.querySelector('.success-body')?.addEventListener('click', settle, { once: true });
 
@@ -347,6 +351,27 @@ function escapeHtml(s: string): string {
       : c === '"' ? '&quot;'
       : '&#39;',
   );
+}
+
+function startGemCountUp(wrap: HTMLElement): void {
+  const el = wrap.querySelector<HTMLElement>('.dist-gems strong[data-gem-count]');
+  if (!el || el.dataset.gemAnimated === '1') return;
+  const target = Number(el.dataset.gemCount) || 0;
+  el.dataset.gemAnimated = '1';
+  if (target <= 0) {
+    el.textContent = '+0 寶石';
+    return;
+  }
+  const duration = 700;
+  const start = performance.now();
+  function step(now: number): void {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = Math.round(target * eased);
+    el!.textContent = `+${value} 寶石`;
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 async function shareSummary(day: number, xp: number, lucky: boolean): Promise<void> {
