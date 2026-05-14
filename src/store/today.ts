@@ -17,6 +17,7 @@ import {
   type DailyProgressRow,
 } from '@/api/daily-progress';
 import { addGems } from '@/api/wallet';
+import { showGemGain } from '@/lib/gem-toast';
 import { $user } from './user';
 import { reloadWallet } from './pet';
 
@@ -86,6 +87,7 @@ function maybeAwardXpMilestone(next: TodayStoreShape): void {
     try {
       await addGems(user.id, XP_MILESTONE_GEM_REWARD, 'mission');
       await reloadWallet(user.id);
+      showGemGain(XP_MILESTONE_GEM_REWARD);
     } catch (err) {
       console.warn('[today] xp milestone award failed:', err);
     }

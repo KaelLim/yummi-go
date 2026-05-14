@@ -37,6 +37,7 @@ import { getUserFull } from '@/api/profile';
 import { setPetFromRow } from '@/store/pet';
 import { navigate } from '@/router';
 import { bind } from '@/lib/lifecycle';
+import { showGemGain } from '@/lib/gem-toast';
 
 const ROUTES: Array<{ label: string; path: string }> = [
   { label: '首頁', path: '/home' },
@@ -314,6 +315,7 @@ export function createDevPanel(): HTMLElement {
         await awardXp(u.id, amount, 'devpanel');
       } else if (kind === 'gems') {
         await addGems(u.id, amount, 'devpanel_add');
+        showGemGain(amount);
       } else if (kind === 'frags') {
         await addFragments(u.id, amount, 'devpanel');
       }

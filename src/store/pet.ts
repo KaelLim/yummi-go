@@ -18,6 +18,7 @@ import * as xpWallet from '@/api/xp-wallet';
 import * as walletApi from '@/api/wallet';
 import { stageFromLevel, type PetStage } from '@/lib/pet-evolution';
 import type { PetMood } from '@/lib/pet-sprites';
+import { showGemGain } from '@/lib/gem-toast';
 
 export const POISON_DURATION_MS = 24 * 60 * 60 * 1000; // 24h
 export const STRIKE_THRESHOLD = 3;
@@ -144,6 +145,7 @@ export async function awardXp(
   if (fed.pet) setPetFromRow(fed.pet);
   // Refresh wallet / gem / makeup-card totals for the resource chips.
   void reloadWallet(userId);
+  if (gemsFromXp > 0) showGemGain(gemsFromXp);
   return { credited: deltaXp, xpFedToPet: fed.fed, gemsFromXp };
 }
 
