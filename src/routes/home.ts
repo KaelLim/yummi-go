@@ -24,9 +24,9 @@ import { bind } from '@/lib/lifecycle';
 import { createPetView } from '@/components/PetView';
 
 const MEALS: Array<{ key: string; label: string }> = [
-  { key: 'breakfast', label: '早' },
-  { key: 'lunch', label: '午' },
-  { key: 'dinner', label: '晚' },
+  { key: 'breakfast', label: '一' },
+  { key: 'lunch', label: '二' },
+  { key: 'dinner', label: '三' },
 ];
 
 const LUCKY_LABEL: Record<string, string> = {

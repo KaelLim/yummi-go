@@ -19,9 +19,9 @@ const MEAL_SLOT: Record<number, string> = {
 };
 
 const NEXT_MEAL_LABEL: Record<number, string> = {
-  1: '午餐',
-  2: '晚餐',
-  3: '明天早餐',
+  1: '第二餐',
+  2: '第三餐',
+  3: '明天第一餐',
 };
 
 export default function fail(): HTMLElement {

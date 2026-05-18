@@ -6,16 +6,23 @@ vi.mock('@/api/content', () => ({
   // synchronous assertions. Individual tests can override.
   listPetNameSuggestions: vi.fn(() => new Promise(() => {})),
 }));
+vi.mock('@/api/profile', () => ({
+  updateDisplayName: vi.fn(() => Promise.resolve()),
+}));
 
 import petName from '../onboarding/pet-name';
 import * as router from '@/router';
 import * as content from '@/api/content';
+import * as profile from '@/api/profile';
 import { $user } from '@/store/user';
 import { $onboardingDraft } from '@/store/onboarding-draft';
 
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
 const mockedContent = content as unknown as {
   listPetNameSuggestions: ReturnType<typeof vi.fn>;
+};
+const mockedProfile = profile as unknown as {
+  updateDisplayName: ReturnType<typeof vi.fn>;
 };
 
 function flush() {
@@ -147,15 +154,21 @@ describe('onboarding/pet-name', () => {
     expect(mockedRouter.navigate).not.toHaveBeenCalled();
   });
 
-  it('logged-in users skip the draft write and continue straight to /home', () => {
+  it('logged-in users persist the name, refresh $user, and advance to /onboarding/start-checkin', async () => {
     $user.set({ id: 1, username: 'k', displayName: 'Kai' });
-    const before = $onboardingDraft.get().pet_name;
     const el = petName();
     const input = el.querySelector('#pet-name-input') as HTMLInputElement;
     input.value = '阿綠';
     (el.querySelector('#continue-btn') as HTMLButtonElement).click();
-    expect($onboardingDraft.get().pet_name).toBe(before);
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
+    // Draft is always patched now (belt-and-suspenders for the defensive
+    // /register fallback path).
+    expect($onboardingDraft.get().pet_name).toBe('阿綠');
+    // Display name is persisted to drust + reflected in the local session
+    // immediately so PetView / TabBar pick up the new name.
+    await flush();
+    expect(mockedProfile.updateDisplayName).toHaveBeenCalledWith(1, '阿綠');
+    expect($user.get()?.displayName).toBe('阿綠');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/start-checkin');
   });
 
   it('back button returns to /onboarding/day1-hook', () => {

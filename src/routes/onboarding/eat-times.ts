@@ -28,9 +28,9 @@ interface MealDef {
 }
 
 const MEALS: MealDef[] = [
-  { key: 'breakfast', emoji: '🌅', label: '早餐', defaultTime: '08:00' },
-  { key: 'lunch',     emoji: '☀️', label: '午餐', defaultTime: '12:30' },
-  { key: 'dinner',    emoji: '🌙', label: '晚餐', defaultTime: '19:00' },
+  { key: 'breakfast', emoji: '🌅', label: '第一餐', defaultTime: '08:00' },
+  { key: 'lunch',     emoji: '☀️', label: '第二餐', defaultTime: '12:30' },
+  { key: 'dinner',    emoji: '🌙', label: '第三餐', defaultTime: '19:00' },
 ];
 
 export default function eatTimes(): HTMLElement {
@@ -64,7 +64,20 @@ export default function eatTimes(): HTMLElement {
     const list = wrap.querySelector<HTMLElement>('#meal-list');
     if (!list) return;
 
-    const activeCount = MEALS.length - disabled.size;
+    // Active labels are positional (第一餐 / 第二餐 / 第三餐) so users
+    // who skip a meal don't see a misleading tag on what is now their
+    // only morning slot. Falls back to "一餐" when only one meal is
+    // enabled. Disabled rows render emoji-only — the time-of-day emoji
+    // (🌅 / ☀️ / 🌙) is enough to tell the user which slot they're
+    // re-enabling without reusing the active-position 第N餐 label.
+    const activeKeys = MEALS.filter((m) => !disabled.has(m.key)).map((m) => m.key);
+    const activeCount = activeKeys.length;
+    const ORDINALS = ['第一餐', '第二餐', '第三餐'];
+    function activeLabel(key: string): string {
+      if (activeCount === 1) return '一餐';
+      const idx = activeKeys.indexOf(key);
+      return ORDINALS[idx] ?? '';
+    }
 
     list.innerHTML = MEALS.map((m) => {
       const isOff = disabled.has(m.key);
@@ -72,7 +85,6 @@ export default function eatTimes(): HTMLElement {
         return `
           <div class="meal-row meal-row-off" data-key="${m.key}">
             <span class="meal-emoji" style="opacity:.35">${m.emoji}</span>
-            <span class="meal-label" style="opacity:.35">${m.label}</span>
             <button class="btn-skip" data-action="enable" data-key="${m.key}" type="button">+ 加回</button>
           </div>
         `;
@@ -80,14 +92,15 @@ export default function eatTimes(): HTMLElement {
       // Show ✕ only when there's another meal still active. Disabling the
       // last meal would leave the notifier with nothing to fire on.
       const removable = activeCount > 1;
+      const label = activeLabel(m.key);
       return `
         <div class="meal-row" data-key="${m.key}">
           <span class="meal-emoji">${m.emoji}</span>
-          <span class="meal-label">${m.label}</span>
+          <span class="meal-label">${label}</span>
           <input type="time" class="meal-input" data-key="${m.key}" value="${times[m.key]}" />
           ${
             removable
-              ? `<button class="meal-remove" data-action="disable" data-key="${m.key}" type="button" aria-label="移除${m.label}"><span class="ms">close</span></button>`
+              ? `<button class="meal-remove" data-action="disable" data-key="${m.key}" type="button" aria-label="移除${label}"><span class="ms">close</span></button>`
               : ''
           }
         </div>

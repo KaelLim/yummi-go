@@ -22,7 +22,7 @@ import { $profile } from '@/store/user';
 import { updateCheckInItems } from '@/api/check-ins';
 import type { MockFood } from '@/lib/mock-ai';
 
-const MEAL_LABEL: Record<number, string> = { 1: '早餐', 2: '午餐', 3: '晚餐' };
+const MEAL_LABEL: Record<number, string> = { 1: '第一餐', 2: '第二餐', 3: '第三餐' };
 
 export default function success(): HTMLElement {
   const wrap = document.createElement('div');

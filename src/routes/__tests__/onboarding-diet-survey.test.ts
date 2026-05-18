@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/api/profile', () => ({
   updateProfile: vi.fn(),
+  getUserFull: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/store/user', () => ({
   $user: { get: vi.fn() },
+  $profile: { set: vi.fn() },
 }));
 
 vi.mock('@/router', () => ({

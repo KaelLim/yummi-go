@@ -48,7 +48,7 @@ export default function capture(): HTMLElement {
   resetCheckin();
   const idx = inferMealIndex();
   setMealIndex(idx);
-  const mealLabel = idx === 1 ? '早餐' : idx === 2 ? '午餐' : '晚餐';
+  const mealLabel = idx === 1 ? '第一餐' : idx === 2 ? '第二餐' : '第三餐';
   (wrap.querySelector('#meal-tag') as HTMLElement).textContent = mealLabel;
 
   const fileInput = wrap.querySelector<HTMLInputElement>('#file')!;

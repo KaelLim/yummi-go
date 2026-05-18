@@ -3,9 +3,10 @@
  *
  * Two outcomes, no nutrition card on this page:
  *   - No meat in scan → auto-submit + navigate to /check-in/success
- *   - Meat in scan    → show "偵測到肉類" banner with detected items + 是 / 否
- *       · 是 → /check-in/fail (existing meat-keeps-meat branch)
- *       · 否 → flip items to plant-based, submit, navigate to success
+ *   - Meat in scan    → centered prompt: "我們偵測到 <items>，這是肉嗎？"
+ *       · 這是肉           → /check-in/fail (existing meat-keeps-meat branch)
+ *       · 不，這是植物肉    → flip items to plant-based, submit, navigate
+ *                            to success
  *
  * The full review (items list, vegan chips, summary, edit mode) is gone —
  * this is the prototype-friendly path. Nutrition lives on the success page
@@ -27,7 +28,7 @@ import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
 import { createCheckIn, listCheckIns } from '@/api/check-ins';
 import { awardXp } from '@/store/pet';
 
-const MEAL_LABEL: Record<MealIndex, string> = { 1: '早餐', 2: '午餐', 3: '晚餐' };
+const MEAL_LABEL: Record<MealIndex, string> = { 1: '第一餐', 2: '第二餐', 3: '第三餐' };
 
 export default function result(): HTMLElement {
   const wrap = document.createElement('div');
@@ -74,16 +75,12 @@ export default function result(): HTMLElement {
       <span class="checkin-meal">${MEAL_LABEL[draft.mealIndex]}</span>
     </header>
     <div class="checkin-body">
-      <div class="meat-banner" id="meat-banner">
-        <span class="ms">help</span>
-        <div class="meat-banner-body">
-          <strong>偵測到肉類食材</strong>
-          <p id="meat-list">${escapeHtml(meatNames.join('、'))}</p>
-          <p class="meat-banner-hint">要保留還是用植物肉替換？</p>
-        </div>
-        <div class="meat-banner-actions">
-          <button class="btn text-btn-m btn-sm text-mini btn-secondary" id="meat-yes">是</button>
-          <button class="btn text-btn-m btn-sm text-mini btn-primary" id="meat-no">否</button>
+      <div class="checkin-meat-prompt" id="meat-banner">
+        <h2 class="meat-prompt-title">我們偵測到 <strong id="meat-list">${escapeHtml(meatNames.join('、'))}</strong></h2>
+        <p class="meat-prompt-question">這是肉嗎？</p>
+        <div class="meat-prompt-actions">
+          <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="meat-yes">這是肉</button>
+          <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="meat-no">不，這是植物肉</button>
         </div>
       </div>
     </div>

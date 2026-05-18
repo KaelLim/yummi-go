@@ -70,15 +70,6 @@ describe('splash route', () => {
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/diet-survey');
   });
 
-  it('Login CTA navigates to /login', async () => {
-    mockedUser.$isLoggedIn.get.mockReturnValue(false);
-    const el = splash();
-    await vi.advanceTimersByTimeAsync(1300);
-    el.querySelector<HTMLButtonElement>('#goto-login')?.click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/login');
-  });
-
-
   it('navigates to /home after 1.2s when logged in', async () => {
     mockedUser.$isLoggedIn.get.mockReturnValue(true);
     splash();

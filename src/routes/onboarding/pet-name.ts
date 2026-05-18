@@ -1,11 +1,15 @@
 /**
  * Onboarding step 5/5 (last) — Pet name.
  *
- * Final onboarding screen. Stores the chosen name into the draft (used as
- * display_name fallback when /register drains it). Logged-in users (the
- * normal flow now that guests are pre-registered on splash) just continue
- * to /home — eat-times moved out of onboarding and now shows after the
- * user's first check-in instead.
+ * Final onboarding survey screen. Persists the chosen name as the user's
+ * display_name (the pet's name = the user's display_name), then advances
+ * to /onboarding/start-checkin (the intro screen that opens the first
+ * check-in). eat-times + challenge-level happen after the first
+ * check-in's success screen.
+ *
+ * Non-logged-in fallback path (defensive, shouldn't normally fire since
+ * guests are pre-registered on splash): patch the draft and route to
+ * /register — register.ts drains the draft into a fresh user row.
  *
  * The initial value is randomised on every mount from the
  * pet_name_suggestions collection (drust live, hardcoded fallback if the
@@ -14,10 +18,11 @@
  * picks a different entry from the cached result.
  */
 import { navigate } from '@/router';
-import { $user } from '@/store/user';
+import { $user, setLoggedInUser } from '@/store/user';
 import { $onboardingDraft, patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 import { listPetNameSuggestions } from '@/api/content';
+import { updateDisplayName } from '@/api/profile';
 
 const STATIC_FALLBACK = '小綠';
 
@@ -110,16 +115,29 @@ export default function petName(): HTMLElement {
     navigate('/onboarding/day1-hook'),
   );
 
-  wrap.querySelector('#continue-btn')?.addEventListener('click', () => {
+  wrap.querySelector('#continue-btn')?.addEventListener('click', async () => {
     const name = input.value.trim();
     if (!name) {
       error.hidden = false;
       error.textContent = '請為你的守護者取個名字';
       return;
     }
+    // Always patch the draft so the defensive /register branch still works
+    // if we somehow get here without a logged-in user.
+    patchDraft({ pet_name: name });
     const u = $user.get();
-    if (!u) patchDraft({ pet_name: name });
-    navigate(u ? '/home' : '/register');
+    if (u) {
+      // The pet's name is the user's display_name — persist it and refresh
+      // the in-memory session so PetView / TabBar pick up the new name
+      // immediately. Then drop the user straight into their first check-in
+      // (was /home — the first check-in is the intended next step after
+      // the egg is named).
+      try { await updateDisplayName(u.id, name); } catch { /* soft fail */ }
+      setLoggedInUser({ id: u.id, username: u.username, displayName: name });
+      navigate('/onboarding/start-checkin');
+    } else {
+      navigate('/register');
+    }
   });
 
   return wrap;

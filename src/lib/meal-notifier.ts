@@ -13,9 +13,9 @@ const WINDOW_MS = 5 * 60_000;
 const LEAD_MS = 10 * 60_000; // fire 10 min before meal time
 
 const MEAL_LABEL: Record<string, string> = {
-  breakfast: '早餐',
-  lunch: '午餐',
-  dinner: '晚餐',
+  breakfast: '第一餐',
+  lunch: '第二餐',
+  dinner: '第三餐',
 };
 
 export function parseEatTimes(raw: string | null): Record<string, string> | null {

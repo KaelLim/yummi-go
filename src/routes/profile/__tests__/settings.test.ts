@@ -45,10 +45,10 @@ describe('settings route', () => {
     el.remove();
   });
 
-  it('logout clears session and navigates to /login', () => {
+  it('logout clears session and navigates to splash', () => {
     const el = settings();
     el.querySelector<HTMLButtonElement>('#logout')?.click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/login');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/');
   });
 
   it('blocks empty name on save', () => {

@@ -2,18 +2,18 @@
  * Splash / landing screen.
  *
  * Logged-in users: 1.2s logo hold → /home (returning-user fast path).
- * Guests: after the hold, the loader dots swap for two CTAs:
- *   - Get Started      → registerGuest() → /onboarding/diet-survey
- *   - 已有帳號 — 登入  → /login
+ * Guests: after the hold, the loader dots swap for a single Get Started CTA
+ * that calls registerGuest() and routes to /onboarding/diet-survey.
  *
  * "Get Started" no longer just routes to onboarding — it provisions a
  * real users.id row with is_guest=1 first, so the user has an identity
  * (pet / XP wallet / check-ins) attached from step 1. Binding a Google
  * account later upgrades the same row; no data is lost in the swap.
  *
- * Both CTAs come from the schema-driven `createButton` factory — this
- * route is the first end-to-end proof that the component registry works
- * in production code.
+ * Returning users who don't have a session reach /login via the
+ * "已有帳號？登入" footer link on diet-survey/register or directly via
+ * the #/login URL — keeping the splash visually focused on the primary
+ * action.
  */
 import { $isLoggedIn, setLoggedInUser } from '@/store/user';
 import { navigate } from '@/router';
@@ -48,16 +48,13 @@ export default function splash(): HTMLElement {
   startBtn.id = 'get-started';
   actions.insertBefore(startBtn, errorEl);
 
-  const loginBtn = createButton({
-    label: '已有帳號 — 登入',
-    variant: 'secondary',
-    size: 'lg',
-    onClick: () => navigate('/login'),
-  });
-  loginBtn.id = 'goto-login';
-  actions.insertBefore(loginBtn, errorEl);
-
-  setTimeout(() => {
+  // Once Get Started is tapped, the auto-redirect must never fire — the
+  // user has explicitly chosen the onboarding path, and any race where
+  // the 1.2s timeout fires after setLoggedInUser would wrongly bounce
+  // them to /home. Tracked via flag + clearTimeout for belt-and-suspenders.
+  let getStartedTapped = false;
+  const splashTimeoutId = setTimeout(() => {
+    if (getStartedTapped) return;
     if ($isLoggedIn.get()) {
       navigate('/home');
       return;
@@ -68,6 +65,8 @@ export default function splash(): HTMLElement {
   }, 1200);
 
   startBtn.addEventListener('click', async () => {
+    getStartedTapped = true;
+    clearTimeout(splashTimeoutId);
     startBtn.disabled = true;
     startBtn.textContent = '準備中…';
     try {
@@ -76,6 +75,7 @@ export default function splash(): HTMLElement {
       navigate('/onboarding/diet-survey');
     } catch (e) {
       console.error('[splash] registerGuest failed:', e);
+      getStartedTapped = false;
       startBtn.disabled = false;
       startBtn.textContent = 'Get Started';
       errorEl.hidden = false;

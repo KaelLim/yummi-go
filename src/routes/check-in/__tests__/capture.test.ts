@@ -27,7 +27,7 @@ describe('check-in/capture route', () => {
     expect($checkin.get().mealIndex).toBeGreaterThanOrEqual(1);
     expect($checkin.get().mealIndex).toBeLessThanOrEqual(3);
     const tag = el.querySelector('.checkin-meal')?.textContent;
-    expect(['早餐', '午餐', '晚餐']).toContain(tag);
+    expect(['第一餐', '第二餐', '第三餐']).toContain(tag);
   });
 
   it('back button navigates home', () => {

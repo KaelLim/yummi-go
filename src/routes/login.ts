@@ -18,9 +18,6 @@ export default function login(): HTMLElement {
       </div>
     </div>
     <div class="auth-body">
-      <h1 class="auth-title text-h1">歡迎回來</h1>
-      <p class="auth-sub text-body">繼續你的蔬食冒險</p>
-
       <form class="auth-form" id="login-form">
         <label class="field">
           <span class="field-label text-mini">使用者名稱</span>

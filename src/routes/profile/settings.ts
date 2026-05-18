@@ -15,9 +15,9 @@ import { bind } from '@/lib/lifecycle';
 import { requestMealNotificationPermission } from '@/lib/meal-notifier';
 
 const MEALS = [
-  { key: 'breakfast', label: '早餐', defaultTime: '08:00' },
-  { key: 'lunch', label: '午餐', defaultTime: '12:30' },
-  { key: 'dinner', label: '晚餐', defaultTime: '19:00' },
+  { key: 'breakfast', label: '第一餐', defaultTime: '08:00' },
+  { key: 'lunch', label: '第二餐', defaultTime: '12:30' },
+  { key: 'dinner', label: '第三餐', defaultTime: '19:00' },
 ];
 
 function formatBuildTime(): string {
@@ -170,7 +170,10 @@ export default function settings(): HTMLElement {
   wrap.querySelector('#logout')?.addEventListener('click', () => {
     if (window.confirm('確定要登出嗎？')) {
       clearUser();
-      navigate('/login');
+      // Land on splash so the user can decide between "Get Started" (new
+      // guest account) and footer-link login — same surface as a fresh
+      // install. /login direct-entry felt heavy-handed for guests.
+      navigate('/');
     }
   });
 

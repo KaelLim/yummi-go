@@ -3,7 +3,7 @@ import type { Flow } from './_types';
 const flow: Flow = {
   id: 'first-checkin',
   name: '首次打卡',
-  description: '從 /home 第一次走完打卡 → AHA banner → 選挑戰難度 → 設用餐時間 → 回 /home',
+  description: '由 pet-name 自動進入首次打卡 → AHA banner → 選挑戰難度 → 設用餐時間 → 回 /home（後續打卡則由 /home 進入）',
   order: 2,
   nodes: [
     { id: 'home',          routePath: '/home',                          title: 'Home',                  description: '點「打卡」',                       x: 1, y: 0 },

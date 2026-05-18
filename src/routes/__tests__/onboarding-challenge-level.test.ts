@@ -71,4 +71,15 @@ describe('challenge-level (post-first-checkin picker)', () => {
     (el.querySelector('#back-btn') as HTMLElement).click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
+
+  it('level 3 routes through the unlock hype interstitial', async () => {
+    mockedUser.$profile.get.mockReturnValue({ eat_times: null });
+    mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
+    const el = challengeLevel();
+    const lvl3 = el.querySelector('.level-choice[data-value="3"]') as HTMLButtonElement;
+    lvl3.click();
+    await flush();
+    expect(mockedProfile.updateProfile).toHaveBeenCalledWith(11, { challenge_level: 3 });
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/level3-unlock');
+  });
 });

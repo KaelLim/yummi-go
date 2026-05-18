@@ -7,8 +7,8 @@
  * advance) so flaky network does not strand the user mid-onboarding.
  */
 import { navigate } from '@/router';
-import { $user } from '@/store/user';
-import { updateProfile } from '@/api/profile';
+import { $user, $profile } from '@/store/user';
+import { updateProfile, getUserFull } from '@/api/profile';
 import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 
@@ -50,11 +50,16 @@ export default function dietSurvey(): HTMLElement {
   wrap.querySelectorAll<HTMLButtonElement>('.choice').forEach(btn => {
     btn.addEventListener('click', async () => {
       const value = btn.dataset.value!;
+      // Always patch the draft, even when logged in — gives the next
+      // screen's back-button a synchronous in-memory read for diet_type
+      // (purpose.ts uses it to decide whether back lands on diet-survey
+      // or baseline). Without this the back arrow misroutes vegan /
+      // vegetarian users to baseline while getUserFull is still in flight.
+      patchDraft({ diet_type: value });
       const u = $user.get();
       if (u) {
         try { await updateProfile(u.id, { diet_type: value }); } catch { /* soft fail */ }
-      } else {
-        patchDraft({ diet_type: value });
+        void getUserFull(u.id).then((full) => { if (full) $profile.set(full); });
       }
       // Vegan / vegetarian users don't have a meat baseline to set —
       // skip straight to the purpose step.

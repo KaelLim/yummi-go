@@ -324,7 +324,35 @@ body {
   vertical-align: middle;
 }
 .level-choice small { font-size: var(--text-mini-size); color: var(--color-neutral-darker); font-weight: var(--font-weight-medium); line-height: 1.5; }
-.level-choice small.level-speed { color: var(--color-secondary-dark); font-weight: var(--font-weight-bold); margin-top: 2px; }
+
+/* Level-3 hype interstitial — "守護者圖鑑解鎖" */
+.unlock-celebration {
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+.unlock-trophy {
+  font-size: 64px;
+  color: var(--color-secondary-dark);
+  background: var(--color-secondary-light);
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.unlock-title { margin: 0; font-size: var(--text-h2-size); font-weight: var(--font-weight-extrabold); }
+.unlock-sub { margin: 0; color: var(--color-foreground-alt); font-size: var(--text-mini-size); }
+.unlock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin: var(--space-3) 0; }
+.unlock-card {
+  background: var(--color-card);
+  border: 1.5px dashed var(--color-neutral-darker);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-2);
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  opacity: 0.65;
+}
+.unlock-silhouette { font-size: 32px; filter: grayscale(1); }
+.unlock-label { font-size: var(--text-caption-size); color: var(--color-neutral-darker); font-weight: var(--font-weight-bold); }
+.unlock-hint { text-align: center; color: var(--color-foreground-alt); font-size: var(--text-mini-size); margin: var(--space-4) 0; }
 
 /* Generic Tag primitive — small inline badge. */
 .tag {
@@ -764,22 +792,32 @@ body {
 .scan-dev-actions { display: flex; flex-direction: column; gap: var(--space-2); }
 .scan-dev-hint { margin: 0; font-size: var(--text-caption-size); color: var(--color-neutral-darker); }
 
-/* Result step */
-.meat-banner {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas: "icon body" "actions actions";
-  gap: 8px 12px;
-  background: linear-gradient(135deg, #fff4e8, #fee8d8);
-  border: 1.5px solid var(--color-secondary);
-  padding: var(--space-4) var(--space-4);
-  border-radius: var(--radius-md);
+/* Result step — meat-detected centered prompt */
+.checkin-meat-prompt {
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-3);
 }
-.meat-banner > .ms { grid-area: icon; color: var(--color-secondary-dark); align-self: center; font-size: var(--text-h2-size); }
-.meat-banner-body { grid-area: body; }
-.meat-banner-body strong { display: block; color: var(--color-secondary-dark); font-weight: var(--font-weight-extrabold); font-size: var(--text-mini-size); }
-.meat-banner-body p { margin: var(--space-1) 0 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt); }
-.meat-banner-actions { grid-area: actions; display: flex; gap: 8px; justify-content: flex-end; }
+.meat-prompt-title {
+  margin: 0;
+  font-size: var(--text-h2-size);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-foreground);
+  line-height: 1.4;
+}
+.meat-prompt-title strong { color: var(--color-secondary-dark); }
+.meat-prompt-question {
+  margin: 0;
+  font-size: var(--text-body-size);
+  color: var(--color-foreground-alt);
+}
+.meat-prompt-actions {
+  display: flex; flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-4);
+}
 
 .result-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .result-item {
@@ -944,7 +982,6 @@ body {
 }
 
 /* Banner hint copy on the meat-detected prompt */
-.meat-banner-hint { margin: 4px 0 0; font-size: var(--text-caption-size); color: var(--color-neutral-darker); }
 
 /* Check-in: pet speech bubble inviting edits */
 .pet-bubble {

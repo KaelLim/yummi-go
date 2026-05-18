@@ -239,7 +239,8 @@ export default function profile(): HTMLElement {
       const route = btn.dataset.route!;
       if (route === '__logout__') {
         clearUser();
-        navigate('/login');
+        // Land on splash (see settings.ts logout for rationale).
+        navigate('/');
         return;
       }
       navigate(route);

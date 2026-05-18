@@ -21,8 +21,8 @@ describe('check-in/fail', () => {
 
   it('renders next-meal encouragement copy + both CTAs', () => {
     const el = fail();
-    // mealIndex 2 (lunch) → next meal is 晚餐.
-    expect(el.textContent).toContain('晚餐一起加油');
+    // mealIndex 2 (lunch) → next meal is 第三餐 (slot-based rename).
+    expect(el.textContent).toContain('第三餐一起加油');
     expect(el.textContent).toContain('小綠相信你');
     expect(el.querySelector('#try-again')?.textContent).toContain('換個方式打卡');
     expect(el.querySelector('#go-home')?.textContent).toContain('下次再來');
