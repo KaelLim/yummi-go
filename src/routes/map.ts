@@ -86,6 +86,7 @@ const VEGAN_TYPES: VeganTypeOption[] = [
 interface FilterState {
   veganType: string | null; // null = all
   partnerOnly: boolean;
+  query: string; // free-text search over restaurant names
 }
 
 export default function map(): HTMLElement {
@@ -96,6 +97,20 @@ export default function map(): HTMLElement {
       <h1 class="map-title">蔬食地圖</h1>
       <span class="map-meta" id="result-count">載入中…</span>
     </header>
+    <div class="map-search">
+      <span class="ms map-search-icon" aria-hidden="true">search</span>
+      <input
+        type="search"
+        id="map-search"
+        class="map-search-input"
+        placeholder="搜尋店家名稱或料理類型（中式、咖啡…）"
+        autocomplete="off"
+        aria-label="搜尋店家"
+      />
+      <button class="map-search-clear" id="map-search-clear" type="button" aria-label="清除搜尋" hidden>
+        <span class="ms">close</span>
+      </button>
+    </div>
     <div class="map-filters" id="filters">
       <button class="filter-chip selected" data-vegan="">全部</button>
       ${VEGAN_TYPES.map(
@@ -136,9 +151,9 @@ export default function map(): HTMLElement {
     maxZoom: 18,
   }).addTo(leafletMap);
 
-  const filterState: FilterState = { veganType: null, partnerOnly: false };
+  const filterState: FilterState = { veganType: null, partnerOnly: false, query: '' };
   let allRestaurants: Restaurant[] = [];
-  let currentMarkers: L.CircleMarker[] = [];
+  let currentMarkers: L.Marker[] = [];
   let selectedId: number | null = null;
   // Per-restaurant consensus tiers (vegan_type picked by ≥3 reviewers).
   // Empty until the reviews fetch resolves; renderCard reads from this
@@ -199,28 +214,29 @@ export default function map(): HTMLElement {
   function renderMarkers() {
     for (const m of currentMarkers) m.remove();
     currentMarkers = [];
+    const q = filterState.query.trim().toLowerCase();
     const filtered = allRestaurants.filter((r) => {
-      // vegan_type is multi-label (e.g. "vegan,vegetarian,veggie_option")
-      // — a restaurant matches the chip if its list includes the chosen
-      // tier. Rows with no list are excluded from non-全部 chips so the
-      // filter narrows cleanly.
       if (filterState.veganType && !parseVeganTypes(r).includes(filterState.veganType)) return false;
       if (filterState.partnerOnly && !r.is_partner) return false;
+      if (q) {
+        // Match against name + dish type (both the enum key and its
+        // localised label) + address, so "中式"/"chinese"/"忠孝東路"
+        // all narrow the same way as a name query.
+        const dishLabel = (PLACE_LABEL[r.place_type] ?? '').toLowerCase();
+        const haystack = `${r.name} ${r.place_type} ${dishLabel} ${r.address}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       return true;
     });
     countEl.textContent = `${filtered.length} 家店`;
 
     for (const r of filtered) {
       const isSelected = selectedId === r.id;
-      const marker = L.circleMarker([r.lat, r.lng], {
-        radius: isSelected ? 12 : 10,
-        color: '#fff',
-        weight: 2,
-        fillColor: pinColorFor(r),
-        fillOpacity: 0.95,
+      const marker = L.marker([r.lat, r.lng], {
+        icon: buildPinIcon(pinColorFor(r), isSelected),
       });
       marker.addTo(leafletMap);
-      marker.bindTooltip(r.name, { direction: 'top', offset: [0, -8] });
+      marker.bindTooltip(r.name, { direction: 'top', offset: [0, -28] });
       marker.on('click', () => {
         selectedId = r.id;
         renderCard(r);
@@ -239,6 +255,26 @@ export default function map(): HTMLElement {
       leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
   }
+
+  // Search input — narrows by restaurant-name substring on every keystroke.
+  const searchInput = wrap.querySelector<HTMLInputElement>('#map-search')!;
+  const searchClear = wrap.querySelector<HTMLButtonElement>('#map-search-clear')!;
+  searchInput.addEventListener('input', () => {
+    filterState.query = searchInput.value;
+    searchClear.hidden = filterState.query === '';
+    selectedId = null;
+    renderCard(null);
+    renderMarkers();
+  });
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    filterState.query = '';
+    searchClear.hidden = true;
+    selectedId = null;
+    renderCard(null);
+    renderMarkers();
+    searchInput.focus();
+  });
 
   // Filter chips (vegan type — exclusive radio)
   wrap.querySelectorAll<HTMLButtonElement>('.filter-chip:not(.filter-partner)').forEach((c) => {
@@ -304,6 +340,29 @@ export default function map(): HTMLElement {
   });
 
   return wrap;
+}
+
+/**
+ * Build a Leaflet DivIcon shaped like a classic teardrop pin, painted
+ * with the restaurant's tier colour. Selected pins get a slight scale
+ * bump so the user can tell at a glance which one their card is for.
+ */
+function buildPinIcon(color: string, selected: boolean): L.DivIcon {
+  const scale = selected ? 1.15 : 1;
+  // We use inline styles for the colour (per-marker) so the same .map-pin
+  // CSS rule can stay generic. The inner dot is a thin white circle that
+  // reads as the pin's "hole" — a common map convention.
+  return L.divIcon({
+    className: 'map-pin' + (selected ? ' is-selected' : ''),
+    html: `
+      <div class="map-pin-shape" style="background:${color};transform:rotate(-45deg) scale(${scale});">
+        <div class="map-pin-dot-inner"></div>
+      </div>
+    `,
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    tooltipAnchor: [0, -32],
+  });
 }
 
 /** Build a Google Maps deep link for the restaurant. Coords beat address

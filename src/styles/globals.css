@@ -1341,6 +1341,36 @@ body {
 .map-title { font-size: var(--text-button-l-size); font-weight: var(--font-weight-black); color: var(--color-primary-dark); margin: 0; }
 .map-meta { font-size: var(--text-caption-size); color: var(--color-neutral-darker); font-weight: var(--font-weight-semibold); }
 
+/* Map search bar — sits between the header and the filter chip row. */
+.map-search {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--color-card);
+  border: 1.5px solid var(--color-neutral);
+  border-radius: var(--radius-pill);
+  padding: 4px var(--space-3);
+  margin: var(--space-2) var(--space-1) 0;
+  box-shadow: 0 1px 3px -1px rgba(0,0,0,0.05);
+}
+.map-search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+.map-search-icon { color: var(--color-neutral-darker); font-size: 18px; }
+.map-search-input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-family: inherit; font-size: var(--text-mini-size);
+  color: var(--color-foreground); padding: 4px 0;
+}
+.map-search-input::placeholder { color: var(--color-neutral-darker); }
+.map-search-input::-webkit-search-cancel-button { display: none; }
+.map-search-clear {
+  background: none; border: none; cursor: pointer; padding: 2px;
+  color: var(--color-neutral-darker);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.map-search-clear:hover { color: var(--color-foreground); }
+.map-search-clear .ms { font-size: 16px; }
+
 .map-filters {
   display: flex; flex-wrap: wrap; gap: 6px;
   padding: 0 var(--space-1);
@@ -1377,6 +1407,34 @@ body {
 .map-card-body { flex: 1; min-width: 0; }
 .map-card-meta { display: flex; align-items: center; gap: 6px; font-size: var(--text-caption-size); color: var(--color-neutral-darker); }
 .map-pin-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* Teardrop pin markers used on the Leaflet map. The outer .map-pin div is
+ * what Leaflet positions; the inner .map-pin-shape gets the per-marker
+ * background colour via inline style and rotates -45deg so the bottom
+ * corner becomes the pin tip. */
+.map-pin {
+  background: none !important;
+  border: none !important;
+  width: 28px; height: 36px;
+  position: relative;
+}
+.map-pin-shape {
+  position: absolute; left: 4px; top: 0;
+  width: 20px; height: 20px;
+  border-radius: 50% 50% 50% 0;
+  border: 2px solid #fff;
+  box-shadow: 0 3px 6px -1px rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(-45deg); /* default — overridden inline for scale */
+  transform-origin: 50% 50%;
+  transition: transform 0.15s ease;
+}
+.map-pin-dot-inner {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #fff; opacity: 0.85;
+}
+.map-pin.is-selected { z-index: 1000; }
+.map-pin.is-selected .map-pin-shape { box-shadow: 0 4px 10px -1px rgba(0,0,0,0.45); }
 .map-card-type { font-weight: var(--font-weight-bold); }
 .map-partner-tag { background: var(--color-secondary-light); color: var(--color-secondary-dark); padding: 1px var(--space-2); border-radius: 4px; /* tiny accent radius — not card-shaped */ font-size: var(--text-caption-size); font-weight: var(--font-weight-bold); }
 .map-card-name { font-size: var(--text-body-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); margin-top: 2px /* hairline, not spacing */; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
