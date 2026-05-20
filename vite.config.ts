@@ -35,6 +35,13 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
         cleanupOutdatedCaches: true,
+        // Skip the "wait for all tabs to close" install step so a fresh
+        // deploy can take over an already-open tab on the user's next
+        // navigation. clientsClaim makes the new SW assume control of
+        // existing windows immediately. Trade-off: a user mid-task may
+        // notice a one-time reload, but prototype iteration speed wins.
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/tool\.tzuchi-org\.tw\/.*/,
