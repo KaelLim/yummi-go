@@ -43,8 +43,6 @@ defRoute('/register', wrap(() => import('./routes/register')));
 defRoute('/onboarding/diet-survey', wrap(() => import('./routes/onboarding/diet-survey')));
 defRoute('/onboarding/baseline', wrap(() => import('./routes/onboarding/baseline')));
 defRoute('/onboarding/purpose', wrap(() => import('./routes/onboarding/purpose')));
-defRoute('/onboarding/challenge-level', wrap(() => import('./routes/onboarding/challenge-level')));
-defRoute('/onboarding/level3-unlock', wrap(() => import('./routes/onboarding/level3-unlock')));
 defRoute('/onboarding/eat-times', wrap(() => import('./routes/onboarding/eat-times')));
 defRoute('/onboarding/day1-hook', wrap(() => import('./routes/onboarding/day1-hook')));
 defRoute('/onboarding/pet-name', wrap(() => import('./routes/onboarding/pet-name')));
@@ -53,19 +51,25 @@ defRoute('/home', wrap(() => import('./routes/home')));
 defRoute('/map', wrap(() => import('./routes/map')));
 defRoute('/map/restaurant/:id', wrap(() => import('./routes/restaurant-detail')));
 defRoute('/map/restaurant/:id/review', wrap(() => import('./routes/restaurant-review')));
+defRoute('/map/restaurant/:id/verify', wrap(() => import('./routes/restaurant-verify')));
 defRoute('/check-in', wrap(() => import('./routes/check-in/capture')));
 defRoute('/check-in/scanning', wrap(() => import('./routes/check-in/scanning')));
 defRoute('/check-in/result', wrap(() => import('./routes/check-in/result')));
 defRoute('/check-in/fail', wrap(() => import('./routes/check-in/fail')));
 defRoute('/check-in/success', wrap(() => import('./routes/check-in/success')));
-defRoute('/tasks', wrap(() => import('./routes/tasks/index')));
+defRoute('/store', wrap(() => import('./routes/store')));
+// /tasks index page removed in the 2026-05-19 pivot — missions now live on
+// home. /tasks/makeup is also gone: its card-swap model was replaced by the
+// direct-Gem makeup flow inside /profile/calendar. The remaining leaf
+// routes below still resolve so deep links keep working; each one returns
+// to /home (not /tasks) after completion.
 defRoute('/tasks/quiz', wrap(() => import('./routes/tasks/quiz')));
-defRoute('/tasks/makeup', wrap(() => import('./routes/tasks/makeup')));
 defRoute('/tasks/known-from', wrap(() => import('./routes/tasks/known-from')));
 defRoute('/profile', wrap(() => import('./routes/profile/index')));
 defRoute('/profile/settings', wrap(() => import('./routes/profile/settings')));
 defRoute('/profile/reviews', wrap(() => import('./routes/profile/reviews')));
 defRoute('/profile/baseline', wrap(() => import('./routes/profile/baseline')));
+defRoute('/profile/calendar', wrap(() => import('./routes/profile/calendar')));
 defRoute('/challenge/day-30', wrap(() => import('./routes/day-30')));
 // Dev tools render their own full-viewport chrome — bypass the app layout.
 defRoute('/dev/flows', () => import('./routes/dev/flows'));

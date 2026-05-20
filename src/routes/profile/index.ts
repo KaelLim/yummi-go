@@ -1,11 +1,9 @@
 /**
- * Profile hub — identity card + 30-day calendar + accumulated stats + entries.
+ * Profile hub — identity card + accumulated stats + entries.
  *
- * Calendar cell colour:
- *   - 灰：未到 / 未來
- *   - 葉：當天有打卡
- *   - 幸：當天有打卡且命中幸運色
- *   - 缺：應打但沒打（過去）
+ * The inline 30-day mini-calendar was removed in the 2026-05-19 pivot; the
+ * full month-view calendar (with makeup) now lives at /profile/calendar,
+ * reachable from the link below.
  *
  * Stats card aggregates: total days with at least one check-in, total
  * check-in count (rough proxy for meals), accumulated XP from $profile,
@@ -14,8 +12,6 @@
  */
 import { navigate } from '@/router';
 import { $user, $profile, clearUser } from '@/store/user';
-import { $today, $challenge } from '@/store/today';
-import { $ui } from '@/store/ui';
 import { listCheckIns, type CheckInRow } from '@/api/check-ins';
 import { mealFailCount } from '@/api/profile';
 import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
@@ -23,20 +19,6 @@ import { bind } from '@/lib/lifecycle';
 import { spriteFor } from '@/lib/pet-sprites';
 import type { PetStage } from '@/lib/pet-evolution';
 import { $pet, effectiveMood } from '@/store/pet';
-
-const DAY_MS = 86_400_000;
-/** challenge day → calendar Date (day 1 maps to challengeStartedAt) */
-function dateForDay(day: number, startedAt: number): Date {
-  return new Date(startedAt + (day - 1) * DAY_MS);
-}
-/** "5/8" — month/day, used inside the 30 small calendar cells */
-function formatMD(d: Date): string {
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-/** "5月8日" — used for the prominent calendar meta label */
-function formatLongMD(d: Date): string {
-  return `${d.getMonth() + 1}月${d.getDate()}日`;
-}
 
 function describeTolerance(level: number | null | undefined, fails: number): {
   show: boolean; total: number | null; used: number; broken: boolean; label: string;
@@ -65,37 +47,25 @@ export default function profile(): HTMLElement {
     <header class="profile-card" id="identity"></header>
     <section class="profile-stats" id="stats"></section>
     <section class="tolerance-card" id="tolerance" hidden></section>
-    <section class="profile-section">
-      <div class="profile-section-head">
-        <h2 class="profile-section-title">月曆</h2>
-        <span class="profile-section-meta" id="cal-meta">…</span>
-      </div>
-      <div class="calendar-grid" id="calendar"></div>
-      <div class="calendar-legend">
-        <span class="dot d-leaf"></span>打卡
-        <span class="dot d-lucky"></span>幸運色
-        <span class="dot d-miss"></span>未打
-      </div>
-    </section>
     <section class="profile-links">
+      <button class="profile-link" data-route="/profile/calendar">
+        <span class="ms">calendar_month</span>
+        <span>月曆 / 補簽</span>
+        <span class="ms profile-link-arrow">arrow_forward_ios</span>
+      </button>
       <button class="profile-link" data-route="/profile/reviews">
         <span class="ms">rate_review</span>
         <span>我的評論</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
-      <button class="profile-link" data-route="/profile/baseline" id="baseline-link" hidden>
+      <button class="profile-link" data-route="/profile/baseline">
         <span class="ms">tune</span>
-        <span>編輯基準飲食</span>
+        <span>編輯基本飲食</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
       <button class="profile-link" data-route="/profile/settings">
         <span class="ms">settings</span>
         <span>設定</span>
-        <span class="ms profile-link-arrow">arrow_forward_ios</span>
-      </button>
-      <button class="profile-link profile-link-strong" data-route="/challenge/day-30">
-        <span class="ms">emoji_events</span>
-        <span>查看 Day-30 終曲</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
     </section>
@@ -167,36 +137,6 @@ export default function profile(): HTMLElement {
     `;
   }
 
-  function renderCalendar() {
-    const today = $today.get().dayNumber;
-    const startedAt = $ui.get().challengeStartedAt;
-    const byDay = new Map<number, CheckInRow[]>();
-    for (const c of serverCheckIns) {
-      const arr = byDay.get(c.day_number) ?? [];
-      arr.push(c);
-      byDay.set(c.day_number, arr);
-    }
-    const meta = wrap.querySelector<HTMLElement>('#cal-meta')!;
-    meta.textContent = `${formatLongMD(dateForDay(today, startedAt))} · D${today} / 30`;
-
-    const grid = wrap.querySelector<HTMLElement>('#calendar')!;
-    grid.innerHTML = Array.from({ length: 30 }, (_, i) => {
-      const day = i + 1;
-      const records = byDay.get(day) ?? [];
-      const hasCheckIn = records.length > 0;
-      const hasLucky = records.some((c) => c.lucky_color_matched === 1);
-      let cls = 'cal-cell';
-      if (day > today) cls += ' future';
-      else if (hasLucky) cls += ' lucky';
-      else if (hasCheckIn) cls += ' done';
-      else cls += ' miss';
-      if (day === today) cls += ' today';
-      const icon = day > today ? '' : hasLucky ? '★' : hasCheckIn ? '✓' : '·';
-      const md = formatMD(dateForDay(day, startedAt));
-      return `<div class="${cls}" data-day="${day}" title="D${day}"><span class="cal-num">${md}</span><span class="cal-icon">${icon}</span></div>`;
-    }).join('');
-  }
-
   function renderTolerance() {
     const p = $profile.get();
     const tol = describeTolerance(p?.challenge_level ?? null, serverFails);
@@ -213,26 +153,15 @@ export default function profile(): HTMLElement {
     `;
   }
 
-  function renderBaselineLink() {
-    const diet = $profile.get()?.diet_type;
-    const skipsBaseline = diet === 'vegan' || diet === 'vegetarian';
-    const link = wrap.querySelector<HTMLElement>('#baseline-link');
-    if (link) link.hidden = skipsBaseline;
-  }
-
   function renderAll() {
     renderIdentity();
     renderStats();
-    renderCalendar();
     renderTolerance();
-    renderBaselineLink();
   }
 
   bind(wrap, $user, renderAll);
   bind(wrap, $profile, renderAll);
   bind(wrap, $pet, () => renderIdentity());
-  bind(wrap, $today, renderCalendar);
-  bind(wrap, $challenge, () => {});
 
   wrap.querySelectorAll<HTMLButtonElement>('.profile-link').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -253,7 +182,6 @@ export default function profile(): HTMLElement {
     try {
       serverCheckIns = await listCheckIns(u.id);
       renderStats();
-      renderCalendar();
     } catch (err) {
       console.warn('[profile] listCheckIns failed:', err);
     }

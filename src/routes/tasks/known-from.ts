@@ -45,15 +45,15 @@ export default function knownFromTask(): HTMLElement {
     </div>
   `;
 
-  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/tasks'));
-  wrap.querySelector('#skip-btn')?.addEventListener('click', () => navigate('/tasks'));
+  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/home'));
+  wrap.querySelector('#skip-btn')?.addEventListener('click', () => navigate('/home'));
 
   wrap.querySelectorAll<HTMLButtonElement>('.choice').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const value = btn.dataset.value!;
       const u = $user.get();
       if (!u) {
-        navigate('/tasks');
+        navigate('/home');
         return;
       }
       try {
@@ -65,7 +65,7 @@ export default function knownFromTask(): HTMLElement {
       } catch (err) {
         console.warn('[tasks/known-from] failed:', err);
       }
-      navigate('/tasks');
+      navigate('/home');
     });
   });
 

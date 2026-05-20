@@ -1,12 +1,19 @@
 /**
- * Map route — Leaflet + OSM tiles, three-color pin markers, filter chips.
+ * Map route — Leaflet + OSM tiles, three-tier pin markers, filter chips.
+ *
+ * Pins (UX_UPDATE_SPEC_v0.1 §6):
+ *   - gray   → unverified — tapping opens the verification sheet
+ *   - green  → verified
+ *   - blue (legacy enum, rendered orange) → partner store
  *
  * Filters:
- *   - 餐廳類別 chip group (全部 / 中式 / 西式 / 咖啡 — derived from place_type)
+ *   - 素別 chip group (全部 / Vegan / Vegetarian / Veggie Option)
  *   - 合作 toggle (is_partner = 1) — single switch button
  *
- * Click a marker to surface a bottom card with name/address/place-type +
- * 進詳情 CTA. The selected pin is highlighted via CSS class swap.
+ * Clicking a verified/partner marker surfaces a bottom card with the
+ * 進詳情 CTA. Clicking a gray pin instead opens a verification sheet:
+ * radio of vegan-types + optional photo + comment → submit awards
+ * +20 XP and flips the pin to green.
  *
  * Map cleanup uses lifecycle.onUnmount so leaving the route disposes the
  * Leaflet instance (otherwise it would leak listeners and a dangling DOM
@@ -15,7 +22,8 @@
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { navigate } from '@/router';
-import { listRestaurants, type Restaurant } from '@/api/content';
+import { listRestaurants, parseVeganTypes, type Restaurant } from '@/api/content';
+import { listAllReviews, aggregateConsensusTiers } from '@/api/reviews';
 import { onUnmount } from '@/lib/lifecycle';
 import { $user, $profile } from '@/store/user';
 import { updateDisplayName, getUserFull } from '@/api/profile';
@@ -40,11 +48,43 @@ const PLACE_LABEL: Record<string, string> = {
 const PIN_COLOR: Record<Restaurant['pin_color'], string> = {
   green: '#1d5937',
   gray: '#7a7a7a',
-  blue: '#3b8eff',
+  // Legacy 'blue' enum now renders orange — partner tier per §6.
+  blue: '#f59e0b',
 };
 
+/**
+ * Display color for a restaurant pin.
+ *
+ * Partners always render orange — even if their `pin_color` column was
+ * seeded as 'gray' or 'green'. This makes "合作店家 = 橘色" a single
+ * source of truth at the render layer, so any future data drift can't
+ * leave a partner showing as a verified green or unverified gray pin.
+ */
+function pinColorFor(r: Restaurant): string {
+  if (r.is_partner === 1) return PIN_COLOR.blue;
+  return PIN_COLOR[r.pin_color];
+}
+
+interface VeganTypeOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Filter chips use the same 4-tier list as the review/verify forms
+ * (全素 / 蛋奶素 / 五辛素 / 鍋邊素) so 「filter → restaurant tier flags」
+ * lines up. value === label here because the stored vegan_type list is
+ * also Chinese (comma-separated, e.g. "全素,蛋奶素").
+ */
+const VEGAN_TYPES: VeganTypeOption[] = [
+  { value: '全素',     label: '全素' },
+  { value: '蛋奶素',   label: '蛋奶素' },
+  { value: '五辛素',   label: '五辛素' },
+  { value: '鍋邊素',   label: '鍋邊素' },
+];
+
 interface FilterState {
-  placeType: string | null; // null = all
+  veganType: string | null; // null = all
   partnerOnly: boolean;
 }
 
@@ -57,10 +97,10 @@ export default function map(): HTMLElement {
       <span class="map-meta" id="result-count">載入中…</span>
     </header>
     <div class="map-filters" id="filters">
-      <button class="filter-chip selected" data-place="">全部</button>
-      <button class="filter-chip" data-place="chinese">中式</button>
-      <button class="filter-chip" data-place="western">西式</button>
-      <button class="filter-chip" data-place="cafe">咖啡</button>
+      <button class="filter-chip selected" data-vegan="">全部</button>
+      ${VEGAN_TYPES.map(
+        (v) => `<button class="filter-chip" data-vegan="${v.value}">${v.label}</button>`,
+      ).join('')}
       <button class="filter-chip filter-partner" id="partner-toggle">
         <span class="ms">handshake</span>合作店家
       </button>
@@ -96,10 +136,15 @@ export default function map(): HTMLElement {
     maxZoom: 18,
   }).addTo(leafletMap);
 
-  const filterState: FilterState = { placeType: null, partnerOnly: false };
+  const filterState: FilterState = { veganType: null, partnerOnly: false };
   let allRestaurants: Restaurant[] = [];
   let currentMarkers: L.CircleMarker[] = [];
   let selectedId: number | null = null;
+  // Per-restaurant consensus tiers (vegan_type picked by ≥3 reviewers).
+  // Empty until the reviews fetch resolves; renderCard reads from this
+  // map directly so cards opened before the fetch lands simply show no
+  // tags, then the next card render after the fetch shows them.
+  let consensusTiers: Map<number, string[]> = new Map();
 
   function renderCard(r: Restaurant | null) {
     if (!r) {
@@ -108,21 +153,46 @@ export default function map(): HTMLElement {
       return;
     }
     card.hidden = false;
+    // Gray pins show the same details card as verified pins; only the CTA
+    // changes (認證餐廳 → opens the verification sheet) so the user can
+    // read the basic info first instead of being dropped straight into a
+    // form.
+    // Partners overrule pin_color for the CTA decision too — even if a
+    // partner is stored as 'gray', the card should not offer 認證餐廳.
+    const isGray = r.pin_color === 'gray' && r.is_partner !== 1;
+    const ctaLabel = isGray ? '認證餐廳' : '看詳情';
     card.innerHTML = `
       <div class="map-card-body">
         <div class="map-card-meta">
-          <span class="map-pin-dot" style="background:${PIN_COLOR[r.pin_color]}"></span>
+          <span class="map-pin-dot" style="background:${pinColorFor(r)}"></span>
           <span class="map-card-type">${PLACE_LABEL[r.place_type] ?? r.place_type}</span>
           ${r.is_partner ? '<span class="map-partner-tag">合作</span>' : ''}
+          ${isGray ? '<span class="map-unverified-tag">未驗證</span>' : ''}
         </div>
         <div class="map-card-name">${escapeHtml(r.name)}</div>
-        <div class="map-card-addr">${escapeHtml(r.address)}</div>
+        <div class="map-card-hours">
+          <span class="ms">schedule</span>${r.business_hours
+            ? escapeHtml(r.business_hours)
+            : '<span class="map-card-hours-placeholder">營業時間未提供</span>'
+          }
+        </div>
+        <a class="map-card-addr map-card-addr-link" href="${googleMapsUrl(r)}" target="_blank" rel="noopener noreferrer">
+          <span class="ms">place</span>${escapeHtml(r.address)}
+        </a>
         ${r.partner_discount ? `<div class="map-card-disc">優惠：${escapeHtml(r.partner_discount)}</div>` : ''}
       </div>
-      <button class="btn text-btn-m btn-primary btn-sm text-mini" id="card-detail">進詳情</button>
+      ${renderConsensusTiers(consensusTiers.get(r.id) ?? [])}
+      <button class="btn text-btn-m btn-primary btn-sm text-mini" id="card-detail">${ctaLabel}</button>
     `;
     card.querySelector('#card-detail')?.addEventListener('click', () => {
-      navigate(`/map/restaurant/${r.id}`);
+      if (isGray) {
+        // Verification is its own full-page form at /…/verify so it
+        // mirrors the /…/review layout — feels like one consistent path
+        // instead of a slide-up sheet plus a routed form.
+        navigate(`/map/restaurant/${r.id}/verify`);
+      } else {
+        navigate(`/map/restaurant/${r.id}`);
+      }
     });
   }
 
@@ -130,7 +200,11 @@ export default function map(): HTMLElement {
     for (const m of currentMarkers) m.remove();
     currentMarkers = [];
     const filtered = allRestaurants.filter((r) => {
-      if (filterState.placeType && r.place_type !== filterState.placeType) return false;
+      // vegan_type is multi-label (e.g. "vegan,vegetarian,veggie_option")
+      // — a restaurant matches the chip if its list includes the chosen
+      // tier. Rows with no list are excluded from non-全部 chips so the
+      // filter narrows cleanly.
+      if (filterState.veganType && !parseVeganTypes(r).includes(filterState.veganType)) return false;
       if (filterState.partnerOnly && !r.is_partner) return false;
       return true;
     });
@@ -142,7 +216,7 @@ export default function map(): HTMLElement {
         radius: isSelected ? 12 : 10,
         color: '#fff',
         weight: 2,
-        fillColor: PIN_COLOR[r.pin_color],
+        fillColor: pinColorFor(r),
         fillOpacity: 0.95,
       });
       marker.addTo(leafletMap);
@@ -166,10 +240,10 @@ export default function map(): HTMLElement {
     }
   }
 
-  // Filter chips (place type — exclusive radio)
+  // Filter chips (vegan type — exclusive radio)
   wrap.querySelectorAll<HTMLButtonElement>('.filter-chip:not(.filter-partner)').forEach((c) => {
     c.addEventListener('click', () => {
-      filterState.placeType = c.dataset.place || null;
+      filterState.veganType = c.dataset.vegan || null;
       wrap.querySelectorAll<HTMLButtonElement>('.filter-chip:not(.filter-partner)').forEach((x) => {
         x.classList.toggle('selected', x === c);
       });
@@ -210,6 +284,19 @@ export default function map(): HTMLElement {
     }
   })();
 
+  // Reviews load in parallel with restaurants — once they land we have
+  // the consensus map ready for any subsequent card render. Soft fail
+  // leaves consensusTiers empty (cards just don't show the chip row).
+  void (async () => {
+    try {
+      const reviews = await listAllReviews();
+      if (!alive) return;
+      consensusTiers = aggregateConsensusTiers(reviews, 3);
+    } catch (err) {
+      console.warn('[map] listAllReviews failed:', err);
+    }
+  })();
+
   onUnmount(wrap, () => {
     alive = false;
     cancelAnimationFrame(rafId);
@@ -217,6 +304,27 @@ export default function map(): HTMLElement {
   });
 
   return wrap;
+}
+
+/** Build a Google Maps deep link for the restaurant. Coords beat address
+ *  because they survive bad geocoding on admin-typed addresses. */
+function googleMapsUrl(r: Restaurant): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.lat},${r.lng}`)}`;
+}
+
+/** Render the consensus-tier banners for the map card. Each tier renders
+ *  as a tall vertical pennant hung from the top edge — like a Harry Potter
+ *  house banner on a castle wall. Returns empty string when nothing has
+ *  hit the ≥3 review threshold yet. */
+function renderConsensusTiers(tiers: string[]): string {
+  if (tiers.length === 0) return '';
+  return `
+    <div class="map-card-tiers" aria-label="社群認證素別">
+      ${tiers
+        .map((t) => `<span class="map-card-tier-banner" data-tier="${escapeHtml(t)}">${escapeHtml(t)}</span>`)
+        .join('')}
+    </div>
+  `;
 }
 
 function escapeHtml(s: string): string {

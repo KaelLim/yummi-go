@@ -76,7 +76,7 @@ describe('quiz route', () => {
     el.remove();
   });
 
-  it('marks wrong option and exposes the correct answer with 0 XP', async () => {
+  it('marks wrong option, exposes the correct answer, awards +5 XP consolation, and shows pet bubble', async () => {
     mockedContent.randomQuiz.mockResolvedValueOnce(fakeQ);
     const el = quiz();
     document.body.appendChild(el);
@@ -87,11 +87,12 @@ describe('quiz route', () => {
     );
     expect(el.querySelector('.quiz-opt[data-value="B"]')?.classList.contains('correct')).toBe(true);
     expect(el.querySelector('.quiz-opt[data-value="A"]')?.classList.contains('wrong')).toBe(true);
-    // Wrong answer still locks today's slot but earns 0 XP.
+    // 2026-05-19 quest-flow update: wrong answers earn +5 XP, not 0.
     expect($today.get().missionsDone).toContain('quiz');
-    expect($today.get().totalXpToday).toBe(0);
-    expect(mockedPet.awardXp).not.toHaveBeenCalled();
-    expect(el.querySelector('.quiz-xp')?.textContent).toContain('0 XP');
+    expect($today.get().totalXpToday).toBe(5);
+    expect(mockedPet.awardXp).toHaveBeenCalledWith(7, 5, 'quiz', expect.any(Number));
+    expect(el.querySelector('.quiz-xp')?.textContent).toContain('+5 XP');
+    expect(el.querySelector('.quiz-pet-bubble')?.textContent).toContain('沒關係');
     el.remove();
   });
 
@@ -110,7 +111,7 @@ describe('quiz route', () => {
     markMissionDone('quiz', 15);
     // No randomQuiz mock — the guard fires before the route asks for a question.
     quiz();
-    await vi.waitFor(() => expect(mockedRouter.navigate).toHaveBeenCalledWith('/tasks'));
+    await vi.waitFor(() => expect(mockedRouter.navigate).toHaveBeenCalledWith('/home'));
     expect(mockedContent.randomQuiz).not.toHaveBeenCalled();
   });
 

@@ -19,12 +19,12 @@ const mockedCheckIns = checkInsApi as unknown as {
   updateCheckInItems: ReturnType<typeof vi.fn>;
 };
 
-function profileWith(level: number | null): UserFull {
+function profileWith(level: number | null, eatTimes: string | null = null): UserFull {
   return {
     id: 1, username: 'k', display_name: 'k', is_guest: 0,
     oath_signed_at: null, challenge_started_at: null,
     diet_type: 'omnivore', challenge_level: level,
-    eat_times: null, known_from: null, baseline: null, purpose: 'body',
+    eat_times: eatTimes, known_from: null, baseline: null, purpose: 'body',
     level: 1, current_xp: 0, accumulated_xp: 0, stage: 'egg', mood: 'normal',
     strikes: 0, poisoned_until: null,
     gems: 0, total_earned: 0, card_count: 0, fragment_count: 0,
@@ -93,17 +93,20 @@ describe('check-in/success', () => {
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
   });
 
-  it('Continue navigates to /home when challenge_level is already picked', () => {
+  it('Continue navigates to /home when eat_times is already set', () => {
+    // Post 2026-05-19 pivot: 挑戰難度 picker is gone; the only post-check-in
+    // setup left is meal times. With eat_times set, success bypasses /onboarding/eat-times.
+    $profile.set(profileWith(null, '{"breakfast":"08:00"}'));
     const el = success();
     el.querySelector<HTMLButtonElement>('#next')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
-  it('Continue routes through challenge-level picker when challenge_level is null (first check-in)', () => {
-    $profile.set(profileWith(null));
+  it('Continue routes through eat-times when eat_times is null (first check-in)', () => {
+    $profile.set(profileWith(null, null));
     const el = success();
     el.querySelector<HTMLButtonElement>('#next')?.click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/challenge-level');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/eat-times');
   });
 
   describe('first-check-in AHA', () => {

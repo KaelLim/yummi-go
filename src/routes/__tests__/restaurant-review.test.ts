@@ -37,32 +37,61 @@ describe('restaurant-review route', () => {
     expect(el.querySelector<HTMLElement>('#error')?.textContent).toContain('評分');
   });
 
-  it('submits review-only and routes to detail', async () => {
+  it('submitting without 素別 shows error (now required)', () => {
+    const el = review({ id: '5' });
+    el.querySelector<HTMLButtonElement>('.star[data-value="4"]')?.click();
+    el.querySelector<HTMLFormElement>('#form')?.requestSubmit();
+    expect(el.querySelector<HTMLElement>('#error')?.hidden).toBe(false);
+    expect(el.querySelector<HTMLElement>('#error')?.textContent).toContain('素別');
+  });
+
+  it('review-only submit replaces the form with a success card (no nav fires)', async () => {
     const el = review({ id: '5' });
     document.body.appendChild(el);
     el.querySelector<HTMLButtonElement>('.star[data-value="4"]')?.click();
+    el.querySelector<HTMLButtonElement>('.vegan-chip')?.click();
     el.querySelector<HTMLFormElement>('#form')?.requestSubmit();
     await vi.waitFor(() =>
-      expect(mockedRouter.navigate).toHaveBeenCalledWith('/map/restaurant/5'),
+      expect(el.querySelector('.review-success')).not.toBeNull(),
     );
     expect(mockedCreateReview).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 7, restaurantId: 5, rating: 4 }),
     );
     expect(mockedCreateCheckIn).not.toHaveBeenCalled();
+    // Form stays mounted — navigation only fires after the user taps 回到店家.
+    expect(mockedRouter.navigate).not.toHaveBeenCalled();
     el.remove();
   });
 
-  it('with as-checkin checked, also creates check-in and routes to /check-in/success', async () => {
+  it('回到地圖 button on success card routes back to /map', async () => {
+    const el = review({ id: '5' });
+    document.body.appendChild(el);
+    el.querySelector<HTMLButtonElement>('.star[data-value="4"]')?.click();
+    el.querySelector<HTMLButtonElement>('.vegan-chip')?.click();
+    el.querySelector<HTMLFormElement>('#form')?.requestSubmit();
+    await vi.waitFor(() =>
+      expect(el.querySelector('#back-to-map')).not.toBeNull(),
+    );
+    el.querySelector<HTMLButtonElement>('#back-to-map')?.click();
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/map');
+    el.remove();
+  });
+
+  it('with as-checkin checked, also creates check-in and shows nutrition card', async () => {
     const el = review({ id: '5' });
     document.body.appendChild(el);
     el.querySelector<HTMLButtonElement>('.star[data-value="5"]')?.click();
+    el.querySelector<HTMLButtonElement>('.vegan-chip')?.click();
     (el.querySelector<HTMLInputElement>('#as-checkin')!).checked = true;
     el.querySelector<HTMLFormElement>('#form')?.requestSubmit();
     await vi.waitFor(() =>
-      expect(mockedRouter.navigate).toHaveBeenCalledWith('/check-in/success'),
+      expect(el.querySelector('.nutrition-card')).not.toBeNull(),
     );
     expect(mockedCreateReview).toHaveBeenCalled();
     expect(mockedCreateCheckIn).toHaveBeenCalled();
+    // Reuses the check-in success layout: 5 cells (cal / protein / carb
+    // / fat / fiber) in `.nutrition-grid`.
+    expect(el.querySelectorAll('.nutrition-cell').length).toBe(5);
     el.remove();
   });
 });

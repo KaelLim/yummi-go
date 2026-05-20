@@ -21,6 +21,7 @@ export type XpReason =
 export type GemReason =
   | 'xp_overflow'
   | 'swap_card'
+  | 'spend_makeup'
   | 'devpanel_add'
   | 'devpanel_reset'
   | 'mission';

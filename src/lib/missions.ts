@@ -1,0 +1,151 @@
+/**
+ * Mission catalogue + per-day status derivation for the home page's
+ * "今日任務" card and its see-all sheet.
+ *
+ * Per UX_UPDATE_SPEC_v0.1 §1, the home page surfaces up to two unfinished
+ * missions inline and tucks the rest behind a "查看全部" affordance. With the
+ * tasks page removed (user pivot 2026-05-19), missions are the only canonical
+ * surface for non-meal daily reward loops.
+ *
+ * `buildMissions` is pure — it takes the current $today / $profile snapshot
+ * and returns an ordered, status-tagged list. UI decides how many to render
+ * inline.
+ */
+import type { TodayStoreShape } from '@/store/today';
+
+export interface Mission {
+  /** Stable id for de-dup / mission-done lookups. */
+  key: string;
+  emoji: string;
+  label: string;
+  /** XP value displayed on the row. 0 means no XP (e.g. 5R sustainable). */
+  xp: number;
+  /** Route the row navigates to. Optional — 5R rows are self-check, no nav. */
+  href?: string;
+  /** True once today's mission is done; rows below filter completed by default. */
+  done: boolean;
+  /** Self-check rows expose a checkbox instead of an arrow. */
+  selfCheck?: boolean;
+}
+
+export interface BuildMissionsArgs {
+  today: TodayStoreShape;
+  /** Optional: how many meals the user enabled in eat-times settings. */
+  mealCount?: number;
+}
+
+const SUSTAINABLE = [
+  { key: '5r:refuse', emoji: '🚫', label: '拒絕一次性用品' },
+  { key: '5r:reduce', emoji: '📉', label: '減少不必要消費' },
+  { key: '5r:reuse', emoji: '♻️', label: '重複使用容器' },
+  { key: '5r:recycle', emoji: '♻️', label: '回收一次塑膠' },
+  { key: '5r:rot', emoji: '🌱', label: '廚餘堆肥/分類' },
+];
+
+/**
+ * Build the ordered mission list for the home card + see-all sheet.
+ * Meals first (the user's primary daily action), then quiz, lucky color,
+ * then the 5R sustainable check-list at the bottom.
+ */
+export function buildMissions({
+  today,
+  mealCount = 3,
+}: BuildMissionsArgs): Mission[] {
+  const done = new Set(today.missionsDone);
+  const missions: Mission[] = [];
+
+  // Meal check-ins — one row per enabled meal slot. The label uses positional
+  // ordinals (第一餐 / 第二餐 / …) so users who skip a meal still see a
+  // coherent count.
+  const ordinals = ['第一餐', '第二餐', '第三餐'];
+  for (let i = 0; i < Math.min(mealCount, 3); i++) {
+    const key = `meal:${MEAL_KEY[i]}`;
+    missions.push({
+      key,
+      emoji: '🍽️',
+      label: `${ordinals[i]}打卡`,
+      xp: 20,
+      href: '/check-in',
+      done: done.has(key) || done.has(MEAL_KEY[i]),
+    });
+  }
+
+  missions.push({
+    key: 'quiz',
+    emoji: '🧪',
+    label: '每日小測驗',
+    xp: 15,
+    href: '/tasks/quiz',
+    done: done.has('quiz'),
+  });
+
+  missions.push({
+    key: 'lucky',
+    emoji: '🍀',
+    label: '今日幸運色',
+    xp: 15,
+    href: '/check-in',
+    done: done.has('lucky:hit'),
+  });
+
+  for (const r of SUSTAINABLE) {
+    missions.push({
+      key: r.key,
+      emoji: r.emoji,
+      label: r.label,
+      xp: 0,
+      done: done.has(r.key),
+      selfCheck: true,
+    });
+  }
+
+  return missions;
+}
+
+const MEAL_KEY = ['breakfast', 'lunch', 'dinner'];
+
+/** Pick the first N missions that aren't done yet — generic utility. */
+export function topUnfinished(missions: Mission[], n = 2): Mission[] {
+  return missions.filter((m) => !m.done).slice(0, n);
+}
+
+/**
+ * Pick the meal mission whose slot matches the current clock hour. If that
+ * one is already done (or the user disabled it), step forward through the
+ * other meal slots and return the next unfinished one. Returns null when
+ * all meal slots are done or none are enabled.
+ */
+function currentMealMission(missions: Mission[], hour: number): Mission | null {
+  const order = ['meal:breakfast', 'meal:lunch', 'meal:dinner'];
+  const byKey = new Map(missions.map((m) => [m.key, m] as const));
+  const preferred = hour < 11 ? 'meal:breakfast' : hour < 17 ? 'meal:lunch' : 'meal:dinner';
+  // Rotate `order` so the preferred slot is first, then iterate.
+  const startIdx = order.indexOf(preferred);
+  const cycled = order.slice(startIdx).concat(order.slice(0, startIdx));
+  for (const k of cycled) {
+    const m = byKey.get(k);
+    if (m && !m.done) return m;
+  }
+  return null;
+}
+
+/**
+ * Home's collapsed missions card always surfaces exactly two rows:
+ *   1. the current meal check-in (time-of-day driven),
+ *   2. the first unfinished mission that *isn't* a meal check-in (quiz,
+ *      lucky color, 5R sustainable action, etc.).
+ *
+ * If one of those slots has nothing to show (e.g. all meals done), only
+ * the other is returned — the card never invents a placeholder row.
+ */
+export function homeVisibleMissions(
+  missions: Mission[],
+  hour: number = new Date().getHours(),
+): Mission[] {
+  const meal = currentMealMission(missions, hour);
+  const nonMeal = missions.find((m) => !m.key.startsWith('meal:') && !m.done) ?? null;
+  const out: Mission[] = [];
+  if (meal) out.push(meal);
+  if (nonMeal) out.push(nonMeal);
+  return out;
+}

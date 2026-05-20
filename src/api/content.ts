@@ -128,9 +128,45 @@ export interface Restaurant {
   lat: number;
   lng: number;
   place_type: string;
+  /**
+   * Pin tier per UX_UPDATE_SPEC_v0.1 §6:
+   *   - gray  → unverified (tappable, opens the verification sheet)
+   *   - green → verified
+   *   - 'blue' is a legacy stored value that now renders as orange
+   *      (partner tier). Schema is unchanged to avoid a migration; the
+   *      map's PIN_COLOR table maps blue → orange for rendering.
+   */
   pin_color: 'gray' | 'green' | 'blue';
   is_partner: number;
   partner_discount: string | null;
+  /**
+   * Optional — comma-separated list of vegan tiers the restaurant covers,
+   * e.g. "vegan,vegetarian,veggie_option". A single venue can carry all
+   * three tiers (a vegan-friendly bistro that also serves egg-dairy
+   * dishes and has plant-friendly options on its omnivore menu). The
+   * /map filter chips check membership: pick 'vegetarian' → see every
+   * restaurant whose list includes 'vegetarian'. Restaurants with a
+   * null `vegan_type` only show under the 全部 chip.
+   */
+  vegan_type?: string | null;
+  /**
+   * Optional human-readable business hours line (e.g.
+   * "週一至週五 11:00–21:00 / 週末公休"). Free-form so admins can list
+   * varied schedules without enforcing a strict structured format. The
+   * map card shows it below the restaurant name when present.
+   */
+  business_hours?: string | null;
+}
+
+/** Split a comma-separated `vegan_type` into trimmed, deduped tiers. */
+export function parseVeganTypes(r: Pick<Restaurant, 'vegan_type'>): string[] {
+  if (!r.vegan_type) return [];
+  const seen = new Set<string>();
+  for (const part of r.vegan_type.split(',')) {
+    const v = part.trim();
+    if (v) seen.add(v);
+  }
+  return Array.from(seen);
 }
 
 export async function getDayScript(

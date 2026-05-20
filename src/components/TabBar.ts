@@ -20,7 +20,7 @@ const TABS: Tab[] = [
   { key: 'home', href: '/home', icon: 'home', label: '首頁' },
   { key: 'map', href: '/map', icon: 'map', label: '地圖' },
   { key: 'check-in', href: '/check-in', icon: 'photo_camera', label: '打卡', center: true },
-  { key: 'tasks', href: '/tasks', icon: 'task_alt', label: '任務' },
+  { key: 'store', href: '/store', icon: 'diamond', label: '商店' },
   { key: 'profile', href: '/profile', icon: 'person', label: '我的' },
 ];
 

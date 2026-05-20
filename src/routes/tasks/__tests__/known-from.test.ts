@@ -51,20 +51,20 @@ describe('tasks/known-from', () => {
     expect(mockedProfile.updateProfile).toHaveBeenCalledWith(7, { known_from: 'instagram' });
     expect(mockedPet.awardXp).toHaveBeenCalledWith(7, 15, 'mission', null);
     expect(mockedToday.markMissionDone).toHaveBeenCalledWith('known_from', 15);
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/tasks');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
-  it('Skip leaves profile alone and bounces to /tasks (no XP)', () => {
+  it('Skip leaves profile alone and bounces to /home (no XP)', () => {
     const el = knownFromTask();
     el.querySelector<HTMLButtonElement>('#skip-btn')?.click();
     expect(mockedProfile.updateProfile).not.toHaveBeenCalled();
     expect(mockedPet.awardXp).not.toHaveBeenCalled();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/tasks');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
-  it('Back arrow bounces to /tasks', () => {
+  it('Back arrow bounces to /home', () => {
     const el = knownFromTask();
     (el.querySelector('#back-btn') as HTMLElement).click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/tasks');
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 });

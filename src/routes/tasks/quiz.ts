@@ -1,9 +1,14 @@
 /**
  * Daily quiz — single random question, 3 options, immediate feedback.
  *
- * Picks via random_quiz RPC. The user gets +15 XP only on a correct
- * answer; a wrong answer locks the day with 0 XP. Once `'quiz'` is in
- * today's missions_done, re-entering the route bounces back to /tasks.
+ * Picks via random_quiz RPC. Per the 2026-05-19 quest-flow update:
+ *   - Correct → +15 XP, "答對了！" verdict, pet-happy bubble, explanation.
+ *   - Wrong   → +5 XP consolation, "沒關係" verdict, the wrong option goes
+ *               red, the correct option goes green, pet gives a gentle
+ *               「沒關係，看講解學一下！」 nudge, explanation appears.
+ *
+ * Either outcome consumes today's daily slot (`'quiz'` mission), so re-
+ * entering the route bounces back to /home.
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
@@ -11,18 +16,19 @@ import { randomQuiz, recordQuizAttempt, type QuizQuestion } from '@/api/content'
 import { markMissionDone, $today } from '@/store/today';
 import { awardXp } from '@/store/pet';
 
-const QUIZ_XP = 15;
+const QUIZ_XP_CORRECT = 15;
+const QUIZ_XP_WRONG = 5;
 
 export default function quiz(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'quiz-screen';
 
   // Hard guard: today's quiz is one-shot. If it's already been answered,
-  // bounce back to /tasks instead of letting the user grab another XP-able
-  // question. The bubble and tasks page both already disable the CTA, but
-  // a directly-typed URL would otherwise sneak past them.
+  // bounce back to /home instead of letting the user grab another XP-able
+  // question. The home missions card already disables the CTA, but a
+  // directly-typed URL would otherwise sneak past it.
   if ($today.get().missionsDone.includes('quiz')) {
-    queueMicrotask(() => navigate('/tasks'));
+    queueMicrotask(() => navigate('/home'));
     return wrap;
   }
 
@@ -32,7 +38,7 @@ export default function quiz(): HTMLElement {
         <span class="ms">arrow_back</span>
       </button>
       <span class="checkin-title">每日小測驗</span>
-      <span class="checkin-meal">答對 +${QUIZ_XP} XP</span>
+      <span class="checkin-meal">答對 +${QUIZ_XP_CORRECT} · 答錯 +${QUIZ_XP_WRONG}</span>
     </header>
     <div class="quiz-body" id="body">
       <div class="quiz-loading">
@@ -44,7 +50,7 @@ export default function quiz(): HTMLElement {
 
   const body = wrap.querySelector<HTMLElement>('#body')!;
 
-  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/tasks'));
+  wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/home'));
 
   void (async () => {
     let q: QuizQuestion | null = null;
@@ -131,25 +137,31 @@ async function onPick(
     else if (v === value) b.classList.add('wrong');
   });
 
-  const xpEarned = correct ? QUIZ_XP : 0;
+  const xpEarned = correct ? QUIZ_XP_CORRECT : QUIZ_XP_WRONG;
 
   resultEl.hidden = false;
   resultEl.innerHTML = `
     <div class="quiz-verdict ${correct ? 'right' : 'wrong'}">
-      <span class="ms">${correct ? 'verified' : 'info'}</span>
-      <strong>${correct ? '答對了！' : '答錯了，正解是 ' + escapeHtml(q.correct_answer)}</strong>
-      <span class="quiz-xp">${correct ? '+' + QUIZ_XP + ' XP' : '0 XP · 明天再挑戰'}</span>
+      <span class="ms">${correct ? 'verified' : 'cancel'}</span>
+      <strong>${correct ? '答對了！' : '沒關係'}</strong>
+      <span class="quiz-xp">+${xpEarned} XP</span>
     </div>
+    ${!correct ? `
+      <div class="quiz-pet-bubble">
+        <span class="quiz-pet-emoji" aria-hidden="true">🐣</span>
+        <span class="quiz-pet-text">沒關係，看講解學一下！</span>
+      </div>
+    ` : ''}
     ${q.explanation ? `<p class="quiz-explanation">${escapeHtml(q.explanation)}</p>` : ''}
     <div class="quiz-actions">
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回任務</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">繼續</button>
     </div>
   `;
 
-  resultEl.querySelector('#back')?.addEventListener('click', () => navigate('/tasks'));
+  resultEl.querySelector('#back')?.addEventListener('click', () => navigate('/home'));
 
-  // Mark mission immediately — answered means the daily slot is consumed,
-  // even on a wrong pick. Wrong answer carries 0 XP so totalXpToday stays put.
+  // Mark mission immediately — answered means the daily slot is consumed.
+  // Both correct (+15) and wrong (+5) carry XP per the 2026-05-19 update.
   markMissionDone('quiz', xpEarned);
 
   // Best-effort persistence + XP. Failures don't block the user.
@@ -161,12 +173,10 @@ async function onPick(
     } catch (err) {
       console.warn('[quiz] recordQuizAttempt failed:', err);
     }
-    if (correct) {
-      try {
-        await awardXp(u.id, QUIZ_XP, 'quiz', q.id);
-      } catch (err) {
-        console.warn('[quiz] awardXp failed:', err);
-      }
+    try {
+      await awardXp(u.id, xpEarned, 'quiz', q.id);
+    } catch (err) {
+      console.warn('[quiz] awardXp failed:', err);
     }
   }
 }

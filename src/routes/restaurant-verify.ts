@@ -1,22 +1,21 @@
 /**
- * Review form route — `/map/restaurant/:id/review`.
+ * Restaurant verification route — `/map/restaurant/:id/verify`.
  *
- * Star rating (1-5), text body, required vegan-type chip, and the spec's
- * "評論即打卡" toggle: when checked, the same submit also creates today's
- * meal check-in for double XP (+20 review, +30 check-in).
+ * Visually identical to `/map/restaurant/:id/review` (same `.review-screen`
+ * shell, same `.review-form` sections, same fields, same success card)
+ * so the two paths read as one consistent surface. The user pivot was
+ * explicit: "這兩個頁面會是一樣的".
  *
- * After submit, the form is replaced in-place by a success card that
- * shows the rating, XP earned, and — if the user checked "use as
- * check-in" — a nutrition breakdown from a mockScan over the uploaded
- * photo. From there the user taps 回到店家 to land back on
- * `/map/restaurant/:id`, where the freshly-submitted review is already
- * listed by the detail route's refetch on mount.
+ * Differences from the review form:
+ *   1. Header title is 認證餐廳 (the back button + sub-meta still match).
+ *   2. Submit also PATCHes the restaurant row — flips `pin_color` to
+ *      'green' and writes the user-picked vegan_type — so the gray pin
+ *      becomes verified after the form clears.
+ *   3. Submit awards an extra +20 XP for the verification on top of the
+ *      review's +20 and the optional +30 from "as-checkin".
  *
- * Photo upload is deliberately a stub here — file is read into a data URL
- * to demonstrate the flow but we don't actually push it to drust's file
- * bucket (no MCP upload tool from the browser; spec calls this Phase 13
- * polish work). The mockScan() output stands in for what a real AI scan
- * would produce against the uploaded image.
+ * Photo upload remains a stub (data URL only). Drust file pipeline lands
+ * in Phase 13.
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
@@ -24,6 +23,7 @@ import { $today, $challenge, markMissionDone } from '@/store/today';
 import { inferMealIndex } from '@/store/checkin';
 import { createReview } from '@/api/reviews';
 import { createCheckIn } from '@/api/check-ins';
+import { drust } from '@/api/drust';
 import { awardXp } from '@/store/pet';
 import { mealXp } from '@/lib/xp-calc';
 import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
@@ -32,17 +32,20 @@ import { openItemsEditor } from '@/lib/items-editor';
 
 const VEGAN_TYPES = ['全素', '蛋奶素', '五辛素', '鍋邊素'] as const;
 
-export default function review(params: Record<string, string>): HTMLElement {
+const VERIFY_XP = 20;
+const REVIEW_XP = 20;
+
+export default function verify(params: Record<string, string>): HTMLElement {
   const restaurantId = Number(params.id);
   const wrap = document.createElement('div');
-  wrap.className = 'review-screen';
+  wrap.className = 'review-screen verify-screen';
   wrap.innerHTML = `
     <header class="detail-header">
       <button class="checkin-back" id="back-btn" aria-label="返回">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">寫評論</span>
-      <span class="checkin-meal" id="rest-name">…</span>
+      <span class="checkin-title">認證餐廳</span>
+      <span class="checkin-meal" id="rest-name">+${VERIFY_XP + REVIEW_XP} XP</span>
     </header>
     <form class="review-form" id="form">
       <div class="review-section">
@@ -83,7 +86,7 @@ export default function review(params: Record<string, string>): HTMLElement {
       </label>
 
       <div class="review-error" id="error" hidden></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出評論 (+20 XP)</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出認證 (+${VERIFY_XP + REVIEW_XP} XP)</button>
     </form>
   `;
 
@@ -105,8 +108,9 @@ export default function review(params: Record<string, string>): HTMLElement {
     s.addEventListener('click', () => setRating(Number(s.dataset.value)));
   });
 
-  // 素別 is multi-select: one meal can fit multiple tiers (e.g. a 全素 dish
-  // also satisfies 蛋奶素 diners). Storage joins the picks with commas.
+  // 素別 is multi-select — matches the review form for visual consistency
+  // and reflects the multi-tier restaurant model (one venue can support
+  // 全素 + 蛋奶素 + 五辛素 simultaneously).
   wrap.querySelectorAll<HTMLButtonElement>('.vegan-chip').forEach((c) => {
     c.addEventListener('click', () => {
       const v = c.dataset.value!;
@@ -141,7 +145,6 @@ export default function review(params: Record<string, string>): HTMLElement {
   const errorEl = wrap.querySelector<HTMLElement>('#error')!;
   const submitBtn = wrap.querySelector<HTMLButtonElement>('#submit')!;
   const form = wrap.querySelector<HTMLFormElement>('#form')!;
-
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     void submit();
@@ -167,32 +170,38 @@ export default function review(params: Record<string, string>): HTMLElement {
     const veganType = Array.from(veganSet).join(',');
     const text = String((wrap.querySelector<HTMLTextAreaElement>('#text')!).value || '').trim();
     const asCheckin = (wrap.querySelector<HTMLInputElement>('#as-checkin')!).checked;
-    // Photo upload is stubbed (data URL only) so an as-checkin without a
-    // photo still produces useful nutrition output via mockScan. When the
-    // real drust file pipeline lands, gate this on photoDataUrl being set.
+    // photo is stubbed — no upload pipeline yet. Kept available for future
+    // wiring.
     void photoDataUrl;
 
     submitBtn.disabled = true;
     submitBtn.textContent = '送出中…';
 
     try {
+      // Flip the restaurant to verified + write the user-picked tier.
+      // Stored as the single selected value to match the review form's
+      // semantics (per-act vegan_type). If multi-tier verification is
+      // needed later, we can promote this to a comma-joined list.
+      await drust.update('restaurants', restaurantId, {
+        pin_color: 'green',
+        vegan_type: veganType,
+      });
+
+      // The verification act also stands as a review of the place.
       await createReview({
         userId: u.id,
         restaurantId,
         rating,
         text: text || null,
-        photoId: null, // upload integration deferred; data URL is local-only.
+        photoId: null,
         veganType,
       });
-      let totalXp = 20;
+
+      let totalXp = VERIFY_XP + REVIEW_XP;
       let scanItems: MockFood[] = [];
       let nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null = null;
 
       if (asCheckin) {
-        // Run a mock AI scan over the photo placeholder so the success
-        // card can show real-looking nutrition numbers (the actual photo
-        // bytes aren't sent anywhere yet — that's the same Phase 13
-        // upload-pipeline gap noted at the top of this file).
         const scan = mockScan();
         scanItems = scan.items;
         nutrition = aggregateNutrition(scan.items);
@@ -225,19 +234,18 @@ export default function review(params: Record<string, string>): HTMLElement {
       }
 
       try {
-        await awardXp(u.id, totalXp, 'bonus', restaurantId);
+        await awardXp(u.id, totalXp, 'mission', restaurantId);
       } catch { /* server XP soft fail */ }
-      // Bump $today.totalXpToday for the review reward (mark a per-restaurant
-      // mission so duplicate-clicks don't double-credit if user re-submits).
-      markMissionDone(`review:${restaurantId}`, 20);
+      markMissionDone(`map_verify:${restaurantId}`, VERIFY_XP);
+      markMissionDone(`review:${restaurantId}`, REVIEW_XP);
 
       renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems });
     } catch (err) {
-      console.error('[review] submit failed:', err);
+      console.error('[verify] submit failed:', err);
       errorEl.hidden = false;
       errorEl.textContent = '送出失敗，請稍後再試';
       submitBtn.disabled = false;
-      submitBtn.textContent = '送出評論 (+20 XP)';
+      submitBtn.textContent = `送出認證 (+${VERIFY_XP + REVIEW_XP} XP)`;
     }
   }
 
@@ -252,7 +260,7 @@ export default function review(params: Record<string, string>): HTMLElement {
     form.innerHTML = `
       <section class="review-success">
         <div class="review-success-icon" aria-hidden="true">🎉</div>
-        <h2 class="review-success-title">感謝你的評論！</h2>
+        <h2 class="review-success-title">認證成功！</h2>
         <div class="review-success-stars">${stars}</div>
         <div class="review-success-xp">+${args.totalXp} XP</div>
         ${args.asCheckin ? '<div class="review-success-checkin-badge"><span class="ms">verified</span>完成打卡</div>' : ''}
@@ -267,8 +275,6 @@ export default function review(params: Record<string, string>): HTMLElement {
       navigate('/map');
     });
     if (args.asCheckin && args.nutrition) {
-      // Local mutable state so the user can edit the AI-scanned items the
-      // same way they can on /check-in/success.
       let liveItems = args.items.slice();
       let liveNutrition = args.nutrition;
       form.querySelector('#edit-items')?.addEventListener('click', () => {
@@ -286,13 +292,8 @@ export default function review(params: Record<string, string>): HTMLElement {
     }
   }
 
-  /**
-   * Reuses the check-in success page's `.nutrition-card` styling so the
-   * 營養成分 block reads identically across the two surfaces (per the user
-   * pivot: "感謝你的評論當頁的營養成分長得要與平常打卡一致"). Same 5 cells,
-   * same combined "{value} {unit}" format inside `<strong>`, same green
-   * gradient card with reveal animation.
-   */
+  /** Same nutrition card markup as `/check-in/success` — see review form for
+   *  why this is duplicated rather than imported. */
   function renderNutritionCard(n: {
     cal: number; protein: number; carb: number; fat: number; fiber: number;
   }): string {

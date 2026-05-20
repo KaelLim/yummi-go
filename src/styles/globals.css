@@ -8,6 +8,11 @@
 html, body { margin: 0; padding: 0; height: 100%; }
 body {
   font-family: var(--font-sans, "Nunito", "Noto Sans TC", system-ui, sans-serif);
+  /* Spec body weight is Nunito Semibold / Noto Sans TC Medium — both fall
+   * close to weight 500. Unwrapped text inherits this default so plain
+   * paragraphs/spans no longer render in Regular 400 (which read too thin
+   * against the warm cream background per the design mocks). */
+  font-weight: var(--text-body-weight-cjk, 500);
   color: var(--color-foreground-alt, #2d2a26);
   background: var(--color-background, #fef9ed);
   min-height: 100dvh;
@@ -366,7 +371,7 @@ body {
 .tag-default   { background: var(--color-neutral-light-active); color: var(--color-foreground-alt); }
 .tag-secondary { background: var(--color-secondary-light);      color: var(--color-secondary-dark); }
 .tag-success   { background: var(--color-primary-light);        color: var(--color-primary-dark); }
-.tag-warning   { background: #fde68a;                           color: #92400e; }
+.tag-warning   { background: var(--color-secondary-light-active); color: var(--color-secondary-darker); }
 
 /* Generic ListRow primitive — three-slot horizontal layout. */
 .list-row {
@@ -404,8 +409,8 @@ body {
 
 .banner-info        { background: var(--color-neutral-light);   border-color: var(--color-neutral-light-active); }
 .banner-success     { background: var(--color-primary-light);   border-color: var(--color-primary); }
-.banner-warning     { background: #fef3c7;                      border-color: #f59e0b; }
-.banner-meat-prompt { background: #fef3c7;                      border-color: #f59e0b; }
+.banner-warning     { background: var(--color-secondary-light); border-color: var(--color-secondary); }
+.banner-meat-prompt { background: var(--color-secondary-light); border-color: var(--color-secondary); }
 
 /* Modal + Sheet overlay primitives. Backdrop shares colour; card alignment differs. */
 .modal-shell, .sheet-shell {
@@ -476,7 +481,7 @@ body {
    it's readable wherever the edge runs (over nodes, over other lines). */
 .flow-edge-label {
   font-size: 11px;
-  fill: #5b6770;
+  fill: var(--color-neutral-darker);
   font-family: var(--font-sans);
   paint-order: stroke fill;
   stroke: var(--color-card, #fff);
@@ -553,18 +558,13 @@ body {
   color: var(--color-primary-dark);
 }
 .resource-chip .ms { font-size: 20px; }
-.resource-chip[data-resource="xp"] .ms { color: var(--color-primary); }
 .resource-chip[data-resource="gem"] .ms { color: var(--color-secondary, #6cb4ff); }
-.resource-chip[data-resource="card"] .ms { color: var(--color-warning, #e7a23c); }
+.resource-chip[data-resource="streak"] { color: var(--color-secondary-dark, #b8761b); }
+.resource-chip-button { cursor: pointer; font-family: inherit; }
+.resource-chip-button:hover { background: var(--color-neutral-light, #f5f5f5); }
+.resource-emoji { font-size: 16px; line-height: 1; }
 .resource-num { font-size: var(--text-button-m-size); font-weight: var(--font-weight-black); }
 .resource-unit { font-size: var(--text-caption-size); color: var(--color-neutral-darker); font-weight: var(--font-weight-semibold); }
-.today-day-badge {
-  display: inline-block; margin-left: 6px;
-  padding: 2px 8px; border-radius: var(--radius-sm, 8px);
-  background: var(--color-primary-light); color: var(--color-primary);
-  font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold);
-  font-variant-numeric: tabular-nums;
-}
 
 .home-hero {
   position: relative;
@@ -636,30 +636,242 @@ body {
   border-radius: 4px; /* tiny accent radius — not card-shaped */
 }
 
-/* Today card */
-.today-card {
-  background: var(--color-card);
-  padding: var(--space-4) var(--space-5); border-radius: var(--radius-md);
-  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.05);
+/* Calendar / makeup screen (profile/calendar) — scoped under
+ * `.calendar-screen` so it doesn't collide with the profile page's
+ * inline 6-col mini-calendar (which also uses `.calendar-grid` /
+ * `.cal-cell` for its 30-day challenge strip).
+ */
+.calendar-screen { display: flex; flex-direction: column; gap: var(--space-4); }
+.calendar-screen .calendar-body { padding: 0 var(--space-1) var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
+.calendar-screen .calendar-month-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-2);
 }
-.today-card-row {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: var(--space-3); font-size: var(--text-mini-size);
-}
-.today-card-label { font-weight: var(--font-weight-semibold); color: var(--color-foreground-alt); }
-.today-card-value { font-weight: var(--font-weight-extrabold); color: var(--color-primary); font-variant-numeric: tabular-nums; }
-.meal-dots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.meal-dot {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: var(--space-3) var(--space-2);
-  background: var(--color-neutral-light-active);
+.calendar-screen .calendar-month-title { margin: 0; font-size: var(--text-h2-size); font-weight: var(--font-weight-extrabold); }
+.calendar-screen .calendar-arrow {
+  background: none; border: none; cursor: pointer; padding: var(--space-2);
   border-radius: var(--radius-md);
-  transition: background 0.2s, color 0.2s;
 }
-.meal-dot.done { background: var(--color-primary-light); color: var(--color-primary-dark); }
-.meal-dot-tick { font-size: var(--text-button-l-size); font-weight: var(--font-weight-bold); line-height: 1; color: var(--color-neutral-dark); }
-.meal-dot.done .meal-dot-tick { color: var(--color-primary); }
-.meal-dot-label { font-size: var(--text-caption-size); font-weight: var(--font-weight-semibold); }
+.calendar-screen .calendar-arrow:hover { background: var(--color-neutral-light, #f5f5f5); }
+.calendar-screen .calendar-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  text-align: center; font-size: var(--text-caption-size);
+  color: var(--color-neutral-darker); font-weight: var(--font-weight-bold);
+  padding: 0 var(--space-1);
+}
+.calendar-screen .calendar-weekday { padding: var(--space-2) 0; }
+.calendar-screen .calendar-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  padding: 0 var(--space-1);
+}
+.calendar-screen .cal-cell {
+  aspect-ratio: 1 / 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative;
+  background: var(--color-card);
+  border-radius: var(--radius-sm, 8px);
+  font-size: var(--text-mini-size);
+  color: var(--color-foreground);
+}
+.calendar-screen .cal-cell.is-out { color: var(--color-neutral-darker); opacity: 0.35; }
+.calendar-screen .cal-cell-num { font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); }
+.calendar-screen .cal-cell.is-today { background: var(--color-primary-light); font-weight: var(--font-weight-extrabold); border: 1.5px solid var(--color-primary); }
+.calendar-screen .cal-cell.is-future { color: var(--color-neutral-darker); }
+.calendar-screen .cal-cell.is-pre { color: var(--color-neutral-darker); opacity: 0.5; }
+.calendar-screen .cal-cell-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: var(--font-weight-extrabold);
+  margin-top: 2px;
+}
+.calendar-screen .cal-cell-done { background: var(--color-primary, #3bb84b); color: white; }
+.calendar-screen .cal-cell-gray { background: var(--color-neutral-darker, #999); opacity: 0.55; }
+.calendar-screen .cal-cell-lost { background: var(--color-neutral-light-active, #ddd); opacity: 0.4; }
+.calendar-screen .cal-cell.is-makeable { cursor: pointer; }
+.calendar-screen .cal-cell.is-makeable:hover { background: var(--color-neutral-light, #f5f5f5); outline: 1.5px dashed var(--color-secondary-dark); }
+.calendar-screen .calendar-legend {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-2); font-size: var(--text-caption-size);
+  color: var(--color-foreground-alt);
+}
+.calendar-screen .legend-item { display: inline-flex; align-items: center; gap: var(--space-2); }
+.calendar-screen .legend-dot {
+  display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+  text-align: center; line-height: 14px; font-size: 10px; color: white;
+}
+.calendar-screen .legend-dot.legend-done { background: var(--color-primary, #3bb84b); }
+.calendar-screen .legend-dot.legend-makeable { background: var(--color-neutral-darker, #999); opacity: 0.55; }
+.calendar-screen .legend-dot.legend-lost { background: var(--color-neutral-light-active, #ddd); opacity: 0.6; }
+
+/* Makeup modal — opened by tapping a makeable cell */
+.makeup-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+}
+.makeup-modal {
+  background: var(--color-card); border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-5); width: 100%; max-width: 360px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+  text-align: center;
+}
+.makeup-pet { font-size: 64px; }
+.makeup-copy { margin: 0; font-size: var(--text-body-size); color: var(--color-foreground); }
+.makeup-streak-card {
+  background: var(--color-primary-light); color: var(--color-primary-dark);
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3); width: 100%;
+  font-size: var(--text-mini-size); font-weight: var(--font-weight-bold);
+}
+.makeup-streak-delta { font-weight: var(--font-weight-extrabold); }
+.makeup-cost-row {
+  display: flex; align-items: center; gap: 4px;
+  font-size: var(--text-h3-size); font-weight: var(--font-weight-extrabold);
+  color: var(--color-secondary-dark);
+}
+.makeup-cost-row .ms { font-size: 24px; }
+.makeup-cost-label { font-size: var(--text-mini-size); color: var(--color-foreground-alt); margin-left: 2px; }
+.makeup-balance { margin: 0; font-size: var(--text-caption-size); color: var(--color-neutral-darker); }
+.makeup-error { background: var(--color-error-light, #fee); color: var(--color-error, #d63b3b); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-mini-size); width: 100%; }
+.makeup-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); width: 100%; }
+
+/* Store screen — placeholder */
+.store-screen { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5); }
+.store-header { display: flex; justify-content: space-between; align-items: center; }
+.store-title { margin: 0; font-size: var(--text-h2-size); font-weight: var(--font-weight-extrabold); }
+.store-balance { display: inline-flex; align-items: center; gap: 4px; padding: var(--space-2) var(--space-3); background: var(--color-card); border-radius: var(--radius-pill); border: 1px solid var(--color-neutral-light-active); }
+.store-balance .ms { color: var(--color-secondary, #6cb4ff); font-size: 20px; }
+.store-balance-num { font-weight: var(--font-weight-extrabold); font-variant-numeric: tabular-nums; }
+.store-soon { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-8) var(--space-4); }
+.store-soon-icon { font-size: 80px; }
+.store-soon-title { margin: 0; font-size: var(--text-h2-size); }
+.store-soon-text { margin: 0; color: var(--color-foreground-alt); }
+
+/* Missions card (home) — top 2 unfinished + "查看全部" sheet */
+.missions-card {
+  background: var(--color-card);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.05);
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.missions-header {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.missions-title { margin: 0; font-size: var(--text-h3-size, var(--text-button-l-size)); font-weight: var(--font-weight-extrabold); color: var(--color-foreground); }
+.missions-expand {
+  background: none; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--text-mini-size); color: var(--color-primary-dark);
+  font-weight: var(--font-weight-bold); padding: 4px 8px; border-radius: var(--radius-pill);
+}
+.missions-expand .ms { font-size: 16px; transition: transform 0.2s; }
+.missions-expand[aria-expanded="true"] .missions-expand-arrow { /* down → up handled by icon swap, but a subtle nudge feels cleaner */ }
+.missions-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.mission-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  background: var(--color-neutral-light, #f5f5f5);
+  border-radius: var(--radius-md);
+}
+.mission-row-clickable { cursor: pointer; }
+.mission-row.done { opacity: 0.55; }
+.mission-emoji { font-size: 20px; }
+.mission-label { flex: 1; font-size: var(--text-mini-size); font-weight: var(--font-weight-semibold); color: var(--color-foreground); }
+.mission-xp { font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); font-variant-numeric: tabular-nums; }
+.mission-xp-zero { color: var(--color-neutral-darker); font-weight: var(--font-weight-bold); }
+.mission-arrow { font-size: 18px; color: var(--color-neutral-darker); }
+.mission-check { width: 18px; height: 18px; }
+.mission-row-empty { justify-content: center; color: var(--color-foreground-alt); }
+
+/* Unverified-pin tag on the map card */
+.map-unverified-tag {
+  display: inline-block; padding: 1px var(--space-2); border-radius: var(--radius-pill);
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+  background: var(--color-neutral-light-active); color: var(--color-neutral-darker);
+}
+
+/* Restaurant-review success card — replaces the form in-place after submit */
+.review-success {
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-3); text-align: center;
+  padding: var(--space-6) var(--space-4);
+}
+.review-success-icon { font-size: 56px; }
+.review-success-title { margin: 0; font-size: var(--text-h2-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); }
+.review-success-stars { font-size: 28px; letter-spacing: 4px; color: var(--color-secondary); }
+.review-success-xp {
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill);
+  background: var(--color-secondary-light); color: var(--color-secondary-dark);
+  font-weight: var(--font-weight-extrabold); font-variant-numeric: tabular-nums;
+}
+.review-success .nutrition-card { width: 100%; text-align: left; }
+.review-success-checkin-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px var(--space-3); border-radius: var(--radius-pill);
+  background: var(--color-primary-light); color: var(--color-primary-dark);
+  font-size: var(--text-mini-size); font-weight: var(--font-weight-bold);
+}
+.review-success-checkin-badge .ms { font-size: 18px; color: var(--color-primary); }
+.review-success #back-to-detail { width: 100%; margin-top: var(--space-3); }
+
+/* Map verification sheet — opened by tapping the 認證餐廳 CTA on a gray
+ * pin's map card. z-index must clear Leaflet's control pane (1000) and
+ * the first-visit name-prompt (2000), otherwise the sheet renders below
+ * the tiles and looks like nothing happened on tap. */
+.verify-sheet-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 2100;
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: verify-fade-in 180ms ease-out both;
+}
+@keyframes verify-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.verify-sheet {
+  background: var(--color-card); width: 100%; max-width: 480px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  display: flex; flex-direction: column; max-height: 85vh;
+  animation: verify-slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes verify-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.verify-sheet-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: var(--space-5) var(--space-5) var(--space-3);
+}
+.verify-sheet-title { margin: 0; font-size: var(--text-h3-size, var(--text-button-l-size)); font-weight: var(--font-weight-extrabold); }
+.verify-sheet-sub { margin: 4px 0 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt); }
+.verify-sheet-close { background: none; border: none; cursor: pointer; padding: 4px; }
+.verify-sheet-body {
+  padding: 0 var(--space-5) var(--space-3); overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.verify-section-title { margin: 0 0 var(--space-2); font-size: var(--text-mini-size); font-weight: var(--font-weight-bold); color: var(--color-foreground); }
+.verify-chip-group { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.verify-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--color-neutral-light, #f5f5f5); border: 1.5px solid transparent;
+  padding: 6px var(--space-3); border-radius: var(--radius-pill);
+  font-family: inherit; font-size: var(--text-mini-size); font-weight: var(--font-weight-bold);
+  cursor: pointer; color: var(--color-foreground-alt);
+}
+.verify-chip .ms { font-size: 14px; opacity: 0; }
+.verify-chip.is-selected { background: var(--color-primary-light); color: var(--color-primary-dark); border-color: var(--color-primary); }
+.verify-chip.is-selected .ms { opacity: 1; }
+.verify-photo-input { font-family: inherit; }
+.verify-photo-hint { margin: 4px 0 0; font-size: var(--text-caption-size); color: var(--color-neutral-darker); }
+.verify-comment {
+  width: 100%; min-height: 80px; padding: var(--space-3);
+  border: 1px solid var(--color-neutral-light-active); border-radius: var(--radius-md);
+  font-family: inherit; font-size: var(--text-mini-size); resize: vertical;
+}
+.verify-error { background: var(--color-error-light, #fee); color: var(--color-error, #d63b3b); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-mini-size); }
+.verify-sheet-footer {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2);
+  padding: var(--space-3) var(--space-5) var(--space-5);
+  border-top: 1px solid var(--color-neutral-light-active);
+}
 
 /* Lucky color card */
 .lucky-card {
@@ -1169,6 +1381,67 @@ body {
 .map-partner-tag { background: var(--color-secondary-light); color: var(--color-secondary-dark); padding: 1px var(--space-2); border-radius: 4px; /* tiny accent radius — not card-shaped */ font-size: var(--text-caption-size); font-weight: var(--font-weight-bold); }
 .map-card-name { font-size: var(--text-body-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); margin-top: 2px /* hairline, not spacing */; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .map-card-addr { font-size: var(--text-mini-size); color: var(--color-neutral-darker); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Consensus-tier banners hung from the top-right of the map card —
+ * castle-banner style: tall, narrow, vertical text, notched bottom edge
+ * like a Harry Potter house pennant. .map-card gets `position: relative`
+ * so the absolutely-positioned tiers anchor to the card box. The card's
+ * border-radius would clip a banner that crosses the top edge, so the
+ * banner sits a hair below the top to keep its full silhouette visible.
+ */
+.map-card { position: relative; }
+.map-card-tiers {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  display: flex; gap: 4px;
+  z-index: 1;
+  pointer-events: none;
+}
+.map-card-tier-banner {
+  /* Vertical text — each Chinese character stacks top-down, like
+   * lettering on a real hanging banner. */
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 1px;
+  padding: 6px 3px 10px;
+  min-height: 36px;
+  /* Default = primary green; per-tier overrides below give each banner
+   * its own house colour (Harry-Potter-style). */
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1.1;
+  /* Notched (swallow-tail) bottom — the bottom edge has a triangular
+   * cut-out so the banner reads as a pennant rather than a plain rect. */
+  clip-path: polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%);
+  box-shadow: 1px 2px 4px -1px rgba(45, 42, 38, 0.35);
+}
+/* Per-tier house colours — distinct enough to read at a glance but warm
+ * enough to harmonise with the cream/green palette. */
+.map-card-tier-banner[data-tier="全素"]    { background: #1d5937; }  /* deep forest (Slytherin) */
+.map-card-tier-banner[data-tier="蛋奶素"]  { background: #d4a85a; color: #4a3608; }  /* warm gold (Hufflepuff) */
+.map-card-tier-banner[data-tier="五辛素"]  { background: #b65445; }  /* clay red (Gryffindor) */
+.map-card-tier-banner[data-tier="鍋邊素"]  { background: #5a7a8e; }  /* slate blue (Ravenclaw) */
+
+/* Push the CTA below the banners' vertical extent so the two never
+ * overlap, no matter how many tiers hang at the top-right. */
+.map-card #card-detail {
+  align-self: flex-end;
+  margin-top: var(--space-3);
+}
+.map-card-hours { display: flex; align-items: center; gap: 4px; font-size: var(--text-caption-size); color: var(--color-foreground-alt); margin-top: 2px /* hairline, not spacing */; }
+.map-card-hours .ms { font-size: 14px; color: var(--color-primary); }
+.map-card-hours-placeholder { color: var(--color-neutral-darker); font-style: italic; }
+.map-card-addr-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  text-decoration: none; color: var(--color-primary-dark);
+  font-weight: var(--font-weight-semibold);
+  border-bottom: 1px dashed var(--color-primary-light-active);
+  padding-bottom: 1px;
+}
+.map-card-addr-link:hover { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+.map-card-addr-link .ms { font-size: 14px; }
 .map-card-disc { font-size: var(--text-caption-size); color: var(--color-secondary-dark); margin-top: var(--space-1); font-weight: var(--font-weight-bold); }
 
 /* First-visit name prompt (overlays the map until the user picks a name).
@@ -1233,7 +1506,33 @@ body {
   padding: 1px var(--space-2); border-radius: 4px; /* tiny accent radius — not card-shaped */ font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
 }
 .review-date { color: var(--color-neutral-darker); font-size: var(--text-caption-size); margin-left: auto; }
+.review-flag {
+  border: none; background: none; cursor: pointer;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-neutral-darker);
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+  opacity: 0.55;
+}
+.review-flag:hover { background: var(--color-neutral-light-active); color: var(--color-secondary-dark); opacity: 1; }
+.review-flag .ms { font-size: 14px; }
 .review-text { font-size: var(--text-mini-size); line-height: 1.55; color: var(--color-foreground-alt); margin: 0; white-space: pre-wrap; }
+
+/* Circular flag in the restaurant-detail header — reports the restaurant
+ * itself (已歇業 / 位置錯誤 / …). Visible orange tint differentiates it
+ * from the plain back arrow on the left edge. */
+.detail-flag-btn {
+  border: none; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-secondary-light);
+  color: var(--color-secondary-dark);
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.detail-flag-btn:hover { background: var(--color-secondary-light-active); }
+.detail-flag-btn .ms { font-size: 16px; }
 
 /* =============================================================================
  * Review form
@@ -1459,6 +1758,16 @@ body {
 .quiz-verdict.wrong { background: rgba(232, 93, 117, 0.1); color: var(--color-destructive); }
 .quiz-verdict .ms { font-size: var(--text-button-l-size); }
 .quiz-xp { margin-left: auto; background: var(--color-secondary-light); color: var(--color-secondary-dark); padding: 2px var(--space-2); border-radius: var(--radius-pill); font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold); }
+.quiz-pet-bubble {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-md);
+  font-size: var(--text-mini-size); color: var(--color-primary-dark);
+  margin: var(--space-2) 0;
+}
+.quiz-pet-emoji { font-size: 24px; }
+.quiz-pet-text { font-weight: var(--font-weight-semibold); }
 .quiz-explanation { font-size: var(--text-mini-size); line-height: 1.6; color: var(--color-foreground-alt); margin: 0; padding: var(--space-3) var(--space-4); background: var(--color-neutral-light-active); border-radius: var(--radius-md); }
 .quiz-actions { display: flex; gap: 10px; }
 .quiz-actions .btn { flex: 1; }
@@ -1545,50 +1854,10 @@ body {
 .stat-highlight { background: linear-gradient(135deg, var(--color-secondary-light), var(--color-primary-light)); }
 .stat-highlight .stat-value { color: var(--color-secondary-dark); }
 
-.profile-section {
-  background: var(--color-card);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 4px -1px rgba(0,0,0,0.05);
-}
-.profile-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-3); }
-.profile-section-title { font-size: var(--text-mini-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); margin: 0; }
-.profile-section-meta { font-size: var(--text-caption-size); color: var(--color-neutral-darker); font-weight: var(--font-weight-bold); }
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-}
-.cal-cell {
-  aspect-ratio: 1;
-  border-radius: var(--radius-md);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
-  position: relative;
-  transition: transform 0.15s;
-}
-.cal-cell .cal-num { font-size: var(--text-caption-size); opacity: 0.8; }
-.cal-cell .cal-icon { font-size: var(--text-mini-size); line-height: 1; margin-top: 2px /* hairline, not spacing */; }
-.cal-cell.future { background: var(--color-neutral-light-active); color: var(--color-neutral-dark); }
-.cal-cell.miss { background: rgba(232, 93, 117, 0.1); color: var(--color-destructive); }
-.cal-cell.done { background: var(--color-primary-light); color: var(--color-primary-dark); }
-.cal-cell.lucky { background: linear-gradient(135deg, var(--color-secondary-light), var(--color-primary-light)); color: var(--color-secondary-dark); }
-.cal-cell.today { box-shadow: 0 0 0 2px var(--color-primary); transform: scale(1.05); }
-
-.calendar-legend {
-  display: flex; gap: 12px; align-items: center;
-  margin-top: var(--space-3);
-  font-size: var(--text-caption-size);
-  color: var(--color-neutral-darker);
-}
-.calendar-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; /* tiny accent radius — not card-shaped */ margin-right: var(--space-1); }
-/* Cell fills use --color-primary-light (#e8eeeb) which reads fine across a
- * whole calendar square but is invisible in a 10px legend dot. Use the
- * saturated tokens here so the legend actually communicates its key. */
-.calendar-legend .d-leaf { background: var(--color-primary); }
-.calendar-legend .d-lucky { background: linear-gradient(135deg, var(--color-secondary), var(--color-primary)); }
-.calendar-legend .d-miss { background: var(--color-destructive); }
+.baseline-section { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.baseline-section-title { margin: 0; font-size: var(--text-h3-size, var(--text-button-l-size)); font-weight: var(--font-weight-extrabold); color: var(--color-foreground); }
+.diet-choice.is-selected { border-color: var(--color-primary); background: var(--color-primary-light); }
+.diet-choice.is-selected .ch-arrow { color: var(--color-primary); }
 
 .profile-links { display: flex; flex-direction: column; gap: 6px; }
 .profile-link {
@@ -2029,13 +2298,6 @@ body {
 .tolerance-row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-mini-size); }
 .tolerance-label { margin-left: auto; font-weight: var(--font-weight-extrabold); color: var(--color-secondary-dark); }
 .tolerance-card.broken .tolerance-label { color: var(--color-error, #d63b3b); }
-
-.tolerance-pill {
-  background: var(--color-neutral-light-active); padding: 2px 8px; border-radius: var(--radius-pill);
-  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
-  color: var(--color-neutral-darker);
-  margin-left: 6px;
-}
 
 .settings-footer {
   margin-top: var(--space-6);

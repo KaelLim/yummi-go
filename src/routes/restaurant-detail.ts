@@ -19,11 +19,20 @@ const PLACE_LABEL: Record<string, string> = {
   dessert: '甜點',
 };
 
-const REPORT_REASONS = [
+/** Reasons surfaced when the user reports the *restaurant* (top-right flag).
+ *  Primary use case is "店家似乎已歇業" — the rest are practical follow-ups. */
+const RESTAURANT_REPORT_REASONS = [
   '已歇業',
   '位置錯誤',
   '不再供應素食',
-  '評論不實',
+  '其他',
+];
+
+/** Reasons surfaced when the user reports a *single review* (per-row flag). */
+const REVIEW_REPORT_REASONS = [
+  '不當內容',
+  '廣告 / 垃圾訊息',
+  '不實評論',
   '其他',
 ];
 
@@ -37,7 +46,7 @@ export default function detail(params: Record<string, string>): HTMLElement {
         <span class="ms">arrow_back</span>
       </button>
       <span class="checkin-title" id="title">載入中…</span>
-      <button class="checkin-back" id="report-btn" aria-label="檢舉">
+      <button class="detail-flag-btn" id="report-btn" aria-label="檢舉店家（已歇業 / 位置錯誤等）" title="檢舉店家">
         <span class="ms">flag</span>
       </button>
     </header>
@@ -64,11 +73,27 @@ export default function detail(params: Record<string, string>): HTMLElement {
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/map'));
   wrap.querySelector('#add-review')?.addEventListener('click', () => navigate(`/map/restaurant/${id}/review`));
   wrap.querySelector('#report-btn')?.addEventListener('click', () => {
-    const reason = REPORT_REASONS.find((r) =>
-      window.confirm(`檢舉原因：「${r}」？\n（取消以查看下一個）`),
+    const reason = RESTAURANT_REPORT_REASONS.find((r) =>
+      window.confirm(`檢舉店家：「${r}」？\n（取消以查看下一個）`),
     );
     if (reason) {
       window.alert(`已記錄檢舉：${reason}`);
+    }
+  });
+
+  // Event delegation for per-review flag — listEl is re-rendered after the
+  // reviews fetch, so binding listeners per-row would require re-binding
+  // on every render. One listener on the list covers all rows including
+  // those that haven't been rendered yet.
+  listEl.addEventListener('click', (e) => {
+    const target = (e.target as Element).closest<HTMLButtonElement>('.review-flag');
+    if (!target) return;
+    const reviewId = target.dataset.reviewId;
+    const reason = REVIEW_REPORT_REASONS.find((r) =>
+      window.confirm(`檢舉這則評論：「${r}」？\n（取消以查看下一個）`),
+    );
+    if (reason) {
+      window.alert(`已記錄檢舉：${reason}${reviewId ? `（評論 #${reviewId}）` : ''}`);
     }
   });
 
@@ -125,6 +150,9 @@ function renderReviews(el: HTMLElement, reviews: RestaurantReview[]): void {
           <span class="review-stars" aria-label="${rv.rating} 顆星">${'★'.repeat(rv.rating)}${'☆'.repeat(5 - rv.rating)}</span>
           ${rv.vegan_type ? `<span class="review-tag">${escapeHtml(rv.vegan_type)}</span>` : ''}
           <span class="review-date">${formatDate(rv.created_at)}</span>
+          <button class="review-flag" data-review-id="${rv.id}" type="button" aria-label="檢舉這則評論" title="檢舉這則評論">
+            <span class="ms">flag</span>
+          </button>
         </div>
         ${rv.text ? `<p class="review-text">${escapeHtml(rv.text)}</p>` : ''}
       </article>`,

@@ -71,7 +71,9 @@ describe('map route', () => {
     const el = map();
     expect(el.classList.contains('map-screen')).toBe(true);
     expect(el.querySelector('.map-title')?.textContent).toBe('蔬食地圖');
-    expect(el.querySelectorAll('.filter-chip:not(.filter-partner)').length).toBeGreaterThanOrEqual(4);
+    // 全部 + 全素 + 蛋奶素 + 五辛素 + 鍋邊素 = 5 vegan-tier chips
+    // (plus the partner toggle, excluded by selector).
+    expect(el.querySelectorAll('.filter-chip:not(.filter-partner)').length).toBe(5);
     expect(el.querySelector('.map-canvas')).not.toBeNull();
   });
 
@@ -92,12 +94,12 @@ describe('map route', () => {
     expect(toggle.classList.contains('selected')).toBe(false);
   });
 
-  it('place chip flip activates the clicked one and deactivates others', () => {
+  it('vegan-tier chip flip activates the clicked one and deactivates others', () => {
     const el = map();
-    const chinese = el.querySelector<HTMLButtonElement>('.filter-chip[data-place="chinese"]')!;
-    const all = el.querySelector<HTMLButtonElement>('.filter-chip[data-place=""]')!;
-    chinese.click();
-    expect(chinese.classList.contains('selected')).toBe(true);
+    const tier = el.querySelector<HTMLButtonElement>('.filter-chip[data-vegan="全素"]')!;
+    const all = el.querySelector<HTMLButtonElement>('.filter-chip[data-vegan=""]')!;
+    tier.click();
+    expect(tier.classList.contains('selected')).toBe(true);
     expect(all.classList.contains('selected')).toBe(false);
   });
 

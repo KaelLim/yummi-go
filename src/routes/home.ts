@@ -1,33 +1,31 @@
 /**
  * Home route — main "tamagotchi" view.
  *
- * Sections:
- *   1. Resource header — wallet XP / gems / makeup cards (from $gems)
- *   2. Hero PetView with fog overlay
- *   3. Pet greeting bubble (from current day's task_description)
+ * Layout (post UX_UPDATE_SPEC_v0.1):
+ *   1. Resource top bar — 💎 Gem + 🔥 Streak (XP-total + makeup-card chips
+ *      moved off home per spec; tolerance pill removed entirely)
+ *   2. Lucky-color card → /check-in
+ *   3. Pet greeting bubble — random phrase from the time-of-day dialogue
+ *      pool; tap the pet to reroll
  *   4. Level/XP progress bar (from $pet)
- *   5. Today status card — D{n}/30 badge + meal dots (from $today)
- *   6. Lucky-color card → /check-in, Quiz bubble → /tasks/quiz
+ *   5. Hero PetView
+ *   6. Quiz bubble → /tasks/quiz
  *
- * Day data (currentDay / dayNumber / luckyColor) is kept in sync globally
- * by store/day-sync; this route only reacts to $today / $challenge / $pet
- * / $gems.
+ * Streak is derived locally from listCheckIns on mount. PR-3 will refactor
+ * this into a shared store once the calendar/makeup logic needs it too.
  */
 import { navigate } from '@/router';
 import { $pet, $gems, type PetStoreShape, type GemsStoreShape } from '@/store/pet';
-import { $today, $challenge, type TodayStoreShape } from '@/store/today';
-import { $profile } from '@/store/user';
-import type { ChallengeScript } from '@/api/content';
+import { $today, type TodayStoreShape } from '@/store/today';
+import { $user } from '@/store/user';
 import { XP_PER_LEVEL } from '@/lib/pet-evolution';
 import { normalizeLuckyColor } from '@/lib/lucky-color';
 import { bind } from '@/lib/lifecycle';
 import { createPetView } from '@/components/PetView';
-
-const MEALS: Array<{ key: string; label: string }> = [
-  { key: 'breakfast', label: '一' },
-  { key: 'lunch', label: '二' },
-  { key: 'dinner', label: '三' },
-];
+import { listCheckIns } from '@/api/check-ins';
+import { deriveStreak } from '@/lib/streak';
+import { pickDialogueNow } from '@/lib/pet-dialogue';
+import { buildMissions, homeVisibleMissions, type Mission } from '@/lib/missions';
 
 const LUCKY_LABEL: Record<string, string> = {
   red: '紅色',
@@ -48,50 +46,16 @@ export default function home(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="home-resources" aria-label="resources">
-      <div class="resource-chip" data-resource="xp" title="累計總 XP">
-        <span class="ms">eco</span>
-        <span class="resource-num" data-bind="total-xp">0</span>
-        <span class="resource-unit">XP</span>
-      </div>
-      <div class="resource-chip" data-resource="gem" title="寶石">
+      <div class="resource-chip" data-resource="gem" title="能量石">
         <span class="ms">diamond</span>
         <span class="resource-num" data-bind="gems">0</span>
       </div>
-      <div class="resource-chip" data-resource="card" title="補簽卡">
-        <span class="ms">style</span>
-        <span class="resource-num" data-bind="cards">0</span>
-      </div>
+      <button class="resource-chip resource-chip-button" data-resource="streak" id="streak-chip" type="button" title="連續打卡天數 — 點擊查看月曆">
+        <span class="resource-emoji" aria-hidden="true">🔥</span>
+        <span class="resource-num" data-bind="streak">0</span>
+        <span class="resource-unit">天</span>
+      </button>
     </header>
-    <section class="home-hero" data-slot="pet"></section>
-    <section class="home-bubble pet-bubble" data-bind="pet-bubble">守護者氣息微弱…</section>
-    <section class="level-bar">
-      <div class="level-bar-label">
-        <span class="level-bar-lv">LV.<span data-bind="level">1</span></span>
-        <span class="level-bar-xp"><span data-bind="cur-xp">0</span>/<span data-bind="next-xp">30</span> XP</span>
-      </div>
-      <div class="level-bar-track">
-        <div class="level-bar-fill" data-bind="level-fill" style="width:0%"></div>
-      </div>
-    </section>
-    <section class="today-card">
-      <div class="today-card-row">
-        <span class="today-card-label">
-          今日進度
-          <span class="today-day-badge">D<span data-bind="day">1</span>/30</span>
-          <span class="tolerance-pill" id="tolerance-pill" hidden></span>
-        </span>
-        <span class="today-card-value">+<span data-bind="today-xp">0</span> XP</span>
-      </div>
-      <div class="meal-dots">
-        ${MEALS.map(
-          (m) => `
-            <div class="meal-dot" data-meal="${m.key}">
-              <span class="meal-dot-tick">·</span>
-              <span class="meal-dot-label">${m.label}</span>
-            </div>`,
-        ).join('')}
-      </div>
-    </section>
     <section class="lucky-card" id="lucky-card" role="button" tabindex="0">
       <div class="lucky-card-emoji" data-bind="lucky-emoji">🎨</div>
       <div class="lucky-card-body">
@@ -101,16 +65,44 @@ export default function home(): HTMLElement {
       </div>
       <span class="ms lucky-card-arrow">arrow_forward</span>
     </section>
-    <section class="quiz-bubble" id="quiz-bubble" role="button" tabindex="0">
-      <span class="ms" data-bind="quiz-icon">school</span>
-      <span class="quiz-bubble-text" data-bind="quiz-text">每日小測驗</span>
-      <span class="quiz-bubble-xp" data-bind="quiz-xp">+15 XP</span>
+    <section class="home-bubble pet-bubble" data-bind="pet-bubble" id="pet-bubble">守護者氣息微弱…</section>
+    <section class="home-hero" data-slot="pet"></section>
+    <section class="level-bar">
+      <div class="level-bar-label">
+        <span class="level-bar-lv">LV.<span data-bind="level">1</span></span>
+        <span class="level-bar-xp"><span data-bind="cur-xp">0</span>/<span data-bind="next-xp">30</span> XP</span>
+      </div>
+      <div class="level-bar-track">
+        <div class="level-bar-fill" data-bind="level-fill" style="width:0%"></div>
+      </div>
+    </section>
+    <section class="missions-card" id="missions-card">
+      <header class="missions-header">
+        <h2 class="missions-title">今日任務</h2>
+        <button class="missions-expand" id="missions-expand" type="button" aria-expanded="false">
+          <span class="missions-expand-label">查看全部</span>
+          <span class="ms missions-expand-arrow">expand_more</span>
+        </button>
+      </header>
+      <ul class="missions-list" id="missions-list" aria-live="polite"></ul>
     </section>
   `;
 
   wrap.querySelector('[data-slot="pet"]')?.appendChild(pet.el);
 
   const $$ = (sel: string) => wrap.querySelector<HTMLElement>(sel);
+
+  // Pick an initial pet-bubble line from the time-of-day pool. Tapping
+  // the pet rerolls — kept slightly different from the last line so
+  // back-to-back taps don't repeat. The day-script copy is no longer
+  // used here per UX_UPDATE_SPEC_v0.1 §1.
+  const bubbleEl = $$('#pet-bubble');
+  let lastBubble = pickDialogueNow();
+  if (bubbleEl) bubbleEl.textContent = lastBubble;
+  pet.el.addEventListener('click', () => {
+    lastBubble = pickDialogueNow(lastBubble);
+    if (bubbleEl) bubbleEl.textContent = lastBubble;
+  });
 
   function renderPet(p: PetStoreShape | null) {
     const level = p?.level ?? 1;
@@ -128,10 +120,6 @@ export default function home(): HTMLElement {
   }
 
   function renderToday(t: TodayStoreShape) {
-    const dayEl = $$('[data-bind="day"]');
-    if (dayEl) dayEl.textContent = String(t.dayNumber);
-    const xpEl = $$('[data-bind="today-xp"]');
-    if (xpEl) xpEl.textContent = String(t.totalXpToday);
     const lucky = t.luckyColor;
     const palette = normalizeLuckyColor(lucky);
     const labelEl = $$('[data-bind="lucky-label"]');
@@ -149,14 +137,6 @@ export default function home(): HTMLElement {
         emojiEl.textContent = '🎨';
       }
     }
-    for (const m of MEALS) {
-      const dot = wrap.querySelector<HTMLElement>(`.meal-dot[data-meal="${m.key}"]`);
-      if (!dot) continue;
-      const done = t.missionsDone.some((k) => k === `meal:${m.key}` || k === m.key);
-      dot.classList.toggle('done', done);
-      const tick = dot.querySelector('.meal-dot-tick');
-      if (tick) tick.textContent = done ? '✓' : '·';
-    }
 
     const luckyHit = t.missionsDone.includes('lucky:hit');
     const luckyCard = $$('#lucky-card');
@@ -164,64 +144,112 @@ export default function home(): HTMLElement {
     const luckyStatusEl = $$('[data-bind="lucky-status"]');
     if (luckyStatusEl) luckyStatusEl.textContent = luckyHit ? '✓ 已命中 +15 XP' : '';
 
-    const quizDone = t.missionsDone.includes('quiz');
-    const quizBubble = $$('#quiz-bubble');
-    if (quizBubble) {
-      quizBubble.classList.toggle('done', quizDone);
-      quizBubble.setAttribute('aria-disabled', quizDone ? 'true' : 'false');
-      const icon = quizBubble.querySelector('[data-bind="quiz-icon"]');
-      if (icon) icon.textContent = quizDone ? 'task_alt' : 'school';
-      const text = quizBubble.querySelector('[data-bind="quiz-text"]');
-      if (text) text.textContent = quizDone ? '今日小測驗已完成' : '每日小測驗';
-      // Don't claim "+15 XP ✓" because a wrong answer locks the slot at 0 XP.
-      // Only the unanswered state advertises the reward.
-      const xp = quizBubble.querySelector('[data-bind="quiz-xp"]');
-      if (xp) xp.textContent = quizDone ? '✓ 已作答' : '答對 +15 XP';
-    }
+    renderMissions(t);
   }
 
-  function renderChallenge(c: { currentDay: ChallengeScript | null }) {
-    const bubble = $$('[data-bind="pet-bubble"]');
-    if (bubble) {
-      bubble.textContent = c.currentDay?.task_description ?? '今日任務即將解鎖…';
+  // Missions accordion state — collapsed by default, expands in-place when
+  // the user taps "查看全部". No popup/modal; same card, more rows.
+  //
+  // Collapsed view always pairs the current-meal check-in with one
+  // non-meal mission (quiz/lucky/5R/...) so the user sees both their
+  // primary daily action and a secondary nudge without scrolling.
+  let missionsExpanded = false;
+  function renderMissions(t: TodayStoreShape) {
+    const list = $$('#missions-list');
+    if (!list) return;
+    const all = buildMissions({ today: t });
+    const visible = missionsExpanded ? all : homeVisibleMissions(all);
+    list.innerHTML = '';
+    if (visible.length === 0) {
+      list.innerHTML = `
+        <li class="mission-row mission-row-empty">
+          <span class="ms">celebration</span>
+          <span class="mission-label">今日任務全部完成！</span>
+        </li>
+      `;
+      return;
     }
+    for (const m of visible) {
+      list.appendChild(renderMissionRow(m));
+    }
+  }
+  function toggleMissions(): void {
+    missionsExpanded = !missionsExpanded;
+    const btn = $$('#missions-expand');
+    if (btn) {
+      btn.setAttribute('aria-expanded', String(missionsExpanded));
+      const label = btn.querySelector('.missions-expand-label');
+      if (label) label.textContent = missionsExpanded ? '收合' : '查看全部';
+      const arrow = btn.querySelector<HTMLElement>('.missions-expand-arrow');
+      if (arrow) arrow.textContent = missionsExpanded ? 'expand_less' : 'expand_more';
+    }
+    renderMissions($today.get());
   }
 
   function renderWallet(g: GemsStoreShape) {
-    const xp = $$('[data-bind="total-xp"]');
-    if (xp) xp.textContent = String(g.totalXp);
     const gem = $$('[data-bind="gems"]');
     if (gem) gem.textContent = String(g.balance);
-    const cards = $$('[data-bind="cards"]');
-    if (cards) cards.textContent = String(g.makeupCards);
   }
 
-  function renderTolerancePill(level: number | null) {
-    const pill = $$('#tolerance-pill');
-    if (!pill) return;
-    if (!level || level === 1) {
-      pill.hidden = true;
-      return;
+  // Streak: derived from listCheckIns on mount. Refresh when $today's
+  // dayNumber advances (handles the midnight rollover from day-sync).
+  let lastDayLoaded: number | null = null;
+  async function refreshStreak(): Promise<void> {
+    const u = $user.get();
+    const today = $today.get().dayNumber;
+    if (!u) return;
+    if (lastDayLoaded === today) return; // already loaded for today
+    lastDayLoaded = today;
+    try {
+      const rows = await listCheckIns(u.id);
+      const streak = deriveStreak({ checkIns: rows, todayDayNumber: today });
+      const el = $$('[data-bind="streak"]');
+      if (el) el.textContent = String(streak);
+    } catch {
+      /* leave the chip at 0 — non-fatal */
     }
-    pill.hidden = false;
-    // Home shows "等級 N" only — Profile is the place for the actual fail count.
-    pill.textContent = `等級 ${level}`;
   }
 
   bind(wrap, $pet, renderPet);
-  bind(wrap, $today, renderToday);
-  bind(wrap, $challenge, renderChallenge);
+  bind(wrap, $today, (t) => {
+    renderToday(t);
+    void refreshStreak();
+  });
   bind(wrap, $gems, renderWallet);
-  bind(wrap, $profile, (p) => renderTolerancePill(p?.challenge_level ?? null));
 
   $$('#lucky-card')?.addEventListener('click', () => navigate('/check-in'));
-  $$('#quiz-bubble')?.addEventListener('click', () => {
-    if ($today.get().missionsDone.includes('quiz')) return; // 今日已完成，不再 navigate
-    navigate('/tasks/quiz');
-  });
+  $$('#streak-chip')?.addEventListener('click', () => navigate('/profile/calendar'));
+  $$('#missions-expand')?.addEventListener('click', toggleMissions);
 
   return wrap;
 }
+
+function renderMissionRow(m: Mission): HTMLElement {
+  const li = document.createElement('li');
+  li.className = 'mission-row' + (m.done ? ' done' : '');
+  li.dataset.key = m.key;
+  const arrow = m.selfCheck
+    ? `<input type="checkbox" class="mission-check" ${m.done ? 'checked' : ''} disabled />`
+    : `<span class="ms mission-arrow">arrow_forward</span>`;
+  const xpTag = m.xp > 0
+    ? `<span class="mission-xp">+${m.xp} XP</span>`
+    : `<span class="mission-xp mission-xp-zero">永續</span>`;
+  li.innerHTML = `
+    <span class="mission-emoji" aria-hidden="true">${m.emoji}</span>
+    <span class="mission-label">${m.label}</span>
+    ${xpTag}
+    ${arrow}
+  `;
+  if (m.href) {
+    li.classList.add('mission-row-clickable');
+    li.addEventListener('click', () => {
+      if (m.done) return;
+      navigate(m.href!);
+    });
+  }
+  return li;
+}
+
 
 function colorPreview(name: string): string {
   const map: Record<string, string> = {

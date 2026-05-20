@@ -18,24 +18,24 @@ describe('profile hub', () => {
     $today.set({ dayNumber: 1, totalXpToday: 0, missionsDone: [], luckyColor: '' });
   });
 
-  it('renders header card + 4 stat cards + 30-day calendar grid', () => {
+  it('renders header card + 4 stat cards (inline calendar removed)', () => {
     const el = profile();
     expect(el.classList.contains('profile-screen')).toBe(true);
     expect(el.querySelector('.profile-name')?.textContent).toBe('阿凱');
     expect(el.querySelectorAll('.stat-card').length).toBe(4);
-    expect(el.querySelectorAll('.cal-cell').length).toBe(30);
+    // Inline mini-calendar removed in the 2026-05-19 pivot — full view now
+    // lives at /profile/calendar.
+    expect(el.querySelectorAll('.cal-cell').length).toBe(0);
+    expect(el.querySelector('#calendar')).toBeNull();
   });
 
-  it('marks the current day with .today and future days as .future', () => {
-    $today.set({ dayNumber: 5, totalXpToday: 0, missionsDone: [], luckyColor: '' });
+  it('exposes a 月曆 / 補簽 link that routes to /profile/calendar', () => {
     const el = profile();
-    document.body.appendChild(el);
-    const cells = Array.from(el.querySelectorAll<HTMLElement>('.cal-cell'));
-    const today = cells[4];
-    const future = cells[10];
-    expect(today.classList.contains('today')).toBe(true);
-    expect(future.classList.contains('future')).toBe(true);
-    el.remove();
+    const link = Array.from(el.querySelectorAll<HTMLButtonElement>('.profile-link')).find(
+      (b) => b.textContent?.includes('月曆'),
+    );
+    link?.click();
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/profile/calendar');
   });
 
   it('clicking a profile-link navigates', () => {

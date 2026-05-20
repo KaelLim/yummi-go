@@ -174,10 +174,12 @@ export default function success(): HTMLElement {
   wrap.querySelector('#next')?.addEventListener('click', () => {
     timers.forEach(window.clearTimeout);
     resetCheckin();
-    // First-time picker: if the user hasn't set their challenge level yet,
-    // route through it once before landing on /home.
-    const level = $profile.get()?.challenge_level;
-    navigate(level == null ? '/onboarding/challenge-level' : '/home');
+    // First-time picker: if the user hasn't set their meal schedule yet,
+    // route through /onboarding/eat-times once before landing on /home.
+    // The 挑戰難度 picker was removed from onboarding (2026-05-19), so the
+    // post-check-in setup chain is just eat-times now.
+    const eatTimes = $profile.get()?.eat_times;
+    navigate(eatTimes ? '/home' : '/onboarding/eat-times');
   });
 
   wrap.querySelector('#share')?.addEventListener('click', () => {

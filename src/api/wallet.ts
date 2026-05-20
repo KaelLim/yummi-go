@@ -117,6 +117,36 @@ export async function spendMakeupCard(
 }
 
 /**
+ * Direct gem deduction for the calendar makeup flow (UX_UPDATE_SPEC_v0.1 §5).
+ * No card concept — caller already knows the tier-based cost (100 or 300).
+ * The caller is responsible for marking the day as made up in
+ * `lib/makeups-local` once this resolves. Throws when the balance is short
+ * so the UI can show 「能量石不足」 without silently double-spending.
+ */
+export async function spendGemsForMakeup(
+  userId: number,
+  cost: number,
+  dayNumber: number,
+): Promise<{ balance: number }> {
+  const gem = await getGemBalance(userId);
+  if (!gem) throw new Error('Gem balance not found');
+  if (gem.balance < cost) throw new Error('能量石不足');
+  const newBalance = gem.balance - cost;
+  await drust.update('gem_balances', gem.id, {
+    balance: newBalance,
+    total_spent: gem.total_spent + cost,
+  });
+  void recordGemEvent({
+    userId,
+    delta: -cost,
+    reason: 'spend_makeup',
+    balanceAfter: newBalance,
+    refId: dayNumber,
+  });
+  return { balance: newBalance };
+}
+
+/**
  * Mint gems into the user's balance. Used by the dev panel to skip the
  * grind during demos; production code paths shouldn't call this since gem
  * accrual goes through the XP-overflow rules in lib/xp-calc.
