@@ -14,6 +14,7 @@ import { bootstrapFromStorage } from './store/user';
 import { $ui } from './store/ui';
 import { setupDaySync } from './store/day-sync';
 import { setupMealNotifier } from './lib/meal-notifier';
+import { installMilestoneRouter } from './lib/milestone-popup';
 
 // Reflect the active theme onto <html data-theme="..."> so CSS can pivot
 // the colour tokens. Subscribed once at boot — the atom's initial-value
@@ -79,6 +80,10 @@ async function boot() {
   setupDaySync();
   setupInstallPrompt();
   setupMealNotifier();          // NEW
+  // Subscribe to route changes BEFORE startRouter() so the very first
+  // resolve doesn't count as a transition — the milestone handler skips
+  // its first emission for exactly that reason.
+  installMilestoneRouter();
   startRouter();
 }
 void boot();

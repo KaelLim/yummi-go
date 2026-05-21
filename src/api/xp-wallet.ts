@@ -110,6 +110,14 @@ export interface FeedPetResult {
   remainingBalance: number;
   fedToday: number;
   capReached: boolean;
+  /**
+   * True only when *this* call took fed_today from below the daily cap
+   * to at-or-above. Lets callers tell "the user just crossed 100 XP
+   * today" apart from "the user is already capped and we just fed 0".
+   * Used by store/pet.awardXp to fire the milestone bonus exactly once
+   * per local day.
+   */
+  crossedTodayCap: boolean;
   pet: PetState | null;
 }
 
@@ -133,11 +141,15 @@ export async function feedPet(
       remainingBalance: row.balance,
       fedToday: row.fed_today,
       capReached: row.fed_today >= PET_DAILY_XP_CAP,
+      crossedTodayCap: false,
       pet: null,
     };
   }
   const newBalance = row.balance - fed;
   const newFedToday = row.fed_today + fed;
+  // Crossing is computed BEFORE we hit drust — a subsequent meal same
+  // day will see row.fed_today already >= cap and won't re-trigger.
+  const crossedTodayCap = row.fed_today < PET_DAILY_XP_CAP && newFedToday >= PET_DAILY_XP_CAP;
   await drust.update('xp_balances', row.id, {
     balance: newBalance,
     fed_today: newFedToday,
@@ -152,6 +164,7 @@ export async function feedPet(
     remainingBalance: newBalance,
     fedToday: newFedToday,
     capReached: newFedToday >= PET_DAILY_XP_CAP,
+    crossedTodayCap,
     pet,
   };
 }

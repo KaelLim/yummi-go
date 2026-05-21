@@ -62,10 +62,19 @@ export default function success(): HTMLElement {
          <span class="dist-text">餵給小綠 <strong>+${r.xpFedToPet} XP</strong></span>
        </div>`
     : '';
-  const gemRow = r.gemsFromXp > 0
+  // Three cases for the gem half of the distribution row:
+  //   1. xpFedToPet > 0 && gemsFromXp > 0  → this is the call that
+  //      *crossed* 100 XP today. Suppress the row entirely — the
+  //      milestone popup on the next home mount handles the storytelling.
+  //   2. xpFedToPet === 0 && gemsFromXp > 0 → user is already past the
+  //      cap for today; every subsequent earn auto-converts. Show a
+  //      compact "+N 💎" indicator (no 小綠 explanation).
+  //   3. gemsFromXp === 0 → no row.
+  const crossedThisCall = r.xpFedToPet > 0 && r.gemsFromXp > 0;
+  const gemRow = !crossedThisCall && r.gemsFromXp > 0
     ? `<div class="dist-row dist-gems">
          <span class="ms dist-icon">diamond</span>
-         <span class="dist-text">今日小綠已吃飽，多的 XP 換成 <strong data-gem-count="${r.gemsFromXp}">+0 寶石</strong></span>
+         <span class="dist-text">+<strong data-gem-count="${r.gemsFromXp}">0</strong> 能量石</span>
          <span class="gem-sparkle" aria-hidden="true"><span></span><span></span><span></span></span>
        </div>`
     : '';
@@ -105,7 +114,6 @@ export default function success(): HTMLElement {
       <div class="success-progress" aria-label="30-day progress">${segments}</div>
       <div class="success-pet">🐸</div>
       <h1 class="success-title">${title}</h1>
-      <p class="success-text">灰霧消散 <strong>${r.fogReductionPct}%</strong>。</p>
       <div class="success-distribution" id="success-distribution">
         ${fedRow}${gemRow}${emptyRow}
       </div>
@@ -171,7 +179,7 @@ export default function success(): HTMLElement {
   }
   wrap.querySelector('.success-body')?.addEventListener('click', settle, { once: true });
 
-  wrap.querySelector('#next')?.addEventListener('click', () => {
+  function advance(): void {
     timers.forEach(window.clearTimeout);
     resetCheckin();
     // First-time picker: if the user hasn't set their meal schedule yet,
@@ -180,6 +188,19 @@ export default function success(): HTMLElement {
     // post-check-in setup chain is just eat-times now.
     const eatTimes = $profile.get()?.eat_times;
     navigate(eatTimes ? '/home' : '/onboarding/eat-times');
+  }
+
+  // First check-in: arm the phase-1 modal flag so home shows the 30-day
+  // framing on the user's first home visit after onboarding + this
+  // check-in. We set it as a side-effect of mounting the success page
+  // rather than waiting for the 繼續守護 tap, so the flag survives even
+  // if the user navigates around before reaching home.
+  if (r.isFirstCheckIn) {
+    try { localStorage.setItem('yummi:phase1_modal_pending', '1'); } catch { /* private mode */ }
+  }
+
+  wrap.querySelector('#next')?.addEventListener('click', () => {
+    advance();
   });
 
   wrap.querySelector('#share')?.addEventListener('click', () => {

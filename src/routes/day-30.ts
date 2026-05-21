@@ -62,7 +62,7 @@ export default function day30(): HTMLElement {
         </div>
       </div>
       <h1 class="day30-title">守護者的旅途</h1>
-      <p class="day30-text">30 天前，你只是一顆灰霧中的蛋。<br/>今天，你已經喚醒了一片綠林。</p>
+      <p class="day30-text">30 天前，你只是一顆剛孵化的蛋。<br/>今天，你已經陪伴守護者走完一段旅程。</p>
       <section class="day30-card" id="impact"></section>
       <section class="day30-badges" id="badges"></section>
       <div class="day30-actions">

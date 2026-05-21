@@ -792,6 +792,109 @@ body {
   background: var(--color-neutral-light-active); color: var(--color-neutral-darker);
 }
 
+/* XP-milestone celebration modal — fires on the user's next page mount
+ * after they first cross 100 XP for the day. Same visual family as the
+ * phase-1 modal (centred card, slide-up animation, primary CTA), but
+ * leads with a 🎉 + breakdown rows so the +10 bonus and overflow
+ * conversion read as two distinct rewards. */
+.milestone-modal {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(15, 23, 25, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  animation: phase1-fade 200ms ease-out both;
+}
+.milestone-modal[hidden] { display: none; }
+.milestone-modal-card {
+  width: 100%; max-width: 360px;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-5);
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-3); text-align: center;
+  box-shadow: 0 16px 48px -8px rgba(0,0,0,0.35);
+  animation: phase1-pop 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.milestone-icon { font-size: 56px; }
+.milestone-title { margin: 0; font-size: var(--text-h2-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); }
+.milestone-body { margin: 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt); line-height: 1.6; }
+.milestone-breakdown {
+  width: 100%; display: flex; flex-direction: column; gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.milestone-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--color-secondary-light); color: var(--color-secondary-dark);
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-md);
+}
+.milestone-row-label { font-size: var(--text-mini-size); font-weight: var(--font-weight-semibold); }
+.milestone-row-value { font-size: var(--text-mini-size); font-weight: var(--font-weight-extrabold); font-variant-numeric: tabular-nums; }
+.milestone-modal #milestone-continue { width: 100%; margin-top: var(--space-3); }
+
+/* Phase-1 modal — fires once on the very first check-in, after the user
+ * taps 繼續守護. Sets the 30-day-journey expectation, hints at pet
+ * evolution, and previews the completion gem reward. */
+.phase1-modal {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(15, 23, 25, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  animation: phase1-fade 200ms ease-out both;
+}
+.phase1-modal[hidden] { display: none; }
+@keyframes phase1-fade { from { opacity: 0; } to { opacity: 1; } }
+.phase1-modal-card {
+  width: 100%; max-width: 360px;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-5);
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-3); text-align: center;
+  box-shadow: 0 16px 48px -8px rgba(0,0,0,0.35);
+  animation: phase1-pop 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes phase1-pop {
+  from { transform: translateY(20px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+.phase1-icon { font-size: 56px; }
+.phase1-title { margin: 0; font-size: var(--text-h2-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); }
+.phase1-body { margin: 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt); line-height: 1.7; }
+.phase1-body strong { color: var(--color-primary-dark); font-weight: var(--font-weight-extrabold); }
+.phase1-options {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-2);
+}
+.phase1-option {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  background: var(--color-card);
+  border: 1.5px solid var(--color-neutral);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer; font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.phase1-option:hover { background: var(--color-neutral-light-active); }
+.phase1-option.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+.phase1-option-days {
+  font-size: var(--text-body-size);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-foreground);
+}
+.phase1-option.is-selected .phase1-option-days { color: var(--color-primary-dark); }
+.phase1-option-gems {
+  font-size: var(--text-mini-size);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-secondary-dark);
+}
+.phase1-modal #phase1-continue { width: 100%; margin-top: var(--space-3); }
+.phase1-modal #phase1-continue:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Restaurant-review success card — replaces the form in-place after submit */
 .review-success {
   display: flex; flex-direction: column; align-items: center;
@@ -804,6 +907,11 @@ body {
 .review-success-xp {
   padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill);
   background: var(--color-secondary-light); color: var(--color-secondary-dark);
+  font-weight: var(--font-weight-extrabold); font-variant-numeric: tabular-nums;
+}
+.review-success-gems {
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill);
+  background: var(--color-primary-light); color: var(--color-primary-dark);
   font-weight: var(--font-weight-extrabold); font-variant-numeric: tabular-nums;
 }
 .review-success .nutrition-card { width: 100%; text-align: left; }

@@ -39,9 +39,6 @@ export default function dietSurvey(): HTMLElement {
           </button>
         `).join('')}
       </div>
-      <p class="auth-foot" style="text-align:center;">
-        已有帳號？<a href="#/login" class="link">登入</a>
-      </p>
     </div>
   `;
 

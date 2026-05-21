@@ -27,6 +27,23 @@ import { deriveStreak } from '@/lib/streak';
 import { pickDialogueNow } from '@/lib/pet-dialogue';
 import { buildMissions, homeVisibleMissions, type Mission } from '@/lib/missions';
 
+interface Phase1Option {
+  days: number;
+  /** Gem reward shown beside the option. Use 'XX' until the numbers land. */
+  gems: string;
+}
+
+/** Length-of-journey options offered in the phase-1 modal. The user picks
+ *  one before tapping 開始旅程; their choice persists to localStorage so
+ *  future code paths (challenge tracker, day-N celebration) can read it. */
+const PHASE_1_OPTIONS: Phase1Option[] = [
+  { days: 30, gems: 'XX' },
+  { days: 45, gems: 'XX' },
+  { days: 60, gems: 'XX' },
+];
+const PHASE_1_FLAG_KEY = 'yummi:phase1_modal_pending';
+const PHASE_1_CHOICE_KEY = 'yummi:phase1_chosen_days';
+
 const LUCKY_LABEL: Record<string, string> = {
   red: '紅色',
   orange: '橙色',
@@ -86,6 +103,24 @@ export default function home(): HTMLElement {
       </header>
       <ul class="missions-list" id="missions-list" aria-live="polite"></ul>
     </section>
+    <div class="phase1-modal" id="phase1-modal" hidden role="dialog" aria-modal="true" aria-labelledby="phase1-title">
+      <div class="phase1-modal-card">
+        <div class="phase1-icon" aria-hidden="true">🌱</div>
+        <h2 class="phase1-title" id="phase1-title">第一階段旅程開始</h2>
+        <p class="phase1-body">請選擇您想參加的蔬食旅程天數</p>
+        <div class="phase1-options" id="phase1-options" role="radiogroup" aria-label="旅程天數">
+          ${PHASE_1_OPTIONS.map((o) => `
+            <button class="phase1-option" data-days="${o.days}" type="button" role="radio" aria-checked="false">
+              <span class="phase1-option-days">${o.days} 天</span>
+              <span class="phase1-option-gems">+${o.gems} 💎</span>
+            </button>
+          `).join('')}
+        </div>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="phase1-continue" type="button" disabled>
+          開始旅程
+        </button>
+      </div>
+    </div>
   `;
 
   wrap.querySelector('[data-slot="pet"]')?.appendChild(pet.el);
@@ -220,6 +255,42 @@ export default function home(): HTMLElement {
   $$('#lucky-card')?.addEventListener('click', () => navigate('/check-in'));
   $$('#streak-chip')?.addEventListener('click', () => navigate('/profile/calendar'));
   $$('#missions-expand')?.addEventListener('click', toggleMissions);
+
+  // Phase-1 modal — shows once on the user's first home visit after
+  // onboarding + first check-in. /check-in/success drops a localStorage
+  // flag when isFirstCheckIn=true; home picks it up here and clears it
+  // so subsequent visits don't repeat the modal. The user picks a
+  // journey length (30 / 45 / 60 days) which we persist for future
+  // challenge-tracker code.
+  try {
+    if (localStorage.getItem(PHASE_1_FLAG_KEY) === '1') {
+      const modal = $$('#phase1-modal');
+      const continueBtn = modal?.querySelector<HTMLButtonElement>('#phase1-continue');
+      if (modal && continueBtn) {
+        modal.hidden = false;
+        let chosenDays: number | null = null;
+        modal.querySelectorAll<HTMLButtonElement>('.phase1-option').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            chosenDays = Number(btn.dataset.days);
+            modal.querySelectorAll<HTMLButtonElement>('.phase1-option').forEach((b) => {
+              const on = b === btn;
+              b.classList.toggle('is-selected', on);
+              b.setAttribute('aria-checked', String(on));
+            });
+            continueBtn.disabled = false;
+          });
+        });
+        continueBtn.addEventListener('click', () => {
+          if (chosenDays === null) return;
+          modal.hidden = true;
+          try {
+            localStorage.setItem(PHASE_1_CHOICE_KEY, String(chosenDays));
+            localStorage.removeItem(PHASE_1_FLAG_KEY);
+          } catch { /* private mode */ }
+        });
+      }
+    }
+  } catch { /* private mode — modal stays hidden, no harm */ }
 
   return wrap;
 }

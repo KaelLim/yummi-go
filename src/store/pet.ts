@@ -123,6 +123,16 @@ export interface AwardXpResult {
  * immediately — without this, home's level-bar / resource chips would
  * sit on stale values until the next bootstrap (i.e. a page refresh).
  */
+/** +N gems awarded once per local day when the user first crosses the
+ *  100-XP pet-feed cap. Tunable; the flag-driven home celebration popup
+ *  uses this value verbatim in its breakdown. */
+export const XP_MILESTONE_BONUS_GEMS = 10;
+
+/** localStorage key consumed by home to render the milestone popup on
+ *  the user's next page mount. Value is JSON-encoded
+ *  { bonus: number, overflow: number }. */
+export const MILESTONE_PENDING_KEY = 'yummi:xp_milestone_pending';
+
 export async function awardXp(
   userId: number,
   deltaXp: number,
@@ -143,6 +153,31 @@ export async function awardXp(
   // immediately. fed.pet is null only when fed.fed === 0 (cap already
   // hit) — in that case the existing $pet is already correct.
   if (fed.pet) setPetFromRow(fed.pet);
+
+  // Milestone: first time crossing 100 XP today. Award the bonus gems
+  // immediately, drop a flag for the next home mount to celebrate, and
+  // SUPPRESS the per-meal gem-gain toast — the popup will summarise the
+  // whole moment so the toast would feel redundant.
+  if (fed.crossedTodayCap) {
+    try {
+      await walletApi.addGems(userId, XP_MILESTONE_BONUS_GEMS, 'xp_milestone');
+    } catch (err) {
+      console.warn('[awardXp] milestone bonus failed:', err);
+    }
+    void reloadWallet(userId);
+    try {
+      localStorage.setItem(MILESTONE_PENDING_KEY, JSON.stringify({
+        bonus: XP_MILESTONE_BONUS_GEMS,
+        overflow: gemsFromXp,
+      }));
+      console.info('[awardXp] milestone flag set — next home mount shows popup', {
+        bonus: XP_MILESTONE_BONUS_GEMS,
+        overflow: gemsFromXp,
+      });
+    } catch { /* private mode — popup just won't fire, no harm */ }
+    return { credited: deltaXp, xpFedToPet: fed.fed, gemsFromXp };
+  }
+
   // Refresh wallet / gem / makeup-card totals for the resource chips.
   void reloadWallet(userId);
   if (gemsFromXp > 0) showGemGain(gemsFromXp);

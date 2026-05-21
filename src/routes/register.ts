@@ -41,9 +41,6 @@ export default function register(): HTMLElement {
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="reg-submit">建立帳號</button>
       </form>
 
-      <p class="auth-foot">
-        已有帳號？<a href="#/login" class="link">登入</a>
-      </p>
     </div>
   `;
 

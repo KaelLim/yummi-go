@@ -233,17 +233,29 @@ export default function verify(params: Record<string, string>): HTMLElement {
         totalXp += xpForCheckin;
       }
 
+      let xpFedToPet = 0;
+      let gemsFromXp = 0;
       try {
-        await awardXp(u.id, totalXp, 'mission', restaurantId);
+        const award = await awardXp(u.id, totalXp, 'mission', restaurantId);
+        xpFedToPet = award.xpFedToPet;
+        gemsFromXp = award.gemsFromXp;
       } catch { /* server XP soft fail */ }
       markMissionDone(`map_verify:${restaurantId}`, VERIFY_XP);
       markMissionDone(`review:${restaurantId}`, REVIEW_XP);
 
-      renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems });
+      renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems, xpFedToPet, gemsFromXp });
     } catch (err) {
       console.error('[verify] submit failed:', err);
       errorEl.hidden = false;
-      errorEl.textContent = '送出失敗，請稍後再試';
+      // Surface the underlying drust message so a permission denial
+      // doesn't look like a flaky network. The most common cause here
+      // is the restaurants collection not yet granting 'update' to the
+      // anon token — fix via MCP: `set_anon_caps restaurants
+      // [select, update]`.
+      const detail = (err as Error)?.message ?? '';
+      errorEl.textContent = detail
+        ? `送出失敗：${detail}`
+        : '送出失敗，請稍後再試';
       submitBtn.disabled = false;
       submitBtn.textContent = `送出認證 (+${VERIFY_XP + REVIEW_XP} XP)`;
     }
@@ -255,14 +267,27 @@ export default function verify(params: Record<string, string>): HTMLElement {
     asCheckin: boolean;
     nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null;
     items: MockFood[];
+    xpFedToPet: number;
+    gemsFromXp: number;
   }): void {
     const stars = '★'.repeat(args.rating) + '☆'.repeat(5 - args.rating);
+    // Three display states — same rule as the review form. Post-cap
+    // meals fully convert to gems, so the XP badge would just repeat
+    // the gem total in a different unit; show only the gem badge.
+    const postCap = args.xpFedToPet === 0 && args.gemsFromXp > 0;
+    const xpPip = postCap
+      ? ''
+      : `<div class="review-success-xp">+${args.totalXp} XP</div>`;
+    const gemsPip = postCap
+      ? `<div class="review-success-gems">+${args.gemsFromXp} 能量石 💎</div>`
+      : '';
     form.innerHTML = `
       <section class="review-success">
         <div class="review-success-icon" aria-hidden="true">🎉</div>
         <h2 class="review-success-title">認證成功！</h2>
         <div class="review-success-stars">${stars}</div>
-        <div class="review-success-xp">+${args.totalXp} XP</div>
+        ${xpPip}
+        ${gemsPip}
         ${args.asCheckin ? '<div class="review-success-checkin-badge"><span class="ms">verified</span>完成打卡</div>' : ''}
         ${args.asCheckin && args.nutrition ? renderNutritionCard(args.nutrition) : ''}
         ${args.asCheckin && args.nutrition ? '<button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="edit-items" type="button"><span class="ms">edit</span>修改內容</button>' : ''}

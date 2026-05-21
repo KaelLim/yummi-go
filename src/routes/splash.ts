@@ -10,10 +10,11 @@
  * (pet / XP wallet / check-ins) attached from step 1. Binding a Google
  * account later upgrades the same row; no data is lost in the swap.
  *
- * Returning users who don't have a session reach /login via the
- * "已有帳號？登入" footer link on diet-survey/register or directly via
- * the #/login URL — keeping the splash visually focused on the primary
- * action.
+ * /login is no longer surfaced as a user-visible affordance (the footer
+ * "已有帳號？登入" links on diet-survey/register were removed). The route
+ * stays registered as a defensive target — auth-required screens still
+ * `navigate('/login')` when they detect a missing session — but the
+ * primary onboarding path is Get Started only.
  */
 import { $isLoggedIn, setLoggedInUser } from '@/store/user';
 import { navigate } from '@/router';

@@ -224,14 +224,18 @@ export default function review(params: Record<string, string>): HTMLElement {
         totalXp += xpForCheckin;
       }
 
+      let xpFedToPet = 0;
+      let gemsFromXp = 0;
       try {
-        await awardXp(u.id, totalXp, 'bonus', restaurantId);
+        const award = await awardXp(u.id, totalXp, 'bonus', restaurantId);
+        xpFedToPet = award.xpFedToPet;
+        gemsFromXp = award.gemsFromXp;
       } catch { /* server XP soft fail */ }
       // Bump $today.totalXpToday for the review reward (mark a per-restaurant
       // mission so duplicate-clicks don't double-credit if user re-submits).
       markMissionDone(`review:${restaurantId}`, 20);
 
-      renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems });
+      renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems, xpFedToPet, gemsFromXp });
     } catch (err) {
       console.error('[review] submit failed:', err);
       errorEl.hidden = false;
@@ -247,14 +251,30 @@ export default function review(params: Record<string, string>): HTMLElement {
     asCheckin: boolean;
     nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null;
     items: MockFood[];
+    xpFedToPet: number;
+    gemsFromXp: number;
   }): void {
     const stars = '★'.repeat(args.rating) + '☆'.repeat(5 - args.rating);
+    // Three display states:
+    //   - Below cap: show only the XP badge.
+    //   - Crossing 100 today (fed >0 && gems >0): show only XP — the
+    //     global milestone popup tells the gem-conversion story.
+    //   - Post-cap (fed === 0 && gems >0): everything converted, so the
+    //     XP badge would be redundant. Show only the gem badge.
+    const postCap = args.xpFedToPet === 0 && args.gemsFromXp > 0;
+    const xpPip = postCap
+      ? ''
+      : `<div class="review-success-xp">+${args.totalXp} XP</div>`;
+    const gemsPip = postCap
+      ? `<div class="review-success-gems">+${args.gemsFromXp} 能量石 💎</div>`
+      : '';
     form.innerHTML = `
       <section class="review-success">
         <div class="review-success-icon" aria-hidden="true">🎉</div>
         <h2 class="review-success-title">感謝你的評論！</h2>
         <div class="review-success-stars">${stars}</div>
-        <div class="review-success-xp">+${args.totalXp} XP</div>
+        ${xpPip}
+        ${gemsPip}
         ${args.asCheckin ? '<div class="review-success-checkin-badge"><span class="ms">verified</span>完成打卡</div>' : ''}
         ${args.asCheckin && args.nutrition ? renderNutritionCard(args.nutrition) : ''}
         ${args.asCheckin && args.nutrition ? '<button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="edit-items" type="button"><span class="ms">edit</span>修改內容</button>' : ''}

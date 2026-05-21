@@ -26,7 +26,7 @@ export const DAY_SCRIPTS_FIXTURE: ChallengeScript[] = [
     greeting: '守護者剛甦醒，紅色補力！',
     action_type: 'refuse',
     task_description: 'Refuse 日：外帶時拒絕一次性塑膠袋，跟店家說「我自己拿」就好。',
-    bonus_challenge: '加碼：拒絕兩種一次性用品（袋子＋餐具），灰霧額外 -1%。',
+    bonus_challenge: '加碼：拒絕兩種一次性用品（袋子＋餐具）。',
     fog_reduction_pct: 5,
   },
   {
@@ -36,7 +36,7 @@ export const DAY_SCRIPTS_FIXTURE: ChallengeScript[] = [
     greeting: '今天精靈愛吃陽光黃！',
     action_type: 'refuse',
     task_description: 'Refuse 日：拒絕免洗餐具，找黃色食物例如鳳梨、玉米、地瓜。',
-    bonus_challenge: '加碼：用環保餐具吃滿三餐，灰霧 -1%。',
+    bonus_challenge: '加碼：用環保餐具吃滿三餐。',
     fog_reduction_pct: 3,
   },
   {
@@ -146,7 +146,7 @@ export const DAY_SCRIPTS_FIXTURE: ChallengeScript[] = [
     greeting: '光盤！讓綠林長大！',
     action_type: 'reduce',
     task_description: 'Reduce 日：光盤行動，把餐點吃完不留廚餘。',
-    bonus_challenge: '加碼：午晚餐都光盤，灰霧 -1%。',
+    bonus_challenge: '加碼：午晚餐都光盤。',
     fog_reduction_pct: 4,
   },
   {

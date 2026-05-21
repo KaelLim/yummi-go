@@ -7,7 +7,6 @@ const flow: Flow = {
   order: 1,
   nodes: [
     { id: 'splash',       routePath: '/splash',                    title: 'Splash',           description: 'Logo hold 1.2s，Get Started CTA 露出', x: 1, y: 0 },
-    { id: 'login',        routePath: '/login',                     title: '登入',             description: '已有帳號路徑 (diet-survey/register footer 進入)', x: 0, y: 1 },
     { id: 'diet',         routePath: '/onboarding/diet-survey',    title: '飲食習慣 (1/5)',   description: '葷 / 蛋奶素 / 全素 / 蔬食',  x: 2, y: 1 },
     { id: 'baseline',     routePath: '/onboarding/baseline',       title: '肉類基線 (2/5)',   description: '葷食者填，植物者直跳 purpose', x: 2, y: 2 },
     { id: 'purpose',      routePath: '/onboarding/purpose',        title: '挑戰目的 (3/5)',   description: '身體 / 環境 / 動物',         x: 2, y: 3 },
@@ -17,7 +16,6 @@ const flow: Flow = {
     { id: 'capture',      routePath: '/check-in',                  title: '首次打卡',         description: '相機/上傳',                 x: 2, y: 7 },
   ],
   edges: [
-    { from: 'diet',     to: 'login',    trigger: '點 footer「已有帳號？登入」' },
     { from: 'splash',   to: 'diet',     trigger: '點 Get Started → registerGuest()' },
     { from: 'diet',     to: 'baseline', trigger: '選擇葷食' },
     { from: 'diet',     to: 'purpose',  trigger: '選擇植物 (跳過 baseline)' },
