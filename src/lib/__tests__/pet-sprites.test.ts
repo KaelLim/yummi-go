@@ -4,6 +4,8 @@ import type { PetStage } from '@/lib/pet-evolution';
 
 describe('spriteFor', () => {
   describe('happy paths', () => {
+    // Stage rename per UX_UPDATE_SPEC v0.3: old 'adult' band became
+    // 'teen'; old 'max' band became 'adult' (the final stage).
     const cases: Array<[PetStage, PetMood, string]> = [
       ['egg',   'normal',   '/pet/egg/normal.png'],
       ['egg',   'evolve',   '/pet/egg/crack.png'],
@@ -17,15 +19,15 @@ describe('spriteFor', () => {
       ['youth', 'weak',     '/pet/youth/weak.png'],
       ['youth', 'critical', '/pet/youth/critical.png'],
       ['youth', 'evolve',   '/pet/youth/evolve.png'],
+      ['teen',  'normal',   '/pet/teen/normal.png'],
+      ['teen',  'happy',    '/pet/teen/happy.png'],
+      ['teen',  'weak',     '/pet/teen/weak.png'],
+      ['teen',  'critical', '/pet/teen/critical.png'],
+      ['teen',  'evolve',   '/pet/teen/evolve.png'],
       ['adult', 'normal',   '/pet/adult/normal.png'],
       ['adult', 'happy',    '/pet/adult/happy.png'],
       ['adult', 'weak',     '/pet/adult/weak.png'],
       ['adult', 'critical', '/pet/adult/critical.png'],
-      ['adult', 'evolve',   '/pet/adult/evolve.png'],
-      ['max',   'normal',   '/pet/max/normal.png'],
-      ['max',   'happy',    '/pet/max/happy.png'],
-      ['max',   'weak',     '/pet/max/weak.png'],
-      ['max',   'critical', '/pet/max/critical.png'],
     ];
     it.each(cases)('spriteFor(%s, %s) -> %s', (stage, mood, expected) => {
       expect(spriteFor(stage, mood)).toBe(expected);
@@ -39,8 +41,8 @@ describe('spriteFor', () => {
       expect(spriteFor('egg', 'critical')).toBe('/pet/egg/normal.png');
     });
 
-    it('max falls back to normal for evolve (no further evolution)', () => {
-      expect(spriteFor('max', 'evolve')).toBe('/pet/max/normal.png');
+    it('adult (final stage) falls back to normal for evolve (no further evolution)', () => {
+      expect(spriteFor('adult', 'evolve')).toBe('/pet/adult/normal.png');
     });
 
     it('unknown stage defaults to egg/normal (defensive)', () => {

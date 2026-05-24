@@ -81,8 +81,10 @@ describe('home route', () => {
     expect(initialRows.length).toBeLessThanOrEqual(2);
     el.querySelector<HTMLElement>('#missions-expand')?.click();
     const expandedRows = el.querySelectorAll('.missions-list .mission-row');
-    // 3 meals + quiz + lucky + 5 sustainable = 10 rows.
-    expect(expandedRows.length).toBe(10);
+    // 3 meals + meal-complete-bonus + quiz + lucky + 1 sustainable = 7 rows
+    // (v0.3 added the meal_complete_bonus mission; the 2026-05-22 pivot
+    //  trimmed the 5R block to one row per day).
+    expect(expandedRows.length).toBe(7);
     // No popup / modal mounted — same card grew.
     expect(el.querySelector('.missions-sheet')).toBeNull();
     // Toggle button reflects state.

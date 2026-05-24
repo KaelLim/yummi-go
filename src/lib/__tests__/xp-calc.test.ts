@@ -11,10 +11,10 @@ describe('mealXp', () => {
     expect(mealXp(2, 3)).toBe(20);
     expect(mealXp(2, 2)).toBe(20);
   });
-  it('meal 3 = 30 regardless of plan', () => {
-    expect(mealXp(3, 3)).toBe(30);
-    expect(mealXp(3, 2)).toBe(30);
-    expect(mealXp(3, 1)).toBe(30);
+  it('meal 3 = 20 (v0.3: +10 completion bonus moved to a separate mission)', () => {
+    expect(mealXp(3, 3)).toBe(20);
+    expect(mealXp(3, 2)).toBe(20);
+    expect(mealXp(3, 1)).toBe(20);
   });
 });
 

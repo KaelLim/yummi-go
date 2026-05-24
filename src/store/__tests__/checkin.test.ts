@@ -57,13 +57,13 @@ describe('checkin store', () => {
     setVeganType('蛋奶素');
     setMeatReplaced(true);
     setMealIndex(3);
-    setLastResult({ checkInId: 1, xpEarned: 30, luckyColorMatched: true, fogReductionPct: 1, xpFedToPet: 30, gemsFromXp: 0, items: [], nutrition: null, isFirstCheckIn: false });
+    setLastResult({ checkInId: 1, xpEarned: 30, luckyColorMatched: true, fogReductionPct: 1, xpFedToPet: 30, gemsFromXp: 0, items: [], nutrition: null, isFirstCheckIn: false, mealCompleteBonusXp: 0 });
     const s = $checkin.get();
     expect(s.items).toHaveLength(1);
     expect(s.veganType).toBe('蛋奶素');
     expect(s.wasMeatReplaced).toBe(true);
     expect(s.mealIndex).toBe(3);
-    expect(s.lastResult).toEqual({ checkInId: 1, xpEarned: 30, luckyColorMatched: true, fogReductionPct: 1, xpFedToPet: 30, gemsFromXp: 0, items: [], nutrition: null, isFirstCheckIn: false });
+    expect(s.lastResult).toEqual({ checkInId: 1, xpEarned: 30, luckyColorMatched: true, fogReductionPct: 1, xpFedToPet: 30, gemsFromXp: 0, items: [], nutrition: null, isFirstCheckIn: false, mealCompleteBonusXp: 0 });
   });
 
   it('resetCheckin reverts to defaults', () => {

@@ -43,6 +43,13 @@ export interface BuildCalendarArgs {
 }
 
 const MS_PER_DAY = 86400_000;
+/**
+ * A missed day stays makeable for 72 hours (≈ 3 calendar-day window from
+ * the start of the missed day). After that the day rolls to `lost` and
+ * is no longer payable per UX_UPDATE_SPEC v0.3 §6. The 72h is a per-day
+ * countdown, independent of streak state (losing one streak day does
+ * not shorten this window; the rule is purely time-based).
+ */
 const MAKEUP_WINDOW_DAYS = 3;
 
 function isoDate(d: Date): string {

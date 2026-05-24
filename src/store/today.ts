@@ -16,14 +16,7 @@ import {
   decodeMissions,
   type DailyProgressRow,
 } from '@/api/daily-progress';
-import { addGems } from '@/api/wallet';
-import { showGemGain } from '@/lib/gem-toast';
 import { $user } from './user';
-import { reloadWallet } from './pet';
-
-export const XP_MILESTONE_KEY = 'xp-100-gem';
-export const XP_MILESTONE_THRESHOLD = 100;
-export const XP_MILESTONE_GEM_REWARD = 1;
 
 export interface TodayStoreShape {
   dayNumber: number;
@@ -64,35 +57,13 @@ export function markMissionDone(key: string, xpEarned: number): void {
   };
   $today.set(next);
   fireUpsert(next);
-  maybeAwardXpMilestone(next);
 }
 
-/**
- * Bonus reward: crossing 100 XP today auto-credits 1 gem (on top of any
- * gems already earned from XP-overflow). Idempotent — the milestone key
- * is persisted into missions_done so a page reload doesn't re-award.
- */
-function maybeAwardXpMilestone(next: TodayStoreShape): void {
-  if (next.totalXpToday < XP_MILESTONE_THRESHOLD) return;
-  if (next.missionsDone.includes(XP_MILESTONE_KEY)) return;
-  const user = $user.get();
-  if (!user) return;
-  const claimed: TodayStoreShape = {
-    ...next,
-    missionsDone: [...next.missionsDone, XP_MILESTONE_KEY],
-  };
-  $today.set(claimed);
-  fireUpsert(claimed);
-  void (async () => {
-    try {
-      await addGems(user.id, XP_MILESTONE_GEM_REWARD, 'mission');
-      await reloadWallet(user.id);
-      showGemGain(XP_MILESTONE_GEM_REWARD);
-    } catch (err) {
-      console.warn('[today] xp milestone award failed:', err);
-    }
-  })();
-}
+// NOTE: the old "+1 Gem on crossing 100 XP" hook lived here. It was
+// removed per UX_UPDATE_SPEC v0.3 §2 — the milestone bonus is now
+// exclusively the +10 Gem awarded inside `store/pet.awardXp` (see
+// `XP_MILESTONE_BONUS_GEMS`). Keeping both fired twice and inflated
+// the user's gem balance by 1 above what the popup advertised.
 
 /**
  * Hydrate-only: tag a mission as done without crediting XP. Used when we
@@ -162,5 +133,4 @@ export function loadDailyProgress(
     luckyColor: row.lucky_color ?? fallbackLuckyColor,
   };
   $today.set(hydrated);
-  maybeAwardXpMilestone(hydrated);
 }

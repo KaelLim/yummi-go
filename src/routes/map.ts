@@ -76,12 +76,10 @@ interface VeganTypeOption {
  * lines up. value === label here because the stored vegan_type list is
  * also Chinese (comma-separated, e.g. "全素,蛋奶素").
  */
-const VEGAN_TYPES: VeganTypeOption[] = [
-  { value: '全素',     label: '全素' },
-  { value: '蛋奶素',   label: '蛋奶素' },
-  { value: '五辛素',   label: '五辛素' },
-  { value: '鍋邊素',   label: '鍋邊素' },
-];
+// Sourced from shared lib/vegan-tiers so the review/verify forms, the
+// map filter chips, and the consensus banner colours all stay in sync.
+import { VEGAN_TIERS } from '@/lib/vegan-tiers';
+const VEGAN_TYPES: VeganTypeOption[] = VEGAN_TIERS.map((t) => ({ value: t.value, label: t.label }));
 
 interface FilterState {
   veganType: string | null; // null = all

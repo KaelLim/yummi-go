@@ -34,8 +34,10 @@ describe('PetView', () => {
     $pet.set({ level: 19, currentXp: 0, accumulatedXp: 1000, stage: 'youth', mood: 'happy', strikes: 0, poisonedUntil: null });
     expect(img.getAttribute('src')).toBe('/pet/youth/happy.png');
 
-    $pet.set({ level: 80, currentXp: 0, accumulatedXp: 9999, stage: 'max', mood: 'evolve', strikes: 0, poisonedUntil: null });
-    expect(img.getAttribute('src')).toBe('/pet/max/normal.png');
+    // Final stage renamed from 'max' to 'adult' per UX_UPDATE_SPEC v0.3.
+    // 'evolve' on the final stage still falls back to 'normal'.
+    $pet.set({ level: 30, currentXp: 0, accumulatedXp: 9999, stage: 'adult', mood: 'evolve', strikes: 0, poisonedUntil: null });
+    expect(img.getAttribute('src')).toBe('/pet/adult/normal.png');
 
     el.remove();
   });

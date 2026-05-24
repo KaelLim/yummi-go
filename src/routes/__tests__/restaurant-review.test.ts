@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/router', () => ({ navigate: vi.fn() }));
-vi.mock('@/api/reviews', () => ({ createReview: vi.fn().mockResolvedValue({}) }));
+vi.mock('@/api/reviews', () => ({
+  createReview: vi.fn().mockResolvedValue({}),
+  hasReviewedRestaurant: vi.fn().mockResolvedValue(false),
+  REVIEW_XP_FIRST: 20,
+  REVIEW_XP_REPEAT: 15,
+}));
 vi.mock('@/api/check-ins', () => ({ createCheckIn: vi.fn().mockResolvedValue({}) }));
 vi.mock('@/api/content', () => ({ getRestaurant: vi.fn().mockResolvedValue({ id: 5, name: '草盛園' }) }));
 vi.mock('@/store/pet', () => ({ awardXp: vi.fn().mockResolvedValue(undefined) }));

@@ -22,6 +22,7 @@ import {
 } from '@/store/checkin';
 import { $user } from '@/store/user';
 import { $today, $challenge, markMissionDone } from '@/store/today';
+import { MEAL_COMPLETE_BONUS_KEY, MEAL_COMPLETE_BONUS_XP } from '@/lib/xp-calc';
 import type { MockFood } from '@/lib/mock-ai';
 import { mealXp, type MealIndex } from '@/lib/xp-calc';
 import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
@@ -174,6 +175,26 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
       /* server XP soft fail — UI still shows xpEarned via the burst */
     }
 
+    // Meal-complete bonus (UX_UPDATE_SPEC v0.3 §3): when this submit
+    // brings all three meal slots to done for the day, fire a separate
+    // +10 XP transaction so it appears as its own line on the success
+    // page. The check-in's own markMissionDone above is already in
+    // $today, so this is the moment to ask "are we now 3/3?".
+    let mealCompleteBonusXp = 0;
+    const tNow = $today.get();
+    const allThree = ['breakfast', 'lunch', 'dinner'].every(
+      (k) => tNow.missionsDone.includes(`meal:${k}`) || tNow.missionsDone.includes(k),
+    );
+    if (allThree && !tNow.missionsDone.includes(MEAL_COMPLETE_BONUS_KEY)) {
+      try {
+        await awardXp(u.id, MEAL_COMPLETE_BONUS_XP, 'mission', null);
+        markMissionDone(MEAL_COMPLETE_BONUS_KEY, MEAL_COMPLETE_BONUS_XP);
+        mealCompleteBonusXp = MEAL_COMPLETE_BONUS_XP;
+      } catch {
+        /* soft fail — XP bar will just not include the +10 */
+      }
+    }
+
     setLastResult({
       checkInId: checkInRow.id,
       xpEarned: xp,
@@ -184,6 +205,7 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
       items: d.items,
       nutrition,
       isFirstCheckIn,
+      mealCompleteBonusXp,
     });
     navigate('/check-in/success');
   } catch (err) {

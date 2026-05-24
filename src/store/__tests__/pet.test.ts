@@ -52,8 +52,8 @@ describe('pet store', () => {
       strikes: 0,
       poisoned_until: null,
     });
-    // level 25 → 'youth' per STAGE_THRESHOLDS
-    expect($pet.get()?.stage).toBe('youth');
+    // level 25 → 'teen' per v0.3 STAGE_THRESHOLDS (teen = LV20-26).
+    expect($pet.get()?.stage).toBe('teen');
     expect($pet.get()?.level).toBe(25);
   });
 });

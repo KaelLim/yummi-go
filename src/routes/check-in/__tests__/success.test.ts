@@ -49,6 +49,7 @@ describe('check-in/success', () => {
       ],
       nutrition: { cal: 320, protein: 12, carb: 40, fat: 8, fiber: 4 },
       isFirstCheckIn: false,
+      mealCompleteBonusXp: 0,
     });
     $user.set({ id: 1, username: 'k', displayName: 'k' });
     $profile.set(profileWith(2));

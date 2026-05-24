@@ -41,6 +41,11 @@ export interface CheckinDraft {
     /** True when this submission was the user's very first check-in.
      *  /check-in/success uses this to swap in the AHA-moment framing. */
     isFirstCheckIn: boolean;
+    /** XP awarded by the meal-complete bonus chained off this submission
+     *  (UX_UPDATE_SPEC v0.3 §3). Non-zero only on the 3rd meal of the day
+     *  when all three have been checked in. /check-in/success renders this
+     *  as a second stacked row beneath the regular +20 XP pill. */
+    mealCompleteBonusXp: number;
   } | null;
 }
 

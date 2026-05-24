@@ -1588,7 +1588,7 @@ body {
 .map-card-tier-banner[data-tier="全素"]    { background: #1d5937; }  /* deep forest (Slytherin) */
 .map-card-tier-banner[data-tier="蛋奶素"]  { background: #d4a85a; color: #4a3608; }  /* warm gold (Hufflepuff) */
 .map-card-tier-banner[data-tier="五辛素"]  { background: #b65445; }  /* clay red (Gryffindor) */
-.map-card-tier-banner[data-tier="鍋邊素"]  { background: #5a7a8e; }  /* slate blue (Ravenclaw) */
+.map-card-tier-banner[data-tier="方便蔬食"] { background: #5a7a8e; }  /* slate blue (Ravenclaw) */
 
 /* Push the CTA below the banners' vertical extent so the two never
  * overlap, no matter how many tiers hang at the top-right. */
@@ -1714,6 +1714,48 @@ body {
   display: flex; flex-direction: column; gap: 8px;
 }
 .review-section-label { font-size: var(--text-caption-size); font-weight: var(--font-weight-bold); color: var(--color-neutral-darker); text-transform: uppercase; letter-spacing: 0.04em; }
+.review-section-label-row { display: flex; align-items: center; justify-content: space-between; }
+.vegan-info-btn {
+  border: none; background: none; cursor: pointer; padding: 2px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-primary);
+  transition: background 0.15s;
+}
+.vegan-info-btn:hover { background: var(--color-primary-light); }
+.vegan-info-btn .ms { font-size: 18px; }
+
+/* Vegan tier info popover (centred modal). Same visual family as the
+ * milestone / phase-1 modals but lighter — purely informational, no
+ * decision the user needs to make. */
+.vegan-info-overlay {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(15, 23, 25, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  animation: phase1-fade 180ms ease-out both;
+}
+.vegan-info-card {
+  width: 100%; max-width: 360px;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 12px 40px -8px rgba(0,0,0,0.3);
+  animation: phase1-pop 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.vegan-info-header { display: flex; align-items: center; justify-content: space-between; }
+.vegan-info-title { margin: 0; font-size: var(--text-h3-size, var(--text-button-l-size)); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); }
+.vegan-info-close { background: none; border: none; cursor: pointer; padding: 4px; color: var(--color-neutral-darker); }
+.vegan-info-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.vegan-info-row {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-md);
+}
+.vegan-info-name { font-size: var(--text-body-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); }
+.vegan-info-desc { font-size: var(--text-mini-size); color: var(--color-foreground-alt); line-height: 1.5; }
 .review-section textarea {
   font-family: inherit; font-size: var(--text-mini-size); line-height: 1.5;
   padding: var(--space-3) var(--space-3);

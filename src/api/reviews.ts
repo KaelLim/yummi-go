@@ -63,6 +63,31 @@ export async function listMyReviews(userId: number): Promise<RestaurantReview[]>
 }
 
 /**
+ * Has this user already reviewed this restaurant? Used to drive the
+ * UX_UPDATE_SPEC v0.3 §4 rule: 20 XP for the first review per restaurant
+ * per user, 15 XP for each subsequent review. drust's `list` filter is
+ * ignored server-side, so we fetch the page and check client-side. Fine
+ * at prototype scale (small review volume).
+ */
+export async function hasReviewedRestaurant(
+  userId: number,
+  restaurantId: number,
+): Promise<boolean> {
+  try {
+    const rows = await listReviewsForRestaurant(restaurantId);
+    return rows.some((r) => r.user_id === userId);
+  } catch {
+    // Soft-fail on network: assume not reviewed so the user gets the
+    // higher XP — better to over-pay on a transient error than to
+    // silently under-pay.
+    return false;
+  }
+}
+
+export const REVIEW_XP_FIRST = 20;
+export const REVIEW_XP_REPEAT = 15;
+
+/**
  * Returns all reviews drust will give us in one list call (capped at 20
  * rows server-side until an RPC replaces this). Used by the map page to
  * compute per-restaurant vegan-tier consensus — once 3+ reviewers agree

@@ -22,15 +22,16 @@ import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { $today, $challenge, markMissionDone } from '@/store/today';
 import { inferMealIndex } from '@/store/checkin';
-import { createReview } from '@/api/reviews';
+import { createReview, hasReviewedRestaurant, REVIEW_XP_FIRST, REVIEW_XP_REPEAT } from '@/api/reviews';
 import { createCheckIn } from '@/api/check-ins';
 import { awardXp } from '@/store/pet';
 import { mealXp } from '@/lib/xp-calc';
 import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
 import { mockScan, type MockFood } from '@/lib/mock-ai';
 import { openItemsEditor } from '@/lib/items-editor';
+import { VEGAN_TIERS, openVeganTierInfo } from '@/lib/vegan-tiers';
 
-const VEGAN_TYPES = ['全素', '蛋奶素', '五辛素', '鍋邊素'] as const;
+const VEGAN_TYPES = VEGAN_TIERS.map((t) => t.value);
 
 export default function review(params: Record<string, string>): HTMLElement {
   const restaurantId = Number(params.id);
@@ -63,7 +64,12 @@ export default function review(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">素別（可複選）</span>
+        <div class="review-section-label-row">
+          <span class="review-section-label">素別（可複選）</span>
+          <button class="vegan-info-btn" id="vegan-info-btn" type="button" aria-label="素別說明">
+            <span class="ms">info</span>
+          </button>
+        </div>
         <div class="vegan-chips" id="vegan-chips">
           ${VEGAN_TYPES.map(
             (v) => `<button type="button" class="vegan-chip" data-value="${v}">${v}</button>`,
@@ -83,13 +89,26 @@ export default function review(params: Record<string, string>): HTMLElement {
       </label>
 
       <div class="review-error" id="error" hidden></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出評論 (+20 XP)</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出評論 (+${REVIEW_XP_FIRST} XP)</button>
     </form>
   `;
 
   let rating = 0;
   const veganSet = new Set<string>();
   let photoDataUrl: string | null = null;
+
+  // On mount, check whether this user has already reviewed this restaurant
+  // and update the submit-button label to advertise the correct XP. The
+  // submit handler re-checks at click time so the actual award is always
+  // accurate even if the user reviewed elsewhere mid-session.
+  void (async () => {
+    const u = $user.get();
+    if (!u) return;
+    const reviewed = await hasReviewedRestaurant(u.id, restaurantId);
+    const previewXp = reviewed ? REVIEW_XP_REPEAT : REVIEW_XP_FIRST;
+    const btn = wrap.querySelector<HTMLButtonElement>('#submit');
+    if (btn) btn.textContent = `送出評論 (+${previewXp} XP)`;
+  })();
 
   const setRating = (n: number) => {
     rating = n;
@@ -123,6 +142,7 @@ export default function review(params: Record<string, string>): HTMLElement {
   wrap.querySelector('#back-btn')?.addEventListener('click', () =>
     navigate(`/map/restaurant/${restaurantId}`),
   );
+  wrap.querySelector('#vegan-info-btn')?.addEventListener('click', () => openVeganTierInfo(wrap));
 
   const photoInput = wrap.querySelector<HTMLInputElement>('#photo')!;
   const photoPreview = wrap.querySelector<HTMLImageElement>('#photo-preview')!;
@@ -184,7 +204,10 @@ export default function review(params: Record<string, string>): HTMLElement {
         photoId: null, // upload integration deferred; data URL is local-only.
         veganType,
       });
-      let totalXp = 20;
+      // v0.3 §4: first review per restaurant earns more.
+      const reviewed = await hasReviewedRestaurant(u.id, restaurantId);
+      const reviewXp = reviewed ? REVIEW_XP_REPEAT : REVIEW_XP_FIRST;
+      let totalXp = reviewXp;
       let scanItems: MockFood[] = [];
       let nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null = null;
 
@@ -233,7 +256,7 @@ export default function review(params: Record<string, string>): HTMLElement {
       } catch { /* server XP soft fail */ }
       // Bump $today.totalXpToday for the review reward (mark a per-restaurant
       // mission so duplicate-clicks don't double-credit if user re-submits).
-      markMissionDone(`review:${restaurantId}`, 20);
+      markMissionDone(`review:${restaurantId}`, reviewXp);
 
       renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems, xpFedToPet, gemsFromXp });
     } catch (err) {
@@ -241,7 +264,7 @@ export default function review(params: Record<string, string>): HTMLElement {
       errorEl.hidden = false;
       errorEl.textContent = '送出失敗，請稍後再試';
       submitBtn.disabled = false;
-      submitBtn.textContent = '送出評論 (+20 XP)';
+      submitBtn.textContent = `送出評論 (+${REVIEW_XP_FIRST} XP)`;
     }
   }
 

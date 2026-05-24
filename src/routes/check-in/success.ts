@@ -83,6 +83,15 @@ export default function success(): HTMLElement {
          <span class="dist-text">XP 已記入今日進度</span>
        </div>`
     : '';
+  // Meal-complete bonus (UX_UPDATE_SPEC v0.3 §3): only set on the 3rd
+  // meal of the day. Renders below the regular +XP / +gem row as a
+  // second visible reward.
+  const bonusRow = r.mealCompleteBonusXp > 0
+    ? `<div class="dist-row dist-feed">
+         <span class="ms dist-icon">workspace_premium</span>
+         <span class="dist-text">完成全日三餐 <strong>+${r.mealCompleteBonusXp} XP</strong></span>
+       </div>`
+    : '';
 
   // First-time AHA: when this is the user's first ever check-in, lead
   // with a celebratory banner + swap the title + extra burst bubble.
@@ -115,7 +124,7 @@ export default function success(): HTMLElement {
       <div class="success-pet">🐸</div>
       <h1 class="success-title">${title}</h1>
       <div class="success-distribution" id="success-distribution">
-        ${fedRow}${gemRow}${emptyRow}
+        ${fedRow}${gemRow}${emptyRow}${bonusRow}
       </div>
       <div class="nutrition-details" id="nutrition-details">
         <button type="button" class="nutrition-toggle" id="nutrition-toggle" aria-expanded="false">

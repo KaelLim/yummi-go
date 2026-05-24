@@ -16,8 +16,11 @@ const AVAILABLE: Record<PetStage, ReadonlyArray<PetMood>> = {
   egg:   ['normal', 'evolve'],
   baby:  ['normal', 'happy', 'weak', 'critical', 'evolve'],
   youth: ['normal', 'happy', 'weak', 'critical', 'evolve'],
-  adult: ['normal', 'happy', 'weak', 'critical', 'evolve'],
-  max:   ['normal', 'happy', 'weak', 'critical'],
+  // teen sprite folder reuses the prior 'adult' artwork (the v0.3 stage
+  // rename moved 'adult' → 'teen' on the level band).
+  teen:  ['normal', 'happy', 'weak', 'critical', 'evolve'],
+  // adult is the final stage now (was 'max').
+  adult: ['normal', 'happy', 'weak', 'critical'],
 };
 
 export function spriteFor(stage: PetStage, mood: PetMood): string {

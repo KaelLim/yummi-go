@@ -12,6 +12,7 @@
  * inline.
  */
 import type { TodayStoreShape } from '@/store/today';
+import { MEAL_COMPLETE_BONUS_KEY, MEAL_COMPLETE_BONUS_XP } from './xp-calc';
 
 export interface Mission {
   /** Stable id for de-dup / mission-done lookups. */
@@ -70,6 +71,20 @@ export function buildMissions({
     });
   }
 
+  // 完成全日三餐 bonus — UX_UPDATE_SPEC v0.3 §3. Visible from day start
+  // as encouragement; marked done after the 3rd meal triggers it.
+  // /check-in/result is the awarder.
+  const allMealsDone = ['breakfast', 'lunch', 'dinner']
+    .slice(0, Math.min(mealCount, 3))
+    .every((k) => done.has(`meal:${k}`) || done.has(k));
+  missions.push({
+    key: MEAL_COMPLETE_BONUS_KEY,
+    emoji: '🏅',
+    label: '完成全日三餐',
+    xp: MEAL_COMPLETE_BONUS_XP,
+    done: allMealsDone && done.has(MEAL_COMPLETE_BONUS_KEY),
+  });
+
   missions.push({
     key: 'quiz',
     emoji: '🧪',
@@ -88,16 +103,20 @@ export function buildMissions({
     done: done.has('lucky:hit'),
   });
 
-  for (const r of SUSTAINABLE) {
-    missions.push({
-      key: r.key,
-      emoji: r.emoji,
-      label: r.label,
-      xp: 0,
-      done: done.has(r.key),
-      selfCheck: true,
-    });
-  }
+  // Surface exactly one 5R sustainable action per day. The index cycles
+  // through the SUSTAINABLE list by today.dayNumber so the same row stays
+  // pinned across reloads on a given day, and rotates to a different
+  // action on the next day. User pivot 2026-05-22: «每天只會顯示一個永續任務».
+  const dayIdx = ((today.dayNumber - 1) % SUSTAINABLE.length + SUSTAINABLE.length) % SUSTAINABLE.length;
+  const r = SUSTAINABLE[dayIdx];
+  missions.push({
+    key: r.key,
+    emoji: r.emoji,
+    label: r.label,
+    xp: 0,
+    done: done.has(r.key),
+    selfCheck: true,
+  });
 
   return missions;
 }

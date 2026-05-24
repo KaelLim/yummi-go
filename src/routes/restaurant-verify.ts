@@ -21,7 +21,7 @@ import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { $today, $challenge, markMissionDone } from '@/store/today';
 import { inferMealIndex } from '@/store/checkin';
-import { createReview } from '@/api/reviews';
+import { createReview, hasReviewedRestaurant, REVIEW_XP_FIRST, REVIEW_XP_REPEAT } from '@/api/reviews';
 import { createCheckIn } from '@/api/check-ins';
 import { drust } from '@/api/drust';
 import { awardXp } from '@/store/pet';
@@ -29,11 +29,11 @@ import { mealXp } from '@/lib/xp-calc';
 import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
 import { mockScan, type MockFood } from '@/lib/mock-ai';
 import { openItemsEditor } from '@/lib/items-editor';
+import { VEGAN_TIERS, openVeganTierInfo } from '@/lib/vegan-tiers';
 
-const VEGAN_TYPES = ['全素', '蛋奶素', '五辛素', '鍋邊素'] as const;
+const VEGAN_TYPES = VEGAN_TIERS.map((t) => t.value);
 
 const VERIFY_XP = 20;
-const REVIEW_XP = 20;
 
 export default function verify(params: Record<string, string>): HTMLElement {
   const restaurantId = Number(params.id);
@@ -45,7 +45,7 @@ export default function verify(params: Record<string, string>): HTMLElement {
         <span class="ms">arrow_back</span>
       </button>
       <span class="checkin-title">認證餐廳</span>
-      <span class="checkin-meal" id="rest-name">+${VERIFY_XP + REVIEW_XP} XP</span>
+      <span class="checkin-meal" id="rest-name">+${VERIFY_XP + REVIEW_XP_FIRST} XP</span>
     </header>
     <form class="review-form" id="form">
       <div class="review-section">
@@ -66,7 +66,12 @@ export default function verify(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">素別（可複選）</span>
+        <div class="review-section-label-row">
+          <span class="review-section-label">素別（可複選）</span>
+          <button class="vegan-info-btn" id="vegan-info-btn" type="button" aria-label="素別說明">
+            <span class="ms">info</span>
+          </button>
+        </div>
         <div class="vegan-chips" id="vegan-chips">
           ${VEGAN_TYPES.map(
             (v) => `<button type="button" class="vegan-chip" data-value="${v}">${v}</button>`,
@@ -86,7 +91,7 @@ export default function verify(params: Record<string, string>): HTMLElement {
       </label>
 
       <div class="review-error" id="error" hidden></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出認證 (+${VERIFY_XP + REVIEW_XP} XP)</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出認證 (+${VERIFY_XP + REVIEW_XP_FIRST} XP)</button>
     </form>
   `;
 
@@ -127,6 +132,7 @@ export default function verify(params: Record<string, string>): HTMLElement {
   wrap.querySelector('#back-btn')?.addEventListener('click', () =>
     navigate(`/map/restaurant/${restaurantId}`),
   );
+  wrap.querySelector('#vegan-info-btn')?.addEventListener('click', () => openVeganTierInfo(wrap));
 
   const photoInput = wrap.querySelector<HTMLInputElement>('#photo')!;
   const photoPreview = wrap.querySelector<HTMLImageElement>('#photo-preview')!;
@@ -197,7 +203,11 @@ export default function verify(params: Record<string, string>): HTMLElement {
         veganType,
       });
 
-      let totalXp = VERIFY_XP + REVIEW_XP;
+      // v0.3 §4: review portion is 20 first / 15 subsequent per restaurant.
+      // VERIFY_XP stays at 20 (verification is once-per-restaurant by nature).
+      const reviewed = await hasReviewedRestaurant(u.id, restaurantId);
+      const reviewXp = reviewed ? REVIEW_XP_REPEAT : REVIEW_XP_FIRST;
+      let totalXp = VERIFY_XP + reviewXp;
       let scanItems: MockFood[] = [];
       let nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null = null;
 
@@ -241,7 +251,7 @@ export default function verify(params: Record<string, string>): HTMLElement {
         gemsFromXp = award.gemsFromXp;
       } catch { /* server XP soft fail */ }
       markMissionDone(`map_verify:${restaurantId}`, VERIFY_XP);
-      markMissionDone(`review:${restaurantId}`, REVIEW_XP);
+      markMissionDone(`review:${restaurantId}`, reviewXp);
 
       renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems, xpFedToPet, gemsFromXp });
     } catch (err) {
@@ -257,7 +267,7 @@ export default function verify(params: Record<string, string>): HTMLElement {
         ? `送出失敗：${detail}`
         : '送出失敗，請稍後再試';
       submitBtn.disabled = false;
-      submitBtn.textContent = `送出認證 (+${VERIFY_XP + REVIEW_XP} XP)`;
+      submitBtn.textContent = `送出認證 (+${VERIFY_XP + REVIEW_XP_FIRST} XP)`;
     }
   }
 
