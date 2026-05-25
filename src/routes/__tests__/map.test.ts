@@ -111,21 +111,36 @@ describe('map route', () => {
   });
 
   describe('first-visit name prompt', () => {
-    it('stays hidden when display name is already customised', () => {
+    // The name-prompt overlay is now built dynamically by
+    // lib/name-prompt.ts and appended to the route wrap. Tests assert on
+    // the mounted overlay's presence/absence rather than a pre-rendered
+    // hidden element.
+    it('stays out of the DOM when display name is already customised', async () => {
       $user.set({ id: 1, username: 'kael', displayName: 'Kael' });
       const el = map();
-      expect(el.querySelector<HTMLElement>('#name-prompt')?.hidden).toBe(true);
+      await vi.waitFor(() => {
+        // Helper returns early; no overlay is ever mounted.
+        expect(el.querySelector('.name-prompt')).toBeNull();
+      });
     });
 
-    it('shows the prompt when display name still has the 訪客 prefix', () => {
+    it('mounts an overlay when display name still has the 訪客 prefix', async () => {
       $user.set({ id: 1, username: 'guest_a', displayName: '訪客 ab12' });
       const el = map();
-      expect(el.querySelector<HTMLElement>('#name-prompt')?.hidden).toBe(false);
+      document.body.appendChild(el);
+      await vi.waitFor(() => {
+        expect(el.querySelector('.name-prompt')).not.toBeNull();
+      });
+      el.remove();
     });
 
-    it('saves the new name via updateDisplayName and closes the prompt', async () => {
+    it('saves the new name via updateDisplayName and removes the overlay', async () => {
       $user.set({ id: 7, username: 'guest_a', displayName: '訪客 ab12' });
       const el = map();
+      document.body.appendChild(el);
+      await vi.waitFor(() => {
+        expect(el.querySelector<HTMLInputElement>('#name-prompt-input')).not.toBeNull();
+      });
       const input = el.querySelector<HTMLInputElement>('#name-prompt-input')!;
       input.value = '阿綠';
       el.querySelector<HTMLButtonElement>('#name-prompt-save')?.click();
@@ -133,15 +148,25 @@ describe('map route', () => {
         expect(mockedProfile.updateDisplayName).toHaveBeenCalledWith(7, '阿綠');
       });
       expect($user.get()?.displayName).toBe('阿綠');
-      expect(el.querySelector<HTMLElement>('#name-prompt')?.hidden).toBe(true);
+      await vi.waitFor(() => {
+        expect(el.querySelector('.name-prompt')).toBeNull();
+      });
+      el.remove();
     });
 
-    it('skip button dismisses without writing', () => {
+    it('skip button dismisses without writing', async () => {
       $user.set({ id: 7, username: 'guest_a', displayName: '訪客 ab12' });
       const el = map();
+      document.body.appendChild(el);
+      await vi.waitFor(() => {
+        expect(el.querySelector<HTMLButtonElement>('#name-prompt-skip')).not.toBeNull();
+      });
       el.querySelector<HTMLButtonElement>('#name-prompt-skip')?.click();
       expect(mockedProfile.updateDisplayName).not.toHaveBeenCalled();
-      expect(el.querySelector<HTMLElement>('#name-prompt')?.hidden).toBe(true);
+      await vi.waitFor(() => {
+        expect(el.querySelector('.name-prompt')).toBeNull();
+      });
+      el.remove();
     });
   });
 });

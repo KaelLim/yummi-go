@@ -9,6 +9,7 @@
 import { navigate } from '@/router';
 import { getRestaurant, type Restaurant } from '@/api/content';
 import { listReviewsForRestaurant, type RestaurantReview } from '@/api/reviews';
+import { requireRealName } from '@/lib/name-prompt';
 
 const PLACE_LABEL: Record<string, string> = {
   chinese: '中式',
@@ -71,7 +72,14 @@ export default function detail(params: Record<string, string>): HTMLElement {
   const listEl = wrap.querySelector<HTMLElement>('#reviews-list')!;
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/map'));
-  wrap.querySelector('#add-review')?.addEventListener('click', () => navigate(`/map/restaurant/${id}/review`));
+  wrap.querySelector('#add-review')?.addEventListener('click', () => {
+    // First-time social action — prompt for a real name before the user
+    // enters the review form so their submission is attributed properly.
+    void (async () => {
+      await requireRealName(wrap);
+      navigate(`/map/restaurant/${id}/review`);
+    })();
+  });
   wrap.querySelector('#report-btn')?.addEventListener('click', () => {
     const reason = RESTAURANT_REPORT_REASONS.find((r) =>
       window.confirm(`檢舉店家：「${r}」？\n（取消以查看下一個）`),

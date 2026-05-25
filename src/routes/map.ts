@@ -25,16 +25,8 @@ import { navigate } from '@/router';
 import { listRestaurants, parseVeganTypes, type Restaurant } from '@/api/content';
 import { listAllReviews, aggregateConsensusTiers } from '@/api/reviews';
 import { onUnmount } from '@/lib/lifecycle';
-import { $user, $profile } from '@/store/user';
-import { updateDisplayName, getUserFull } from '@/api/profile';
-
-/**
- * Auto-generated guest display names follow the `訪客 xxxx` shape from
- * registerGuest(). If the user still has that placeholder, the map is
- * the first social-ish surface where the name actually matters — prompt
- * once on entry so they can pick something real.
- */
-const GUEST_NAME_PREFIX = '訪客 ';
+import { $user } from '@/store/user';
+import { requireRealName } from '@/lib/name-prompt';
 
 const PLACE_LABEL: Record<string, string> = {
   chinese: '中式',
@@ -120,21 +112,10 @@ export default function map(): HTMLElement {
     </div>
     <div class="map-canvas" id="canvas"></div>
     <div class="map-card" id="card" hidden></div>
-    <div class="name-prompt" id="name-prompt" hidden role="dialog" aria-modal="true" aria-labelledby="name-prompt-title">
-      <div class="name-prompt-card">
-        <h2 class="name-prompt-title text-h3" id="name-prompt-title">嗨，先取個名字吧</h2>
-        <p class="name-prompt-sub text-mini">讓小綠在地圖上認得你</p>
-        <input type="text" class="input" id="name-prompt-input" maxlength="20" autocomplete="off" />
-        <p class="name-prompt-error" id="name-prompt-error" hidden></p>
-        <div class="name-prompt-actions">
-          <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" id="name-prompt-skip">先跳過</button>
-          <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" id="name-prompt-save">儲存</button>
-        </div>
-      </div>
-    </div>
   `;
-
-  void maybeShowNamePrompt(wrap);
+  // Name prompt overlay is now built lazily by `requireRealName`
+  // (lib/name-prompt) — no inline HTML needed. Guards keep firing on
+  // map mount AND before any social action (寫評論 / 認證餐廳).
 
   const canvas = wrap.querySelector<HTMLDivElement>('#canvas')!;
   const card = wrap.querySelector<HTMLDivElement>('#card')!;
@@ -199,10 +180,13 @@ export default function map(): HTMLElement {
     `;
     card.querySelector('#card-detail')?.addEventListener('click', () => {
       if (isGray) {
-        // Verification is its own full-page form at /…/verify so it
-        // mirrors the /…/review layout — feels like one consistent path
-        // instead of a slide-up sheet plus a routed form.
-        navigate(`/map/restaurant/${r.id}/verify`);
+        // 認證餐廳 is a social action — make sure the user has a real
+        // display name first so the verification's review credit reads
+        // sensibly to other users.
+        void (async () => {
+          await requireRealName(wrap);
+          navigate(`/map/restaurant/${r.id}/verify`);
+        })();
       } else {
         navigate(`/map/restaurant/${r.id}`);
       }
@@ -305,6 +289,10 @@ export default function map(): HTMLElement {
   };
   const rafId = requestAnimationFrame(safeInvalidate);
 
+  // First-visit prompt: surface the name overlay once on map entry so
+  // returning users land on the map already-named.
+  void requireRealName(wrap);
+
   void (async () => {
     try {
       allRestaurants = await listRestaurants();
@@ -390,59 +378,3 @@ function escapeHtml(s: string): string {
   );
 }
 
-async function maybeShowNamePrompt(wrap: HTMLElement): Promise<void> {
-  const u = $user.get();
-  if (!u) return;
-  if (!u.displayName.startsWith(GUEST_NAME_PREFIX)) return;
-
-  const prompt = wrap.querySelector<HTMLElement>('#name-prompt');
-  const input = wrap.querySelector<HTMLInputElement>('#name-prompt-input');
-  const errorEl = wrap.querySelector<HTMLElement>('#name-prompt-error');
-  const skipBtn = wrap.querySelector<HTMLButtonElement>('#name-prompt-skip');
-  const saveBtn = wrap.querySelector<HTMLButtonElement>('#name-prompt-save');
-  if (!prompt || !input || !errorEl || !skipBtn || !saveBtn) return;
-
-  prompt.hidden = false;
-  input.value = '';
-  input.focus();
-
-  function close(): void {
-    if (prompt) prompt.hidden = true;
-  }
-
-  function showError(msg: string): void {
-    if (!errorEl) return;
-    errorEl.hidden = false;
-    errorEl.textContent = msg;
-  }
-
-  skipBtn.addEventListener('click', close);
-
-  saveBtn.addEventListener('click', async () => {
-    const name = input.value.trim();
-    if (!name) {
-      showError('幫自己取個名字吧');
-      return;
-    }
-    if (name.startsWith(GUEST_NAME_PREFIX)) {
-      showError('換一個吧，這個是預設訪客名');
-      return;
-    }
-    saveBtn.disabled = true;
-    saveBtn.textContent = '儲存中…';
-    try {
-      await updateDisplayName(u.id, name);
-      $user.set({ ...u, displayName: name });
-      // Refresh $profile in the background so other screens see the
-      // new name on their next render. Soft fail is fine — the local
-      // store update is enough for the user's current session.
-      void getUserFull(u.id).then((full) => { if (full) $profile.set(full); });
-      close();
-    } catch (err) {
-      console.error('[map] updateDisplayName failed:', err);
-      showError('儲存失敗，請稍後再試');
-      saveBtn.disabled = false;
-      saveBtn.textContent = '儲存';
-    }
-  });
-}

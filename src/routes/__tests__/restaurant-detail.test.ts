@@ -75,13 +75,17 @@ describe('restaurant-detail route', () => {
     expect(el.textContent).toContain('★★★★☆');
   });
 
-  it('back button routes to /map; add-review routes to /map/restaurant/:id/review', () => {
+  it('back button routes to /map; add-review routes to /map/restaurant/:id/review', async () => {
     mockedContent.getRestaurant.mockResolvedValue(restaurant);
     mockedReviews.listReviewsForRestaurant.mockResolvedValue([]);
     const el = detail({ id: '5' });
     el.querySelector<HTMLButtonElement>('#back-btn')?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/map');
     el.querySelector<HTMLButtonElement>('#add-review')?.click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/map/restaurant/5/review');
+    // add-review now passes through requireRealName before navigating,
+    // so the navigate fires in a microtask after the click handler awaits.
+    await vi.waitFor(() => {
+      expect(mockedRouter.navigate).toHaveBeenCalledWith('/map/restaurant/5/review');
+    });
   });
 });
