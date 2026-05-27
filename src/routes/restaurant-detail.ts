@@ -8,8 +8,16 @@
  */
 import { navigate } from '@/router';
 import { getRestaurant, type Restaurant } from '@/api/content';
-import { listReviewsForRestaurant, type RestaurantReview } from '@/api/reviews';
+import {
+  listReviewsForRestaurant,
+  deleteReview,
+  REVIEW_DELETE_LOCK_MS,
+  type RestaurantReview,
+} from '@/api/reviews';
 import { requireRealName } from '@/lib/name-prompt';
+import { googleMapsPlaceUrl } from '@/lib/google-maps-link';
+import { openVeganTierInfo } from '@/lib/vegan-tiers';
+import { $user } from '@/store/user';
 
 const PLACE_LABEL: Record<string, string> = {
   chinese: '中式',
@@ -21,12 +29,12 @@ const PLACE_LABEL: Record<string, string> = {
 };
 
 /** Reasons surfaced when the user reports the *restaurant* (top-right flag).
- *  Primary use case is "店家似乎已歇業" — the rest are practical follow-ups. */
+ *  Source: 蔬食地圖規格 v0.1 §4.7. 廣告 was intentionally dropped — that's a
+ *  review-level concern, not a restaurant-level one. */
 const RESTAURANT_REPORT_REASONS = [
+  '店家不存在',
   '已歇業',
-  '位置錯誤',
-  '不再供應素食',
-  '其他',
+  '資料錯誤',
 ];
 
 /** Reasons surfaced when the user reports a *single review* (per-row flag). */
@@ -36,6 +44,9 @@ const REVIEW_REPORT_REASONS = [
   '不實評論',
   '其他',
 ];
+
+/** Spec §4.6 — picker shown when the user deletes their own review. */
+const REVIEW_DELETE_REASONS = ['內容有誤', '想法改變'] as const;
 
 export default function detail(params: Record<string, string>): HTMLElement {
   const id = Number(params.id);
@@ -55,7 +66,12 @@ export default function detail(params: Record<string, string>): HTMLElement {
       <section class="detail-meta" id="meta"></section>
       <section class="reviews">
         <div class="reviews-head">
-          <h2 class="reviews-title">評論</h2>
+          <h2 class="reviews-title">
+            評論
+            <button class="vegan-info-btn vegan-info-btn-inline" id="reviews-vegan-info-btn" type="button" aria-label="素別說明" title="素別說明">
+              <span class="ms">info</span>
+            </button>
+          </h2>
           <button class="btn text-btn-m btn-primary btn-sm text-mini" id="add-review">
             <span class="ms">edit</span>寫評論
           </button>
@@ -71,7 +87,29 @@ export default function detail(params: Record<string, string>): HTMLElement {
   const metaEl = wrap.querySelector<HTMLElement>('#meta')!;
   const listEl = wrap.querySelector<HTMLElement>('#reviews-list')!;
 
+  // Reviews load once and stick around so the tally-filter can re-render
+  // narrowed subsets without re-hitting drust. selectedTier === null
+  // means "show all"; clicking the same chip again clears the filter.
+  let allReviews: RestaurantReview[] = [];
+  let selectedTier: string | null = null;
+
+  const renderList = () => {
+    const uid = $user.get()?.id ?? null;
+    renderReviews(listEl, allReviews, uid, selectedTier);
+    // Flip the 寫評論 button to 更新評論 when the current user already
+    // has a review on this restaurant — the review route auto-detects
+    // and rehydrates in edit mode, so the label just needs to match.
+    const btn = wrap.querySelector<HTMLButtonElement>('#add-review');
+    if (btn) {
+      const mine = uid !== null && allReviews.some((r) => r.user_id === uid);
+      btn.innerHTML = mine
+        ? '<span class="ms">edit_note</span>更新評論'
+        : '<span class="ms">edit</span>寫評論';
+    }
+  };
+
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/map'));
+  wrap.querySelector('#reviews-vegan-info-btn')?.addEventListener('click', () => openVeganTierInfo(wrap));
   wrap.querySelector('#add-review')?.addEventListener('click', () => {
     // First-time social action — prompt for a real name before the user
     // enters the review form so their submission is attributed properly.
@@ -81,27 +119,69 @@ export default function detail(params: Record<string, string>): HTMLElement {
     })();
   });
   wrap.querySelector('#report-btn')?.addEventListener('click', () => {
-    const reason = RESTAURANT_REPORT_REASONS.find((r) =>
-      window.confirm(`檢舉店家：「${r}」？\n（取消以查看下一個）`),
-    );
-    if (reason) {
-      window.alert(`已記錄檢舉：${reason}`);
-    }
+    openReportPicker(wrap, {
+      title: '檢舉店家',
+      hint: '請選擇最貼近的原因，我們會盡快人工確認。',
+      reasons: RESTAURANT_REPORT_REASONS,
+      onPick: (reason) => window.alert(`已記錄檢舉：${reason}`),
+    });
   });
 
-  // Event delegation for per-review flag — listEl is re-rendered after the
-  // reviews fetch, so binding listeners per-row would require re-binding
-  // on every render. One listener on the list covers all rows including
-  // those that haven't been rendered yet.
+  // Event delegation for per-review actions — listEl is re-rendered
+  // after the reviews fetch, so binding listeners per-row would require
+  // re-binding on every render. One listener on the list covers all
+  // rows, including those that haven't been rendered yet.
   listEl.addEventListener('click', (e) => {
-    const target = (e.target as Element).closest<HTMLButtonElement>('.review-flag');
-    if (!target) return;
-    const reviewId = target.dataset.reviewId;
-    const reason = REVIEW_REPORT_REASONS.find((r) =>
-      window.confirm(`檢舉這則評論：「${r}」？\n（取消以查看下一個）`),
-    );
-    if (reason) {
-      window.alert(`已記錄檢舉：${reason}${reviewId ? `（評論 #${reviewId}）` : ''}`);
+    // Tally chip — toggles the selected 素別 filter on the reviews list.
+    const tallyChip = (e.target as Element).closest<HTMLButtonElement>('.vegan-tally-chip');
+    if (tallyChip) {
+      const tier = tallyChip.dataset.tier ?? '';
+      selectedTier = selectedTier === tier ? null : tier;
+      renderList();
+      return;
+    }
+    // Explicit "顯示全部" pill — only present while a tier is active.
+    const clearBtn = (e.target as Element).closest<HTMLButtonElement>('.vegan-tally-clear');
+    if (clearBtn) {
+      selectedTier = null;
+      renderList();
+      return;
+    }
+    const flag = (e.target as Element).closest<HTMLButtonElement>('.review-flag');
+    if (flag) {
+      const reviewId = flag.dataset.reviewId;
+      openReportPicker(wrap, {
+        title: '檢舉這則評論',
+        hint: '請選擇最貼近的原因，我們會盡快人工確認。',
+        reasons: REVIEW_REPORT_REASONS,
+        onPick: (reason) =>
+          window.alert(`已記錄檢舉：${reason}${reviewId ? `（評論 #${reviewId}）` : ''}`),
+      });
+      return;
+    }
+    const editBtn = (e.target as Element).closest<HTMLButtonElement>('.review-edit');
+    if (editBtn) {
+      // Reuse the existing review route — 4a logic loads the user's
+      // existing review and flips into edit mode automatically.
+      navigate(`/map/restaurant/${id}/review`);
+      return;
+    }
+    const delBtn = (e.target as Element).closest<HTMLButtonElement>('.review-delete');
+    if (delBtn) {
+      const rid = Number(delBtn.dataset.reviewId);
+      const createdAt = delBtn.dataset.createdAt ?? '';
+      openDeleteReviewModal(wrap, rid, createdAt, async () => {
+        try {
+          await deleteReview(rid);
+          // Re-fetch and re-render so the row disappears and the empty
+          // state can surface if it was the only review.
+          allReviews = await listReviewsForRestaurant(id);
+          renderList();
+        } catch (err) {
+          console.error('[detail] deleteReview failed:', err);
+          window.alert('刪除失敗，請稍後再試');
+        }
+      });
     }
   });
 
@@ -115,8 +195,8 @@ export default function detail(params: Record<string, string>): HTMLElement {
       }
       titleEl.textContent = r.name;
       renderMeta(metaEl, r);
-      const reviews = await listReviewsForRestaurant(id);
-      renderReviews(listEl, reviews);
+      allReviews = await listReviewsForRestaurant(id);
+      renderList();
     } catch (err) {
       console.error('[detail] load failed:', err);
       titleEl.textContent = '載入失敗';
@@ -126,12 +206,170 @@ export default function detail(params: Record<string, string>): HTMLElement {
   return wrap;
 }
 
+/**
+ * Delete-review modal. Two states keyed off the 30-min spec lock:
+ *   - within 30 min of created_at → button row replaced with an
+ *     explainer 「發布未滿 30 分鐘，僅可編輯」 + a 「改為編輯」 shortcut.
+ *   - past 30 min → reason picker (內容有誤 / 想法改變) + the spec's
+ *     nudge text 「你也可以「編輯」這則評論，而不是刪除」.
+ */
+function openDeleteReviewModal(
+  host: HTMLElement,
+  reviewId: number,
+  createdAtRaw: string,
+  onConfirm: (reason: string) => void | Promise<void>,
+): void {
+  const createdAt = parseDrustTimestamp(createdAtRaw);
+  const elapsedMs = createdAt ? Date.now() - createdAt.getTime() : Number.POSITIVE_INFINITY;
+  const locked = elapsedMs >= 0 && elapsedMs < REVIEW_DELETE_LOCK_MS;
+  const minsLeft = locked
+    ? Math.max(1, Math.ceil((REVIEW_DELETE_LOCK_MS - elapsedMs) / 60000))
+    : 0;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'delete-review-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.innerHTML = `
+    <div class="delete-review-card">
+      <h2 class="delete-review-title">刪除評論？</h2>
+      ${
+        locked
+          ? `<p class="delete-review-lock">發布未滿 30 分鐘，僅可編輯。<br/>還剩約 ${minsLeft} 分鐘。</p>
+             <div class="delete-review-actions">
+               <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">取消</button>
+               <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" data-act="edit">改為編輯</button>
+             </div>`
+          : `<p class="delete-review-nudge">你也可以「<a href="#" data-act="edit">編輯</a>」這則評論，而不是刪除。</p>
+             <fieldset class="delete-review-reasons">
+               <legend>刪除原因</legend>
+               ${REVIEW_DELETE_REASONS.map(
+                 (r, i) => `
+                 <label class="delete-review-reason">
+                   <input type="radio" name="delete-reason" value="${r}" ${i === 0 ? 'checked' : ''} />
+                   <span>${r}</span>
+                 </label>`,
+               ).join('')}
+             </fieldset>
+             <p class="delete-review-warn">XP 與連續日不會被扣回，但這則評論會永久消失。</p>
+             <div class="delete-review-actions">
+               <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">取消</button>
+               <button type="button" class="btn text-btn-m btn-danger btn-l text-btn-l" data-act="confirm">確認刪除</button>
+             </div>`
+      }
+    </div>
+  `;
+
+  function close(): void { overlay.remove(); }
+
+  overlay.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (t === overlay) { close(); return; }
+    const act = t.closest<HTMLElement>('[data-act]')?.dataset.act;
+    if (!act) return;
+    e.preventDefault();
+    if (act === 'cancel') { close(); return; }
+    if (act === 'edit') {
+      // Land on the review route — 4a code rehydrates the existing review.
+      close();
+      const restaurantId = window.location.hash.match(/restaurant\/(\d+)/)?.[1];
+      if (restaurantId) navigate(`/map/restaurant/${restaurantId}/review`);
+      return;
+    }
+    if (act === 'confirm') {
+      const picked = overlay.querySelector<HTMLInputElement>('input[name="delete-reason"]:checked');
+      if (!picked) return;
+      const btn = overlay.querySelector<HTMLButtonElement>('[data-act="confirm"]');
+      if (btn) { btn.disabled = true; btn.textContent = '刪除中…'; }
+      void Promise.resolve(onConfirm(picked.value)).finally(close);
+    }
+    // Suppress unused-var warning for reviewId — the caller closes over it.
+    void reviewId;
+  });
+
+  host.appendChild(overlay);
+}
+
+/**
+ * Generic single-select picker modal — used for both the restaurant-level
+ * 🚩 (詳細頁右上) and the per-review 🚩. Replaces the prior
+ * `window.confirm` cycle so reasons land in one screen instead of
+ * tap-through-each-option.
+ */
+interface ReportPickerOpts {
+  title: string;
+  hint?: string;
+  reasons: readonly string[];
+  onPick: (reason: string) => void;
+}
+
+function openReportPicker(host: HTMLElement, opts: ReportPickerOpts): void {
+  const overlay = document.createElement('div');
+  overlay.className = 'report-picker-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.innerHTML = `
+    <div class="report-picker-card">
+      <h2 class="report-picker-title">${escapeHtml(opts.title)}</h2>
+      ${opts.hint ? `<p class="report-picker-hint">${escapeHtml(opts.hint)}</p>` : ''}
+      <fieldset class="report-picker-reasons">
+        <legend class="report-picker-legend">原因</legend>
+        ${opts.reasons
+          .map(
+            (r, i) => `
+            <label class="report-picker-reason">
+              <input type="radio" name="report-reason" value="${escapeHtml(r)}" ${i === 0 ? 'checked' : ''} />
+              <span>${escapeHtml(r)}</span>
+            </label>`,
+          )
+          .join('')}
+      </fieldset>
+      <div class="report-picker-actions">
+        <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">取消</button>
+        <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" data-act="confirm">送出</button>
+      </div>
+    </div>
+  `;
+
+  function close(): void { overlay.remove(); }
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) { close(); return; }
+    const act = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
+    if (!act) return;
+    if (act === 'cancel') { close(); return; }
+    if (act === 'confirm') {
+      const picked = overlay.querySelector<HTMLInputElement>('input[name="report-reason"]:checked');
+      if (!picked) return;
+      const reason = picked.value;
+      close();
+      opts.onPick(reason);
+    }
+  });
+
+  host.appendChild(overlay);
+}
+
+/**
+ * drust serialises timestamps as either ISO ("2026-05-27T12:34:56Z") or
+ * SQL-flavoured ("2026-05-27 12:34:56"). Date.parse accepts the first
+ * cleanly; we re-format the second to ISO before parsing so the result
+ * is consistent across both shapes.
+ */
+function parseDrustTimestamp(s: string): Date | null {
+  if (!s) return null;
+  const iso = s.includes('T') ? s : s.replace(' ', 'T') + 'Z';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function renderMeta(el: HTMLElement, r: Restaurant): void {
   el.innerHTML = `
-    <div class="detail-line">
+    <a class="detail-line detail-addr-link" href="${googleMapsPlaceUrl(r)}" target="_blank" rel="noopener noreferrer">
       <span class="ms">place</span>
       <span>${escapeHtml(r.address)}</span>
-    </div>
+      <span class="ms detail-addr-arrow" aria-hidden="true">open_in_new</span>
+    </a>
     <div class="detail-line">
       <span class="ms">restaurant</span>
       <span>${PLACE_LABEL[r.place_type] ?? r.place_type}</span>
@@ -145,26 +383,89 @@ function renderMeta(el: HTMLElement, r: Restaurant): void {
   `;
 }
 
-function renderReviews(el: HTMLElement, reviews: RestaurantReview[]): void {
-  if (reviews.length === 0) {
-    el.innerHTML = '<p class="reviews-empty">還沒有評論，成為第一位吧！</p>';
+/**
+ * Spec §3.3 「評論字體右方：計算個素別選擇人數」 — surface a tally of how
+ * many reviewers picked each 素別 above the list. Counts are computed
+ * from the FULL review set (not the active filter) so the user can see
+ * how big the other buckets are while drilling into one. Clicking a
+ * chip toggles a filter on the reviews list (chip → `selectedTier`).
+ */
+function renderVeganTally(reviews: RestaurantReview[], selectedTier: string | null): string {
+  if (reviews.length === 0) return '';
+  const counts = new Map<string, number>();
+  for (const rv of reviews) {
+    if (!rv.vegan_type) continue;
+    for (const t of rv.vegan_type.split(',').map((s) => s.trim()).filter(Boolean)) {
+      counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+  }
+  if (counts.size === 0) return '';
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  return `
+    <div class="vegan-tally" role="group" aria-label="各素別選擇人數（可點選篩選評論）">
+      ${sorted
+        .map(([t, n]) => {
+          const active = selectedTier === t;
+          return `<button class="vegan-tally-chip${active ? ' is-active' : ''}" data-tier="${escapeHtml(t)}" type="button" aria-pressed="${active}" title="只顯示 ${escapeHtml(t)} 的評論"><span class="vegan-tally-label">${escapeHtml(t)}</span><span class="vegan-tally-count">×${n}</span></button>`;
+        })
+        .join('')}
+      ${selectedTier ? `<button class="vegan-tally-clear" type="button" data-clear="1" title="清除篩選"><span class="ms">close</span>顯示全部</button>` : ''}
+    </div>
+  `;
+}
+
+function renderReviews(
+  el: HTMLElement,
+  reviews: RestaurantReview[],
+  currentUserId: number | null,
+  selectedTier: string | null,
+): void {
+  const tally = renderVeganTally(reviews, selectedTier);
+  // Apply the selected-tier filter to the rows only — the tally above
+  // keeps showing total counts so the user can see what's in other
+  // buckets while drilling into one.
+  const visible = selectedTier
+    ? reviews.filter((rv) =>
+        (rv.vegan_type ?? '')
+          .split(',')
+          .map((s) => s.trim())
+          .includes(selectedTier),
+      )
+    : reviews;
+  if (visible.length === 0) {
+    const empty = reviews.length === 0
+      ? '<p class="reviews-empty">還沒有評論，成為第一位吧！</p>'
+      : `<p class="reviews-empty">沒有「${escapeHtml(selectedTier ?? '')}」的評論</p>`;
+    el.innerHTML = tally + empty;
     return;
   }
-  el.innerHTML = reviews
-    .map(
-      (rv) => `
-      <article class="review-item">
+  el.innerHTML = tally + visible
+    .map((rv) => {
+      const isMine = currentUserId !== null && rv.user_id === currentUserId;
+      // Own-review row drops the report flag (no point reporting yourself)
+      // and gains the edit / delete action pair instead.
+      const actions = isMine
+        ? `<button class="review-edit" type="button" aria-label="編輯這則評論" title="編輯">
+             <span class="ms">edit</span>
+           </button>
+           <button class="review-delete" data-review-id="${rv.id}" data-created-at="${escapeHtml(rv.created_at)}" type="button" aria-label="刪除這則評論" title="刪除">
+             <span class="ms">delete</span>
+           </button>`
+        : `<button class="review-flag" data-review-id="${rv.id}" type="button" aria-label="檢舉這則評論" title="檢舉這則評論">
+             <span class="ms">flag</span>
+           </button>`;
+      return `
+      <article class="review-item${isMine ? ' is-mine' : ''}">
         <div class="review-head">
           <span class="review-stars" aria-label="${rv.rating} 顆星">${'★'.repeat(rv.rating)}${'☆'.repeat(5 - rv.rating)}</span>
           ${rv.vegan_type ? `<span class="review-tag">${escapeHtml(rv.vegan_type)}</span>` : ''}
+          ${isMine ? '<span class="review-mine-tag">我的評論</span>' : ''}
           <span class="review-date">${formatDate(rv.created_at)}</span>
-          <button class="review-flag" data-review-id="${rv.id}" type="button" aria-label="檢舉這則評論" title="檢舉這則評論">
-            <span class="ms">flag</span>
-          </button>
+          ${actions}
         </div>
         ${rv.text ? `<p class="review-text">${escapeHtml(rv.text)}</p>` : ''}
-      </article>`,
-    )
+      </article>`;
+    })
     .join('');
 }
 

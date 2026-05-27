@@ -40,6 +40,36 @@ export async function createReview(args: CreateReviewArgs): Promise<RestaurantRe
   return result.record;
 }
 
+export interface UpdateReviewArgs {
+  rating: number;
+  text?: string | null;
+  photoId?: string | null;
+  veganType?: string | null;
+}
+
+export async function updateReview(
+  reviewId: number,
+  args: UpdateReviewArgs,
+): Promise<RestaurantReview> {
+  const result = await drust.update<RestaurantReview>('restaurant_reviews', reviewId, {
+    rating: args.rating,
+    text: args.text ?? null,
+    photo_id: args.photoId ?? null,
+    vegan_type: args.veganType ?? null,
+  });
+  // Track the edit timestamp client-side so the 24h / 1× rule (§4.6) can
+  // be enforced without a schema change to restaurant_reviews. localStorage
+  // is per-device, which is acceptable for the prototype — worst case a
+  // user on a fresh device can re-edit, but the prod schema is expected
+  // to gain an `edited_at` column before launch.
+  markReviewEdited(reviewId);
+  return result.record;
+}
+
+export async function deleteReview(reviewId: number): Promise<void> {
+  await drust.delete('restaurant_reviews', reviewId);
+}
+
 /**
  * drust list filters are silently ignored (see api/profile.ts), so the
  * restaurant_id / user_id filter happens client-side after fetching the
@@ -86,6 +116,66 @@ export async function hasReviewedRestaurant(
 
 export const REVIEW_XP_FIRST = 20;
 export const REVIEW_XP_REPEAT = 15;
+
+/** Spec §4.6: minimum window between create and first allowed delete. */
+export const REVIEW_DELETE_LOCK_MS = 30 * 60 * 1000;
+/** Spec §4.6: 1 edit per 24h, tracked via localStorage timestamp. */
+export const REVIEW_EDIT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const REVIEW_EDITED_AT_KEY = 'yummi:review_edited';
+
+interface EditedAtMap {
+  [reviewId: string]: string; // ISO timestamp of last edit
+}
+
+function readEditedAtMap(): EditedAtMap {
+  try {
+    const raw = localStorage.getItem(REVIEW_EDITED_AT_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as EditedAtMap;
+  } catch {
+    return {};
+  }
+}
+
+function writeEditedAtMap(m: EditedAtMap): void {
+  try {
+    localStorage.setItem(REVIEW_EDITED_AT_KEY, JSON.stringify(m));
+  } catch {
+    // localStorage full or disabled — accept the loss; the API still
+    // updated the row, only the 24h client-side cooldown is degraded.
+  }
+}
+
+export function markReviewEdited(reviewId: number, atIso?: string): void {
+  const m = readEditedAtMap();
+  m[String(reviewId)] = atIso ?? new Date().toISOString();
+  writeEditedAtMap(m);
+}
+
+export function reviewEditedAt(reviewId: number): Date | null {
+  const m = readEditedAtMap();
+  const v = m[String(reviewId)];
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Look up the user's own review for a restaurant, if any. Used by the
+ * review form to flip into edit mode (spec §4.6 — 1 user × 1 restaurant
+ * = 1 review). Returns null on no match or transient error.
+ */
+export async function getMyReviewForRestaurant(
+  userId: number,
+  restaurantId: number,
+): Promise<RestaurantReview | null> {
+  try {
+    const rows = await listReviewsForRestaurant(restaurantId);
+    return rows.find((r) => r.user_id === userId) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Returns all reviews drust will give us in one list call (capped at 20

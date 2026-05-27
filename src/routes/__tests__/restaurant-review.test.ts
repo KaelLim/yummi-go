@@ -3,9 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('@/router', () => ({ navigate: vi.fn() }));
 vi.mock('@/api/reviews', () => ({
   createReview: vi.fn().mockResolvedValue({}),
+  updateReview: vi.fn().mockResolvedValue({}),
+  getMyReviewForRestaurant: vi.fn().mockResolvedValue(null),
   hasReviewedRestaurant: vi.fn().mockResolvedValue(false),
+  reviewEditedAt: vi.fn().mockReturnValue(null),
   REVIEW_XP_FIRST: 20,
   REVIEW_XP_REPEAT: 15,
+  REVIEW_EDIT_COOLDOWN_MS: 24 * 60 * 60 * 1000,
 }));
 vi.mock('@/api/check-ins', () => ({ createCheckIn: vi.fn().mockResolvedValue({}) }));
 vi.mock('@/api/content', () => ({ getRestaurant: vi.fn().mockResolvedValue({ id: 5, name: '草盛園' }) }));

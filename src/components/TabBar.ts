@@ -21,7 +21,10 @@ const TABS: Tab[] = [
   { key: 'map', href: '/map', icon: 'map', label: '地圖' },
   { key: 'check-in', href: '/check-in', icon: 'photo_camera', label: '打卡', center: true },
   { key: 'store', href: '/store', icon: 'diamond', label: '商店' },
-  { key: 'profile', href: '/profile', icon: 'person', label: '我的' },
+  // 我的 moved to the global top-right person button on the main tab
+  // routes; this slot is now the vegan journey (= the calendar) so
+  // users still see their 30-day record at a glance from the main nav.
+  { key: 'calendar', href: '/profile/calendar', icon: 'calendar_month', label: '蔬食旅程' },
 ];
 
 export function createTabBar(): HTMLElement {

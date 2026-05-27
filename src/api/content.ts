@@ -156,6 +156,24 @@ export interface Restaurant {
    * map card shows it below the restaurant name when present.
    */
   business_hours?: string | null;
+  /**
+   * Optional Google Places ID used to build a precise deep link to the
+   * Google Maps store page (蔬食地圖規格 v0.1 §3.2 / §5.2). When present,
+   * address taps land on the canonical Google business page (phone,
+   * hours, photos, navigate). Falls back to a name+address search when
+   * absent — better than dropping the user on a bare coordinate.
+   */
+  google_place_id?: string | null;
+  /**
+   * Optional comma-separated activity tags powering the map's 活動標籤
+   * filter group (蔬食地圖規格 v0.1 §1.5). Recognised values:
+   *   - "600plates" → 蔬食 600 盤 campaign
+   *   - any other future campaign key
+   * The 'partner' tag is *not* stored here — it's derived from
+   * is_partner === 1 so a single source of truth stays at that column.
+   * Helper: `parseActivityTags(r)` returns the combined set.
+   */
+  activity_tags?: string | null;
 }
 
 /** Split a comma-separated `vegan_type` into trimmed, deduped tiers. */
@@ -167,6 +185,32 @@ export function parseVeganTypes(r: Pick<Restaurant, 'vegan_type'>): string[] {
     if (v) seen.add(v);
   }
   return Array.from(seen);
+}
+
+/**
+ * Combined activity-tag set per 蔬食地圖規格 v0.1 §1.5. 'partner' is
+ * derived (not stored in activity_tags) so the partner column stays
+ * authoritative. A restaurant with neither is_partner nor activity_tags
+ * falls into the 'other' bucket — that's how regular places surface
+ * under 其他.
+ */
+export const ACTIVITY_TAG_PARTNER = 'partner';
+export const ACTIVITY_TAG_600 = '600plates';
+export const ACTIVITY_TAG_OTHER = 'other';
+
+export function parseActivityTags(
+  r: Pick<Restaurant, 'is_partner' | 'activity_tags'>,
+): string[] {
+  const out = new Set<string>();
+  if (r.is_partner === 1) out.add(ACTIVITY_TAG_PARTNER);
+  if (r.activity_tags) {
+    for (const part of r.activity_tags.split(',')) {
+      const v = part.trim();
+      if (v) out.add(v);
+    }
+  }
+  if (out.size === 0) out.add(ACTIVITY_TAG_OTHER);
+  return Array.from(out);
 }
 
 export async function getDayScript(

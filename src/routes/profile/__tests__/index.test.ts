@@ -29,10 +29,10 @@ describe('profile hub', () => {
     expect(el.querySelector('#calendar')).toBeNull();
   });
 
-  it('exposes a 月曆 / 補簽 link that routes to /profile/calendar', () => {
+  it('exposes a 蔬食旅程 link that routes to /profile/calendar', () => {
     const el = profile();
     const link = Array.from(el.querySelectorAll<HTMLButtonElement>('.profile-link')).find(
-      (b) => b.textContent?.includes('月曆'),
+      (b) => b.textContent?.includes('蔬食旅程'),
     );
     link?.click();
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/profile/calendar');

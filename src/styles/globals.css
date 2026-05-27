@@ -34,6 +34,10 @@ body {
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
+  /* Containing block for absolute-positioned chrome (e.g. .profile-fab)
+     so it pins to the app frame, not the viewport — important on the
+     desktop breakpoint where the layout is centered. */
+  position: relative;
 }
 
 .app-main {
@@ -72,6 +76,33 @@ body {
   justify-content: center;
   font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
 }
+
+/* =============================================================================
+ * Floating top-right 我的 shortcut — replaces the bottom-nav profile tab.
+ * Only renders on the main tab routes (home/map/store/profile/calendar);
+ * deep-page headers (detail / verify / review) keep their own top-right
+ * affordances without collision.
+ * ============================================================================= */
+.profile-fab {
+  position: absolute;
+  top: max(env(safe-area-inset-top, 12px), 12px);
+  right: var(--space-3);
+  z-index: 40;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.12);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--color-primary-dark);
+  transition: background 0.15s, transform 0.15s;
+}
+.profile-fab:hover {
+  background: var(--color-primary-light);
+  transform: scale(1.05);
+}
+.profile-fab .ms { font-size: 22px; }
 
 /* =============================================================================
  * Tab bar (bottom navigation).
@@ -547,7 +578,10 @@ body {
 .home-screen { display: flex; flex-direction: column; gap: 14px; padding: var(--space-1) var(--space-1) var(--space-6); }
 .home-resources {
   display: flex; align-items: stretch; gap: var(--space-2);
-  padding: var(--space-1) var(--space-1);
+  /* Reserve space on the right for the global .profile-fab (40px wide,
+     12px from the layout edge). Without this, the streak chip slides
+     under the FAB and the 「天」 unit gets clipped. */
+  padding: var(--space-1) calc(40px + var(--space-3) + 6px) var(--space-1) var(--space-1);
 }
 .resource-chip {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -689,6 +723,10 @@ body {
 .calendar-screen .cal-cell-lost { background: var(--color-neutral-light-active, #ddd); opacity: 0.4; }
 .calendar-screen .cal-cell.is-makeable { cursor: pointer; }
 .calendar-screen .cal-cell.is-makeable:hover { background: var(--color-neutral-light, #f5f5f5); outline: 1.5px dashed var(--color-secondary-dark); }
+/* ✓ days are tappable to surface the nutrition recap modal. Slightly
+   tinted hover so it's discoverable without shouting. */
+.calendar-screen .cal-cell.is-done { cursor: pointer; }
+.calendar-screen .cal-cell.is-done:hover { background: var(--color-primary-light); outline: 1.5px dashed var(--color-primary); }
 .calendar-screen .calendar-legend {
   display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-4);
   padding: var(--space-3) var(--space-2); font-size: var(--text-caption-size);
@@ -702,6 +740,65 @@ body {
 .calendar-screen .legend-dot.legend-done { background: var(--color-primary, #3bb84b); }
 .calendar-screen .legend-dot.legend-makeable { background: var(--color-neutral-darker, #999); opacity: 0.55; }
 .calendar-screen .legend-dot.legend-lost { background: var(--color-neutral-light-active, #ddd); opacity: 0.6; }
+
+/* Nutrition recap modal — opened by tapping a green ✓ day. Read-only
+   diary view of that day's AI-scanned items + macros aggregated across
+   meals. Sits on the same z-index as the makeup modal so they never
+   need to coexist (different cell statuses trigger them). */
+.nutrition-recap-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4); overflow-y: auto;
+}
+.nutrition-recap-card {
+  background: var(--color-card); border-radius: var(--radius-lg);
+  padding: var(--space-5); width: 100%; max-width: 420px; max-height: 85vh;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.25);
+}
+.nutrition-recap-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3);
+}
+.nutrition-recap-titles { display: flex; flex-direction: column; gap: 2px; }
+.nutrition-recap-title {
+  margin: 0; font-size: var(--text-h3-size);
+  font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark);
+}
+.nutrition-recap-sub { margin: 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt); }
+.nutrition-recap-close {
+  background: none; border: none; cursor: pointer;
+  padding: 4px; border-radius: 50%;
+  color: var(--color-neutral-darker);
+}
+.nutrition-recap-close:hover { background: var(--color-neutral-light-active); }
+.nutrition-recap-empty {
+  margin: 0; text-align: center; font-size: var(--text-mini-size);
+  color: var(--color-foreground-alt); padding: var(--space-4) 0;
+}
+.recap-meal {
+  border: 1px solid var(--color-neutral); border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+.recap-meal-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.recap-meal-head strong { font-size: var(--text-mini-size); color: var(--color-primary-dark); }
+.recap-meal-veg {
+  background: var(--color-primary-light); color: var(--color-primary-dark);
+  padding: 1px 6px; border-radius: 4px;
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+}
+.recap-items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.recap-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: var(--text-mini-size); color: var(--color-foreground);
+}
+.recap-item-w {
+  color: var(--color-neutral-darker); font-variant-numeric: tabular-nums;
+  font-size: var(--text-caption-size);
+}
+.recap-item-empty { color: var(--color-neutral-darker); font-style: italic; justify-content: center; }
 
 /* Makeup modal — opened by tapping a makeable cell */
 .makeup-modal-overlay {
@@ -923,6 +1020,22 @@ body {
 }
 .review-success-checkin-badge .ms { font-size: 18px; color: var(--color-primary); }
 .review-success #back-to-detail { width: 100%; margin-top: var(--space-3); }
+.review-success-sub { margin: 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt); }
+
+/* Spec §4.6 — banner at top of review form when the user re-enters a
+   restaurant they've already reviewed. Soft yellow to read as "info"
+   rather than "error". */
+.review-edit-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: #fff7e0;
+  color: #6a4d00;
+  font-size: var(--text-mini-size);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
+}
+.review-edit-banner .ms { font-size: 18px; }
 
 /* Map verification sheet — opened by tapping the 認證餐廳 CTA on a gray
  * pin's map card. z-index must clear Leaflet's control pane (1000) and
@@ -1496,7 +1609,15 @@ body {
   color: var(--color-primary-dark);
 }
 .filter-chip .ms { font-size: var(--text-body-size); }
-.filter-partner.selected { background: var(--color-secondary-light); border-color: var(--color-secondary); color: var(--color-secondary-dark); }
+/* 活動標籤 row uses warm secondary tones to distinguish from the cool
+   primary 素別 row above. Multi-select chips are independently togglable
+   (default all-on per spec §1.5). */
+.map-filters-activity { margin-top: -4px; }
+.filter-activity.selected {
+  background: var(--color-secondary-light);
+  border-color: var(--color-secondary);
+  color: var(--color-secondary-dark);
+}
 
 .map-canvas {
   flex: 1; min-height: 320px;
@@ -1654,6 +1775,16 @@ body {
 .detail-line { display: flex; align-items: center; gap: 8px; font-size: var(--text-mini-size); color: var(--color-foreground-alt); }
 .detail-line .ms { color: var(--color-primary); font-size: var(--text-button-l-size); }
 .detail-discount { color: var(--color-secondary-dark); font-weight: var(--font-weight-bold); }
+/* §3.2 — address row deep-links to the Google Maps place page. Underline-on-
+   hover keeps it readable as a link without shouting from rest state. */
+.detail-addr-link {
+  text-decoration: none; color: inherit; cursor: pointer;
+  border-radius: var(--radius-sm); margin: -2px -4px; padding: 2px 4px;
+  transition: background-color 120ms ease;
+}
+.detail-addr-link:hover { background-color: var(--color-neutral-light); }
+.detail-addr-link:hover span:not(.ms) { text-decoration: underline; }
+.detail-addr-arrow { margin-left: auto; opacity: 0.55; font-size: 16px !important; color: var(--color-foreground-alt) !important; }
 
 .reviews { display: flex; flex-direction: column; gap: 10px; }
 .reviews-head { display: flex; align-items: center; justify-content: space-between; }
@@ -1683,6 +1814,167 @@ body {
 }
 .review-flag:hover { background: var(--color-neutral-light-active); color: var(--color-secondary-dark); opacity: 1; }
 .review-flag .ms { font-size: 14px; }
+/* Owner-only action buttons on the user's own review row. Same dimensions
+   as .review-flag so the head bar stays visually consistent regardless
+   of which actions surface. */
+.review-edit, .review-delete {
+  border: none; background: none; cursor: pointer;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-neutral-darker);
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+  opacity: 0.6;
+}
+.review-edit:hover { background: var(--color-primary-light); color: var(--color-primary-dark); opacity: 1; }
+.review-delete:hover { background: #fde7e3; color: #b1361f; opacity: 1; }
+.review-edit .ms, .review-delete .ms { font-size: 14px; }
+.review-mine-tag {
+  background: var(--color-secondary-light); color: var(--color-secondary-dark);
+  padding: 1px var(--space-2); border-radius: 4px;
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+}
+.review-item.is-mine { border-left: 3px solid var(--color-secondary); }
+
+/* Delete-review modal — fixed overlay with blur backdrop, centred card. */
+.delete-review-overlay {
+  position: fixed; inset: 0; z-index: 2100;
+  background: rgba(20, 30, 40, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+}
+.delete-review-card {
+  background: var(--color-card); border-radius: var(--radius-lg);
+  padding: var(--space-5); max-width: 360px; width: 100%;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.25);
+}
+.delete-review-title {
+  margin: 0; font-size: var(--text-h3-size);
+  font-weight: var(--font-weight-extrabold); color: var(--color-foreground);
+}
+.delete-review-lock {
+  margin: 0; font-size: var(--text-mini-size);
+  color: var(--color-foreground-alt); line-height: 1.5;
+}
+.delete-review-nudge {
+  margin: 0; font-size: var(--text-mini-size);
+  color: var(--color-foreground-alt);
+}
+.delete-review-nudge a { color: var(--color-primary-dark); font-weight: var(--font-weight-bold); }
+.delete-review-reasons {
+  border: 1px solid var(--color-neutral); border-radius: var(--radius-md);
+  padding: var(--space-3); margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.delete-review-reasons legend {
+  font-size: var(--text-caption-size); color: var(--color-neutral-darker); padding: 0 4px;
+}
+.delete-review-reason {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--text-mini-size); color: var(--color-foreground);
+  cursor: pointer;
+}
+.delete-review-warn {
+  margin: 0; font-size: var(--text-caption-size);
+  color: var(--color-foreground-alt);
+}
+.delete-review-actions {
+  display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-1);
+}
+.delete-review-actions .btn { flex: 1; }
+/* Danger button — used for the delete-confirm action. */
+.btn-danger {
+  background: #c84a30; color: #fff; border: none;
+}
+.btn-danger:hover:not(:disabled) { background: #a83c25; }
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* §3.3 — tally of how many reviewers picked each 素別, shown above the
+   reviews list. Each chip reads "全素 ×3" so the count is glanceable,
+   AND clicking the chip filters the reviews list to that 素別. The
+   tally counts stay on the full review set so users can still see
+   what's in the other buckets while drilling into one. */
+.vegan-tally {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: var(--space-2) 0 var(--space-3);
+}
+.vegan-tally-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px var(--space-2); border-radius: var(--radius-pill);
+  background: var(--color-card); color: var(--color-primary-dark);
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+  border: 1px solid var(--color-primary);
+  cursor: pointer; font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.vegan-tally-chip:hover { background: var(--color-primary-light); }
+.vegan-tally-chip.is-active {
+  background: var(--color-primary); color: #fff;
+  border-color: var(--color-primary-dark);
+  transform: scale(1.02);
+}
+.vegan-tally-chip.is-active .vegan-tally-count {
+  background: #fff; color: var(--color-primary-dark);
+}
+.vegan-tally-label {}
+.vegan-tally-count {
+  background: var(--color-primary-dark); color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 0 6px; min-width: 22px; text-align: center;
+  font-variant-numeric: tabular-nums; font-size: var(--text-caption-size);
+  transition: background 0.15s, color 0.15s;
+}
+.vegan-tally-clear {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px var(--space-2); border-radius: var(--radius-pill);
+  background: transparent; color: var(--color-foreground-alt);
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+  border: 1px dashed var(--color-neutral-darker);
+  cursor: pointer; font-family: inherit;
+}
+.vegan-tally-clear:hover { background: var(--color-neutral-light-active); color: var(--color-foreground); }
+.vegan-tally-clear .ms { font-size: 14px; }
+
+/* Report-picker modal — used by the restaurant-level 🚩 and per-review 🚩.
+   Same scaffolding as .delete-review-overlay but kept independent so each
+   surface can evolve without dragging the other along. */
+.report-picker-overlay {
+  position: fixed; inset: 0; z-index: 2100;
+  background: rgba(20, 30, 40, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+}
+.report-picker-card {
+  background: var(--color-card); border-radius: var(--radius-lg);
+  padding: var(--space-5); max-width: 360px; width: 100%;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.25);
+}
+.report-picker-title {
+  margin: 0; font-size: var(--text-h3-size);
+  font-weight: var(--font-weight-extrabold); color: var(--color-foreground);
+}
+.report-picker-hint {
+  margin: 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt);
+}
+.report-picker-reasons {
+  border: 1px solid var(--color-neutral); border-radius: var(--radius-md);
+  padding: var(--space-3); margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.report-picker-legend {
+  font-size: var(--text-caption-size); color: var(--color-neutral-darker); padding: 0 4px;
+}
+.report-picker-reason {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--text-mini-size); color: var(--color-foreground);
+  cursor: pointer;
+}
+.report-picker-actions {
+  display: flex; gap: var(--space-2); justify-content: flex-end; margin-top: var(--space-1);
+}
+.report-picker-actions .btn { flex: 1; }
 .review-text { font-size: var(--text-mini-size); line-height: 1.55; color: var(--color-foreground-alt); margin: 0; white-space: pre-wrap; }
 
 /* Circular flag in the restaurant-detail header — reports the restaurant
@@ -1724,6 +2016,14 @@ body {
 }
 .vegan-info-btn:hover { background: var(--color-primary-light); }
 .vegan-info-btn .ms { font-size: 18px; }
+/* Inline variant — slightly smaller and sits flush beside a section
+   title (e.g. "評論ⓘ" on the detail page, "蔬食地圖ⓘ" on the map). */
+.vegan-info-btn-inline {
+  width: 20px; height: 20px;
+  vertical-align: middle; margin-left: 4px;
+  color: var(--color-foreground-alt);
+}
+.vegan-info-btn-inline .ms { font-size: 16px; }
 
 /* Vegan tier info popover (centred modal). Same visual family as the
  * milestone / phase-1 modals but lighter — purely informational, no
@@ -1756,6 +2056,17 @@ body {
 }
 .vegan-info-name { font-size: var(--text-body-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); }
 .vegan-info-desc { font-size: var(--text-mini-size); color: var(--color-foreground-alt); line-height: 1.5; }
+/* Footnote inside the 素別 info modal — emphasises that 素別 describes
+   the dish, not the restaurant. Soft yellow so it reads as a heads-up,
+   not an error. */
+.vegan-info-footnote {
+  display: flex; align-items: flex-start; gap: 6px;
+  padding: var(--space-3); margin: var(--space-2) 0 0;
+  background: #fff7e0; color: #6a4d00;
+  border-radius: var(--radius-md);
+  font-size: var(--text-mini-size); line-height: 1.5;
+}
+.vegan-info-footnote .ms { font-size: 18px; flex: 0 0 auto; margin-top: 1px; }
 .review-section textarea {
   font-family: inherit; font-size: var(--text-mini-size); line-height: 1.5;
   padding: var(--space-3) var(--space-3);

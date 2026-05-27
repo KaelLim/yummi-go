@@ -22,11 +22,21 @@
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { navigate } from '@/router';
-import { listRestaurants, parseVeganTypes, type Restaurant } from '@/api/content';
+import {
+  listRestaurants,
+  parseVeganTypes,
+  parseActivityTags,
+  ACTIVITY_TAG_PARTNER,
+  ACTIVITY_TAG_600,
+  ACTIVITY_TAG_OTHER,
+  type Restaurant,
+} from '@/api/content';
 import { listAllReviews, aggregateConsensusTiers } from '@/api/reviews';
 import { onUnmount } from '@/lib/lifecycle';
 import { $user } from '@/store/user';
 import { requireRealName } from '@/lib/name-prompt';
+import { googleMapsPlaceUrl } from '@/lib/google-maps-link';
+import { openVeganTierInfo } from '@/lib/vegan-tiers';
 
 const PLACE_LABEL: Record<string, string> = {
   chinese: '中式',
@@ -75,16 +85,39 @@ const VEGAN_TYPES: VeganTypeOption[] = VEGAN_TIERS.map((t) => ({ value: t.value,
 
 interface FilterState {
   veganType: string | null; // null = all
-  partnerOnly: boolean;
+  /**
+   * Set of enabled activity tags (合作店家 / 蔬食 600 盤 / 其他).
+   * Per spec §1.5 the default is all-on, so a restaurant passes the
+   * filter when at least one of its derived tags is still in this set.
+   * Empty set ⇒ no restaurants visible (user has deselected everything).
+   */
+  activityTags: Set<string>;
   query: string; // free-text search over restaurant names
 }
+
+interface ActivityTagOption {
+  value: string;
+  label: string;
+  icon: string;
+}
+
+const ACTIVITY_TAG_OPTIONS: ActivityTagOption[] = [
+  { value: ACTIVITY_TAG_PARTNER, label: '合作店家',      icon: 'handshake' },
+  { value: ACTIVITY_TAG_600,     label: '蔬食 600 盤',   icon: 'restaurant' },
+  { value: ACTIVITY_TAG_OTHER,   label: '其他',          icon: 'storefront' },
+];
 
 export default function map(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'map-screen';
   wrap.innerHTML = `
     <header class="map-header">
-      <h1 class="map-title">蔬食地圖</h1>
+      <h1 class="map-title">
+        蔬食地圖
+        <button class="vegan-info-btn vegan-info-btn-inline" id="map-vegan-info-btn" type="button" aria-label="素別說明" title="素別說明">
+          <span class="ms">info</span>
+        </button>
+      </h1>
       <span class="map-meta" id="result-count">載入中…</span>
     </header>
     <div class="map-search">
@@ -106,9 +139,11 @@ export default function map(): HTMLElement {
       ${VEGAN_TYPES.map(
         (v) => `<button class="filter-chip" data-vegan="${v.value}">${v.label}</button>`,
       ).join('')}
-      <button class="filter-chip filter-partner" id="partner-toggle">
-        <span class="ms">handshake</span>合作店家
-      </button>
+    </div>
+    <div class="map-filters map-filters-activity" id="activity-filters" role="group" aria-label="活動標籤（可複選）">
+      ${ACTIVITY_TAG_OPTIONS.map(
+        (a) => `<button class="filter-chip filter-activity selected" data-activity="${a.value}"><span class="ms">${a.icon}</span>${a.label}</button>`,
+      ).join('')}
     </div>
     <div class="map-canvas" id="canvas"></div>
     <div class="map-card" id="card" hidden></div>
@@ -130,7 +165,11 @@ export default function map(): HTMLElement {
     maxZoom: 18,
   }).addTo(leafletMap);
 
-  const filterState: FilterState = { veganType: null, partnerOnly: false, query: '' };
+  const filterState: FilterState = {
+    veganType: null,
+    activityTags: new Set(ACTIVITY_TAG_OPTIONS.map((a) => a.value)),
+    query: '',
+  };
   let allRestaurants: Restaurant[] = [];
   let currentMarkers: L.Marker[] = [];
   let selectedId: number | null = null;
@@ -139,6 +178,22 @@ export default function map(): HTMLElement {
   // map directly so cards opened before the fetch lands simply show no
   // tags, then the next card render after the fetch shows them.
   let consensusTiers: Map<number, string[]> = new Map();
+
+  /**
+   * Tiers to fly on the card's flag bar. Union of:
+   *   - admin-declared `vegan_type` column (e.g. set in drust admin)
+   *   - crowd-sourced consensus tiers (≥3 reviewers, see §4 reviews)
+   * Dedup preserves admin order first, then appends consensus extras.
+   * This mirrors the filter logic — both surfaces agree on "what
+   * counts as a 素別 for this restaurant" so a filter pick and a card
+   * flag never disagree.
+   */
+  function tiersForCard(r: Restaurant): string[] {
+    const out: string[] = [];
+    for (const t of parseVeganTypes(r)) if (!out.includes(t)) out.push(t);
+    for (const t of consensusTiers.get(r.id) ?? []) if (!out.includes(t)) out.push(t);
+    return out;
+  }
 
   function renderCard(r: Restaurant | null) {
     if (!r) {
@@ -170,12 +225,12 @@ export default function map(): HTMLElement {
             : '<span class="map-card-hours-placeholder">營業時間未提供</span>'
           }
         </div>
-        <a class="map-card-addr map-card-addr-link" href="${googleMapsUrl(r)}" target="_blank" rel="noopener noreferrer">
+        <a class="map-card-addr map-card-addr-link" href="${googleMapsPlaceUrl(r)}" target="_blank" rel="noopener noreferrer">
           <span class="ms">place</span>${escapeHtml(r.address)}
         </a>
         ${r.partner_discount ? `<div class="map-card-disc">優惠：${escapeHtml(r.partner_discount)}</div>` : ''}
       </div>
-      ${renderConsensusTiers(consensusTiers.get(r.id) ?? [])}
+      ${renderConsensusTiers(tiersForCard(r))}
       <button class="btn text-btn-m btn-primary btn-sm text-mini" id="card-detail">${ctaLabel}</button>
     `;
     card.querySelector('#card-detail')?.addEventListener('click', () => {
@@ -198,8 +253,25 @@ export default function map(): HTMLElement {
     currentMarkers = [];
     const q = filterState.query.trim().toLowerCase();
     const filtered = allRestaurants.filter((r) => {
-      if (filterState.veganType && !parseVeganTypes(r).includes(filterState.veganType)) return false;
-      if (filterState.partnerOnly && !r.is_partner) return false;
+      // 素別 filter is satisfied by EITHER source of truth:
+      //   - admin-declared `vegan_type` column on the restaurant, OR
+      //   - the crowd-sourced consensus tier (≥3 reviewers picked it).
+      // Without the OR, a restaurant can fly a 蛋奶素 banner from reviews
+      // alone (no admin field set) and the filter would silently exclude
+      // it — exactly the bug 老艋舺素食 hit.
+      if (filterState.veganType) {
+        const adminTiers = parseVeganTypes(r);
+        const consensus = consensusTiers.get(r.id) ?? [];
+        const matches =
+          adminTiers.includes(filterState.veganType) ||
+          consensus.includes(filterState.veganType);
+        if (!matches) return false;
+      }
+      // 活動標籤 filter is multi-select: at least one of the restaurant's
+      // derived tags must still be in the enabled set (§1.5 default
+      // "all on"). Empty set ⇒ user has deselected everything.
+      const tags = parseActivityTags(r);
+      if (!tags.some((t) => filterState.activityTags.has(t))) return false;
       if (q) {
         // Match against name + dish type (both the enum key and its
         // localised label) + address, so "中式"/"chinese"/"忠孝東路"
@@ -258,11 +330,11 @@ export default function map(): HTMLElement {
     searchInput.focus();
   });
 
-  // Filter chips (vegan type — exclusive radio)
-  wrap.querySelectorAll<HTMLButtonElement>('.filter-chip:not(.filter-partner)').forEach((c) => {
+  // 素別 chips — exclusive radio (one selected at a time, 全部 == null).
+  wrap.querySelectorAll<HTMLButtonElement>('.filter-chip[data-vegan]').forEach((c) => {
     c.addEventListener('click', () => {
       filterState.veganType = c.dataset.vegan || null;
-      wrap.querySelectorAll<HTMLButtonElement>('.filter-chip:not(.filter-partner)').forEach((x) => {
+      wrap.querySelectorAll<HTMLButtonElement>('.filter-chip[data-vegan]').forEach((x) => {
         x.classList.toggle('selected', x === c);
       });
       selectedId = null;
@@ -270,13 +342,24 @@ export default function map(): HTMLElement {
       renderMarkers();
     });
   });
-  wrap.querySelector('#partner-toggle')?.addEventListener('click', (e) => {
-    filterState.partnerOnly = !filterState.partnerOnly;
-    (e.currentTarget as HTMLElement).classList.toggle('selected', filterState.partnerOnly);
-    selectedId = null;
-    renderCard(null);
-    renderMarkers();
+  // 活動標籤 chips — multi-select toggle, default all on.
+  wrap.querySelectorAll<HTMLButtonElement>('.filter-chip[data-activity]').forEach((c) => {
+    c.addEventListener('click', () => {
+      const tag = c.dataset.activity!;
+      if (filterState.activityTags.has(tag)) {
+        filterState.activityTags.delete(tag);
+        c.classList.remove('selected');
+      } else {
+        filterState.activityTags.add(tag);
+        c.classList.add('selected');
+      }
+      selectedId = null;
+      renderCard(null);
+      renderMarkers();
+    });
   });
+
+  wrap.querySelector('#map-vegan-info-btn')?.addEventListener('click', () => openVeganTierInfo(wrap));
 
   // Force Leaflet to re-measure once the layout settles. Otherwise tiles
   // only fill the box the canvas had at L.map() time — typically 0px because
@@ -309,11 +392,14 @@ export default function map(): HTMLElement {
   // Reviews load in parallel with restaurants — once they land we have
   // the consensus map ready for any subsequent card render. Soft fail
   // leaves consensusTiers empty (cards just don't show the chip row).
+  // Re-render markers once consensus arrives so the 素別 filter can
+  // honour crowd-sourced tiers (not just admin-declared ones).
   void (async () => {
     try {
       const reviews = await listAllReviews();
       if (!alive) return;
       consensusTiers = aggregateConsensusTiers(reviews, 3);
+      if (allRestaurants.length > 0) renderMarkers();
     } catch (err) {
       console.warn('[map] listAllReviews failed:', err);
     }
@@ -349,12 +435,6 @@ function buildPinIcon(color: string, selected: boolean): L.DivIcon {
     iconAnchor: [14, 36],
     tooltipAnchor: [0, -32],
   });
-}
-
-/** Build a Google Maps deep link for the restaurant. Coords beat address
- *  because they survive bad geocoding on admin-typed addresses. */
-function googleMapsUrl(r: Restaurant): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.lat},${r.lng}`)}`;
 }
 
 /** Render the consensus-tier banners for the map card. Each tier renders

@@ -10,13 +10,19 @@
  * When ?dev is in the URL ($ui.devMode), a floating DevPanel is mounted
  * alongside the layout for quick time-mode / theme / route jumps.
  */
-import { $route } from '@/router';
+import { $route, navigate } from '@/router';
 import { $ui } from '@/store/ui';
 import { bind } from '@/lib/lifecycle';
 import { createTabBar } from './TabBar';
 import { createDevPanel } from './DevPanel';
 
 const HIDE_TAB_PATHS = ['/login', '/register', '/onboarding'];
+/**
+ * Routes where the floating top-right 我的 shortcut shows. Limited to the
+ * main tab pages so it doesn't collide with deep-page headers (e.g. the
+ * detail page's 🚩 flag in the same screen corner).
+ */
+const PROFILE_FAB_PATHS = ['/home', '/map', '/store', '/profile/calendar'];
 
 export function createLayout(child: HTMLElement): HTMLElement {
   const layout = document.createElement('div');
@@ -28,7 +34,19 @@ export function createLayout(child: HTMLElement): HTMLElement {
 
   const tabBar = createTabBar();
 
+  // Floating top-right 我的 button. Lives on the layout (not on each
+  // route) so a single click handler reaches /profile from every main
+  // tab. Mounted unconditionally; the route binding below toggles
+  // display.
+  const profileFab = document.createElement('button');
+  profileFab.className = 'profile-fab';
+  profileFab.setAttribute('aria-label', '我的');
+  profileFab.setAttribute('title', '我的');
+  profileFab.innerHTML = '<span class="ms">person</span>';
+  profileFab.addEventListener('click', () => navigate('/profile'));
+
   layout.appendChild(main);
+  layout.appendChild(profileFab);
   layout.appendChild(tabBar);
 
   if ($ui.get().devMode) {
@@ -37,8 +55,12 @@ export function createLayout(child: HTMLElement): HTMLElement {
 
   bind(layout, $route, () => {
     const path = $route.get().path;
-    const hide = path === '/' || HIDE_TAB_PATHS.some((p) => path.startsWith(p));
-    tabBar.style.display = hide ? 'none' : '';
+    const hideChrome = path === '/' || HIDE_TAB_PATHS.some((p) => path.startsWith(p));
+    tabBar.style.display = hideChrome ? 'none' : '';
+    const onMainTab =
+      !hideChrome &&
+      PROFILE_FAB_PATHS.some((p) => path === p || path.startsWith(p + '/'));
+    profileFab.style.display = onMainTab ? '' : 'none';
   });
 
   return layout;

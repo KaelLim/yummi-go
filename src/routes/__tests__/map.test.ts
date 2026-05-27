@@ -4,6 +4,18 @@ vi.mock('@/router', () => ({ navigate: vi.fn() }));
 
 vi.mock('@/api/content', () => ({
   listRestaurants: vi.fn(),
+  parseVeganTypes: (r: { vegan_type?: string | null }) =>
+    r.vegan_type ? r.vegan_type.split(',').map((s) => s.trim()).filter(Boolean) : [],
+  parseActivityTags: (r: { is_partner?: number; activity_tags?: string | null }) => {
+    const out: string[] = [];
+    if (r.is_partner === 1) out.push('partner');
+    if (r.activity_tags) for (const t of r.activity_tags.split(',').map((s) => s.trim()).filter(Boolean)) out.push(t);
+    if (out.length === 0) out.push('other');
+    return out;
+  },
+  ACTIVITY_TAG_PARTNER: 'partner',
+  ACTIVITY_TAG_600: '600plates',
+  ACTIVITY_TAG_OTHER: 'other',
 }));
 
 // Stub Leaflet — we don't run the real engine in jsdom because it needs SVG
@@ -77,10 +89,11 @@ describe('map route', () => {
   it('renders header, filter chips, and a map canvas', () => {
     const el = map();
     expect(el.classList.contains('map-screen')).toBe(true);
-    expect(el.querySelector('.map-title')?.textContent).toBe('蔬食地圖');
-    // 全部 + 全素 + 蛋奶素 + 五辛素 + 鍋邊素 = 5 vegan-tier chips
-    // (plus the partner toggle, excluded by selector).
-    expect(el.querySelectorAll('.filter-chip:not(.filter-partner)').length).toBe(5);
+    expect(el.querySelector('.map-title')?.textContent?.trim().startsWith('蔬食地圖')).toBe(true);
+    // 全部 + 全素 + 蛋奶素 + 五辛素 + 方便蔬食 = 5 vegan-tier chips.
+    expect(el.querySelectorAll('.filter-chip[data-vegan]').length).toBe(5);
+    // 合作店家 / 蔬食 600 盤 / 其他 = 3 activity-tag chips.
+    expect(el.querySelectorAll('.filter-chip[data-activity]').length).toBe(3);
     expect(el.querySelector('.map-canvas')).not.toBeNull();
   });
 
@@ -91,14 +104,17 @@ describe('map route', () => {
     });
   });
 
-  it('partner toggle flips selection state', () => {
+  it('activity-tag chips default to all selected and toggle independently', () => {
     const el = map();
-    const toggle = el.querySelector<HTMLButtonElement>('#partner-toggle')!;
-    expect(toggle.classList.contains('selected')).toBe(false);
-    toggle.click();
-    expect(toggle.classList.contains('selected')).toBe(true);
-    toggle.click();
-    expect(toggle.classList.contains('selected')).toBe(false);
+    const partner = el.querySelector<HTMLButtonElement>('.filter-chip[data-activity="partner"]')!;
+    const other = el.querySelector<HTMLButtonElement>('.filter-chip[data-activity="other"]')!;
+    expect(partner.classList.contains('selected')).toBe(true);
+    expect(other.classList.contains('selected')).toBe(true);
+    partner.click();
+    expect(partner.classList.contains('selected')).toBe(false);
+    expect(other.classList.contains('selected')).toBe(true);
+    partner.click();
+    expect(partner.classList.contains('selected')).toBe(true);
   });
 
   it('vegan-tier chip flip activates the clicked one and deactivates others', () => {

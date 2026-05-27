@@ -45,7 +45,7 @@ export default function calendarPage(): HTMLElement {
       <button class="checkin-back" id="back-btn" aria-label="返回">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">月曆 / 補簽</span>
+      <span class="checkin-title">蔬食旅程</span>
       <span></span>
     </header>
     <div class="calendar-body">
@@ -105,13 +105,25 @@ export default function calendarPage(): HTMLElement {
       grid.appendChild(renderCell(cell, anchor.getMonth()));
     }
 
-    // Wire makeable-day taps to open the modal.
+    // Wire makeable-day taps to open the makeup modal.
     grid.querySelectorAll<HTMLElement>('.cal-cell.is-makeable').forEach((el) => {
       el.addEventListener('click', () => {
         const dayNumber = Number(el.dataset.day);
         const iso = el.dataset.iso!;
         if (!Number.isFinite(dayNumber)) return;
         openMakeupModal({ host: wrap, iso, dayNumber, onDone: paint });
+      });
+    });
+    // Wire done-day taps to open the nutrition recap modal — shows the
+    // AI-scanned items and aggregated macros for that day so the user
+    // sees their actual food log, not just a checkmark.
+    grid.querySelectorAll<HTMLElement>('.cal-cell.is-done').forEach((el) => {
+      el.addEventListener('click', () => {
+        const dayNumber = Number(el.dataset.day);
+        const iso = el.dataset.iso!;
+        if (!Number.isFinite(dayNumber)) return;
+        const rowsForDay = checkInRows.filter((r) => r.day_number === dayNumber);
+        openNutritionModal({ host: wrap, iso, dayNumber, rows: rowsForDay });
       });
     });
   }
@@ -263,6 +275,123 @@ function openMakeupModal({ host, iso, dayNumber, onDone }: OpenModalArgs): void 
   }
 
   host.appendChild(overlay);
+}
+
+interface NutritionTotals { cal: number; protein: number; carb: number; fat: number; fiber: number; }
+interface ScannedItem { name: string; weightG?: number; cal?: number; protein?: number; carb?: number; fat?: number; fiber?: number; }
+
+function safeParse<T>(s: string): T | null {
+  try { return JSON.parse(s) as T; } catch { return null; }
+}
+
+function aggregateDayTotals(rows: CheckInRow[]): NutritionTotals {
+  const acc: NutritionTotals = { cal: 0, protein: 0, carb: 0, fat: 0, fiber: 0 };
+  for (const row of rows) {
+    const n = safeParse<Partial<NutritionTotals>>(row.nutrition);
+    if (!n) continue;
+    acc.cal     += Number(n.cal     ?? 0);
+    acc.protein += Number(n.protein ?? 0);
+    acc.carb    += Number(n.carb    ?? 0);
+    acc.fat     += Number(n.fat     ?? 0);
+    acc.fiber   += Number(n.fiber   ?? 0);
+  }
+  // Round to 1 decimal so the modal doesn't show floating-point noise.
+  for (const k of Object.keys(acc) as Array<keyof NutritionTotals>) {
+    acc[k] = Math.round(acc[k] * 10) / 10;
+  }
+  return acc;
+}
+
+const MEAL_LABEL = ['', '第一餐', '第二餐', '第三餐'] as const;
+
+interface NutritionRecapArgs {
+  host: HTMLElement;
+  iso: string;
+  dayNumber: number;
+  rows: CheckInRow[];
+}
+
+/**
+ * Nutrition recap modal — opens when the user taps a green ✓ day in the
+ * calendar. Shows the day-total macros plus a per-meal breakdown of the
+ * AI-scanned items. No edit affordance here — that's intentional, this
+ * is a read-only diary view; edits happen at the time of check-in via
+ * the success screen's 修改內容 sheet.
+ */
+function openNutritionModal({ host, iso, dayNumber, rows }: NutritionRecapArgs): void {
+  const md = new Date(iso);
+  const dateLabel = `${md.getMonth() + 1}/${md.getDate()}`;
+  const totals = aggregateDayTotals(rows);
+  const challengeLevel = $profile.get()?.challenge_level ?? null;
+  const mealTarget = challengeLevel ?? 1; // 等級 N = N meals/day per spec
+  const mealsToday = rows.length;
+
+  const totalsCard = `
+    <section class="nutrition-card is-revealed">
+      <div class="nutrition-card-head">
+        <span class="ms">restaurant_menu</span>
+        <strong>當日總攝取</strong>
+      </div>
+      <div class="nutrition-grid">
+        <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(totals.cal)} kcal</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${totals.protein} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${totals.carb} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${totals.fat} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${totals.fiber} g</strong></div>
+      </div>
+    </section>
+  `;
+
+  const sortedRows = rows.slice().sort((a, b) => a.meal_index - b.meal_index);
+  const mealCards = sortedRows.map((row) => {
+    const items = safeParse<ScannedItem[]>(row.food_items) ?? [];
+    const veg = row.vegan_type ? `<span class="recap-meal-veg">${escapeHtml(row.vegan_type)}</span>` : '';
+    const itemsHtml = items.length
+      ? items.map((it) => `<li class="recap-item"><span>${escapeHtml(it.name ?? '未命名')}</span>${it.weightG ? `<span class="recap-item-w">${Math.round(it.weightG)} g</span>` : ''}</li>`).join('')
+      : '<li class="recap-item recap-item-empty">沒有食材紀錄</li>';
+    return `
+      <section class="recap-meal">
+        <header class="recap-meal-head">
+          <strong>${MEAL_LABEL[row.meal_index] ?? `第 ${row.meal_index} 餐`}</strong>
+          ${veg}
+        </header>
+        <ul class="recap-items">${itemsHtml}</ul>
+      </section>
+    `;
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'nutrition-recap-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.innerHTML = `
+    <div class="nutrition-recap-card">
+      <header class="nutrition-recap-head">
+        <div class="nutrition-recap-titles">
+          <h2 class="nutrition-recap-title">${dateLabel} · Day ${dayNumber}</h2>
+          <p class="nutrition-recap-sub">完成 ${mealsToday} / ${mealTarget} 餐蔬食${challengeLevel ? `（等級 ${challengeLevel}）` : ''}</p>
+        </div>
+        <button class="nutrition-recap-close" type="button" aria-label="關閉">
+          <span class="ms">close</span>
+        </button>
+      </header>
+      ${rows.length ? totalsCard : '<p class="nutrition-recap-empty">這天還沒有 AI 掃描紀錄。</p>'}
+      ${mealCards}
+    </div>
+  `;
+
+  const close = () => overlay.remove();
+  overlay.querySelector('.nutrition-recap-close')?.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+  host.appendChild(overlay);
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;',
+  );
 }
 
 /** Exported for the home streak chip to call when computing displayed streak. */

@@ -22,7 +22,15 @@ import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { $today, $challenge, markMissionDone } from '@/store/today';
 import { inferMealIndex } from '@/store/checkin';
-import { createReview, hasReviewedRestaurant, REVIEW_XP_FIRST, REVIEW_XP_REPEAT } from '@/api/reviews';
+import {
+  createReview,
+  updateReview,
+  getMyReviewForRestaurant,
+  hasReviewedRestaurant,
+  REVIEW_XP_FIRST,
+  REVIEW_XP_REPEAT,
+  type RestaurantReview,
+} from '@/api/reviews';
 import { createCheckIn } from '@/api/check-ins';
 import { awardXp } from '@/store/pet';
 import { mealXp } from '@/lib/xp-calc';
@@ -96,19 +104,62 @@ export default function review(params: Record<string, string>): HTMLElement {
   let rating = 0;
   const veganSet = new Set<string>();
   let photoDataUrl: string | null = null;
+  // When the user already has a review for this restaurant, the route
+  // flips into edit mode (§4.6 — 1 user × 1 restaurant = 1 review). The
+  // submit handler dispatches to updateReview instead of createReview;
+  // the form prefills with existing rating/text/vegan picks.
+  let editingReview: RestaurantReview | null = null;
 
-  // On mount, check whether this user has already reviewed this restaurant
-  // and update the submit-button label to advertise the correct XP. The
-  // submit handler re-checks at click time so the actual award is always
-  // accurate even if the user reviewed elsewhere mid-session.
   void (async () => {
     const u = $user.get();
     if (!u) return;
+    const existing = await getMyReviewForRestaurant(u.id, restaurantId);
+    if (existing) {
+      editingReview = existing;
+      enterEditMode(existing);
+      return;
+    }
+    // Pure-create path: preview the correct XP on the submit button.
     const reviewed = await hasReviewedRestaurant(u.id, restaurantId);
     const previewXp = reviewed ? REVIEW_XP_REPEAT : REVIEW_XP_FIRST;
     const btn = wrap.querySelector<HTMLButtonElement>('#submit');
     if (btn) btn.textContent = `送出評論 (+${previewXp} XP)`;
   })();
+
+  function enterEditMode(existing: RestaurantReview): void {
+    const titleEl = wrap.querySelector<HTMLElement>('.checkin-title');
+    if (titleEl) titleEl.textContent = '編輯評論';
+    // Prepend an explainer banner so the user sees this is a re-entry
+    // into the same review, not a duplicate submission.
+    const form = wrap.querySelector<HTMLFormElement>('#form')!;
+    const banner = document.createElement('div');
+    banner.className = 'review-edit-banner';
+    banner.innerHTML = `
+      <span class="ms">edit_note</span>
+      <span>你已評論過這家店，目前在編輯這則評論。</span>
+    `;
+    form.prepend(banner);
+    // Prefill: rating
+    if (existing.rating > 0) setRating(existing.rating);
+    // Prefill: text
+    const ta = wrap.querySelector<HTMLTextAreaElement>('#text');
+    if (ta && existing.text) ta.value = existing.text;
+    // Prefill: vegan_type chips (comma-separated)
+    if (existing.vegan_type) {
+      for (const v of existing.vegan_type.split(',').map((s) => s.trim()).filter(Boolean)) {
+        veganSet.add(v);
+        const chip = wrap.querySelector<HTMLButtonElement>(`.vegan-chip[data-value="${v}"]`);
+        chip?.classList.add('selected');
+      }
+    }
+    // Submit-button label reflects update intent (no XP for edits).
+    const btn = wrap.querySelector<HTMLButtonElement>('#submit');
+    if (btn) btn.textContent = '更新評論';
+    // 「同時當作今日打卡」 is a create-only affordance — hide it on edits
+    // so the user can't double-credit the same meal via the edit route.
+    const checkinLabel = wrap.querySelector<HTMLElement>('.review-checkin');
+    if (checkinLabel) checkinLabel.hidden = true;
+  }
 
   const setRating = (n: number) => {
     rating = n;
@@ -193,9 +244,36 @@ export default function review(params: Record<string, string>): HTMLElement {
     void photoDataUrl;
 
     submitBtn.disabled = true;
-    submitBtn.textContent = '送出中…';
+    submitBtn.textContent = editingReview ? '更新中…' : '送出中…';
 
     try {
+      if (editingReview) {
+        // Spec §4.6 — 1 edit per 24h. We check just-in-time (the form has
+        // been open since mount, so the cooldown might have expired
+        // mid-session). On lockout, surface a friendly explanation and
+        // bail without touching drust.
+        const { reviewEditedAt, REVIEW_EDIT_COOLDOWN_MS } = await import('@/api/reviews');
+        const lastEdit = reviewEditedAt(editingReview.id);
+        if (lastEdit && Date.now() - lastEdit.getTime() < REVIEW_EDIT_COOLDOWN_MS) {
+          const hoursLeft = Math.ceil(
+            (REVIEW_EDIT_COOLDOWN_MS - (Date.now() - lastEdit.getTime())) / (60 * 60 * 1000),
+          );
+          errorEl.hidden = false;
+          errorEl.textContent = `這則評論剛編輯過，請於 ${hoursLeft} 小時後再試。`;
+          submitBtn.disabled = false;
+          submitBtn.textContent = '更新評論';
+          return;
+        }
+        await updateReview(editingReview.id, {
+          rating,
+          text: text || null,
+          photoId: null,
+          veganType,
+        });
+        // Skip XP / check-in chaining — edits don't re-pay rewards.
+        renderEditSuccess();
+        return;
+      }
       await createReview({
         userId: u.id,
         restaurantId,
@@ -262,10 +340,26 @@ export default function review(params: Record<string, string>): HTMLElement {
     } catch (err) {
       console.error('[review] submit failed:', err);
       errorEl.hidden = false;
-      errorEl.textContent = '送出失敗，請稍後再試';
+      errorEl.textContent = editingReview ? '更新失敗，請稍後再試' : '送出失敗，請稍後再試';
       submitBtn.disabled = false;
-      submitBtn.textContent = `送出評論 (+${REVIEW_XP_FIRST} XP)`;
+      submitBtn.textContent = editingReview ? '更新評論' : `送出評論 (+${REVIEW_XP_FIRST} XP)`;
     }
+  }
+
+  function renderEditSuccess(): void {
+    form.innerHTML = `
+      <section class="review-success">
+        <div class="review-success-icon" aria-hidden="true">✨</div>
+        <h2 class="review-success-title">評論已更新</h2>
+        <p class="review-success-sub">下次想再修改？每則評論每 24 小時可調整一次。</p>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back-to-detail" type="button">
+          回到店家
+        </button>
+      </section>
+    `;
+    form.querySelector('#back-to-detail')?.addEventListener('click', () => {
+      navigate(`/map/restaurant/${restaurantId}`);
+    });
   }
 
   function renderSuccess(args: {

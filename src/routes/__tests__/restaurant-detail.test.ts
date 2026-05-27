@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/router', () => ({ navigate: vi.fn() }));
 vi.mock('@/api/content', () => ({ getRestaurant: vi.fn() }));
-vi.mock('@/api/reviews', () => ({ listReviewsForRestaurant: vi.fn() }));
+vi.mock('@/api/reviews', () => ({
+  listReviewsForRestaurant: vi.fn(),
+  deleteReview: vi.fn(),
+  REVIEW_DELETE_LOCK_MS: 30 * 60 * 1000,
+}));
 
 import detail from '../restaurant-detail';
 import * as content from '@/api/content';

@@ -67,7 +67,7 @@ export default function home(): HTMLElement {
         <span class="ms">diamond</span>
         <span class="resource-num" data-bind="gems">0</span>
       </div>
-      <button class="resource-chip resource-chip-button" data-resource="streak" id="streak-chip" type="button" title="連續打卡天數 — 點擊查看月曆">
+      <button class="resource-chip resource-chip-button" data-resource="streak" id="streak-chip" type="button" title="連續打卡天數 — 點擊查看蔬食旅程">
         <span class="resource-emoji" aria-hidden="true">🔥</span>
         <span class="resource-num" data-bind="streak">0</span>
         <span class="resource-unit">天</span>

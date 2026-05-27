@@ -50,7 +50,7 @@ export default function profile(): HTMLElement {
     <section class="profile-links">
       <button class="profile-link" data-route="/profile/calendar">
         <span class="ms">calendar_month</span>
-        <span>月曆 / 補簽</span>
+        <span>蔬食旅程</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
       <button class="profile-link" data-route="/profile/reviews">

@@ -58,6 +58,10 @@ export function openVeganTierInfo(host: HTMLElement): void {
         `,
         ).join('')}
       </ul>
+      <p class="vegan-info-footnote">
+        <span class="ms">info</span>
+        素別為餐點類別，非餐廳類別。同一家店可能提供多種素別餐點。
+      </p>
     </div>
   `;
 

@@ -40,6 +40,7 @@ export const RESTAURANTS_FIXTURE: Restaurant[] = [
     pin_color: 'green',
     is_partner: 0,
     partner_discount: null,
+    activity_tags: '600plates',
   },
   {
     id: 3,
@@ -143,6 +144,7 @@ export const RESTAURANTS_FIXTURE: Restaurant[] = [
     pin_color: 'green',
     is_partner: 0,
     partner_discount: null,
+    activity_tags: '600plates',
   },
   {
     id: 12,
@@ -224,6 +226,7 @@ export const RESTAURANTS_FIXTURE: Restaurant[] = [
     pin_color: 'green',
     is_partner: 0,
     partner_discount: null,
+    activity_tags: '600plates',
   },
   {
     id: 19,
