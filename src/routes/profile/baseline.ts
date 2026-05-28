@@ -26,14 +26,20 @@ const DIET_OPTIONS: DietOption[] = [
   { value: 'omnivore',     emoji: '🍖', label: 'Omnivore 無肉不歡' },
 ];
 
+const BASELINE_KEYS: Array<keyof Baseline> = ['beef', 'pork', 'lamb', 'chicken', 'plant'];
+
 const MEAT_TYPES: Array<{ key: keyof Baseline; emoji: string; label: string }> = [
-  { key: 'beef', emoji: '🐄', label: '牛肉' },
-  { key: 'pork', emoji: '🐖', label: '豬肉' },
-  { key: 'lamb', emoji: '🐑', label: '羊肉' },
+  { key: 'beef',    emoji: '🐄', label: '牛肉' },
+  { key: 'pork',    emoji: '🐖', label: '豬肉' },
+  { key: 'lamb',    emoji: '🐑', label: '羊肉' },
   { key: 'chicken', emoji: '🐓', label: '雞肉' },
+  // 蔬食 is the explicit plant share — added to give flexitarians a
+  // way to record non-meat directly. Submit gate requires the 5 rows
+  // to sum to 100%.
+  { key: 'plant',   emoji: '🌱', label: '蔬食' },
 ];
 
-const DEFAULT_BASELINE: Baseline = { beef: 0.2, pork: 0.3, lamb: 0.0, chicken: 0.5 };
+const DEFAULT_BASELINE: Baseline = { beef: 0.15, pork: 0.25, lamb: 0.05, chicken: 0.35, plant: 0.2 };
 
 export default function baselineEditor(): HTMLElement {
   const wrap = document.createElement('div');
@@ -75,12 +81,18 @@ export default function baselineEditor(): HTMLElement {
               <div class="baseline-label">
                 <span class="baseline-emoji">${t.emoji}</span>
                 <span class="baseline-name">${t.label}</span>
-                <span class="baseline-value" data-value="${t.key}">${Math.round(baseline[t.key] * 100)}%</span>
+                <span class="baseline-value" data-value="${t.key}">${Math.round((baseline[t.key] ?? 0) * 100)}%</span>
               </div>
-              <input type="range" min="0" max="100" value="${Math.round(baseline[t.key] * 100)}" class="baseline-slider" data-slider="${t.key}" />
+              <input type="range" min="0" max="100" value="${Math.round((baseline[t.key] ?? 0) * 100)}" class="baseline-slider" data-slider="${t.key}" />
             </div>
           `).join('')}
         </div>
+        <div class="baseline-total" id="total-row">
+          <span>總計</span>
+          <span id="total-pct">0%</span>
+          <span class="muted">(其他為素食)</span>
+        </div>
+        <p class="baseline-hint" id="total-hint">合計需為 100% 才能儲存</p>
         <div class="baseline-impact" id="impact-card">
           <span class="ms">eco</span>
           <span>每 4kg 飲食量約可減碳 <strong id="impact-value">0.0</strong> kg CO₂e</span>
@@ -110,8 +122,34 @@ export default function baselineEditor(): HTMLElement {
     if (el) el.textContent = v;
   }
 
+  function totalIntPct(): number {
+    return BASELINE_KEYS.reduce((a, k) => a + Math.round((baseline[k] ?? 0) * 100), 0);
+  }
+
+  function refreshTotal(): void {
+    const total = totalIntPct();
+    const totalEl = wrap.querySelector<HTMLElement>('#total-pct');
+    if (totalEl) totalEl.textContent = total + '%';
+    const totalRow = wrap.querySelector('#total-row');
+    totalRow?.classList.toggle('is-ok',   total === 100);
+    totalRow?.classList.toggle('is-over', total > 100);
+    const hint = wrap.querySelector('#total-hint');
+    if (hint) {
+      hint.textContent = total === 100
+        ? '✓ 合計 100%'
+        : total > 100
+          ? `超出 ${total - 100}%，請調整滑桿`
+          : `還差 ${100 - total}%`;
+    }
+    // Disable save when sliders are showing and total isn't 100%. Diet-only
+    // saves (vegan/vegetarian) skip this gate — no sliders to be wrong.
+    const btn = wrap.querySelector<HTMLButtonElement>('#save');
+    if (btn) btn.disabled = showsMeatSliders() && total !== 100;
+  }
+
   refreshMeatVisibility();
   refreshImpact();
+  refreshTotal();
 
   wrap.querySelectorAll<HTMLButtonElement>('.diet-choice').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -123,6 +161,7 @@ export default function baselineEditor(): HTMLElement {
         if (arrow) arrow.textContent = selected ? 'check' : 'arrow_forward';
       });
       refreshMeatVisibility();
+      refreshTotal(); // re-evaluate save-button enabled state after diet change
     });
   });
 
@@ -133,6 +172,7 @@ export default function baselineEditor(): HTMLElement {
       const valueEl = wrap.querySelector<HTMLElement>(`[data-value="${key}"]`);
       if (valueEl) valueEl.textContent = Math.round(baseline[key] * 100) + '%';
       refreshImpact();
+      refreshTotal();
     });
   });
 
@@ -149,6 +189,11 @@ export default function baselineEditor(): HTMLElement {
     const u = $user.get();
     if (!u) {
       navigate('/login');
+      return;
+    }
+    if (showsMeatSliders() && totalIntPct() !== 100) {
+      errorEl.hidden = false;
+      errorEl.textContent = '請將肉類比例合計調整為 100%';
       return;
     }
     saveBtn.disabled = true;
@@ -178,12 +223,17 @@ function parseBaseline(raw: string | null | undefined): Baseline | null {
   if (!raw) return null;
   try {
     const obj = JSON.parse(raw) as Partial<Baseline>;
-    return {
-      beef: clamp01(Number(obj.beef ?? 0)),
-      pork: clamp01(Number(obj.pork ?? 0)),
-      lamb: clamp01(Number(obj.lamb ?? 0)),
-      chicken: clamp01(Number(obj.chicken ?? 0)),
-    };
+    const beef    = clamp01(Number(obj.beef    ?? 0));
+    const pork    = clamp01(Number(obj.pork    ?? 0));
+    const lamb    = clamp01(Number(obj.lamb    ?? 0));
+    const chicken = clamp01(Number(obj.chicken ?? 0));
+    // Back-compat: older baselines pre-date the 蔬食 slider. Derive the
+    // plant ratio from "remainder of 100%" when absent so the new 5th
+    // row pre-fills sensibly on first edit.
+    const plant = obj.plant !== undefined
+      ? clamp01(Number(obj.plant))
+      : Math.max(0, 1 - (beef + pork + lamb + chicken));
+    return { beef, pork, lamb, chicken, plant };
   } catch {
     return null;
   }

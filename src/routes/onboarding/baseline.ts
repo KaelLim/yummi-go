@@ -3,10 +3,11 @@
  *
  * Four sliders (beef / pork / lamb / chicken) capture the user's pre-challenge
  * meat habits as fractions of total intake. The remainder is implicitly
- * vegetarian. Total is capped at 100% — dragging a slider up is clamped to
- * the headroom left by the other three; once total is 100% the other bars
- * can only slide down. The serialized JSON is stored in user_profiles.baseline
- * and later read by lib/baseline-impact to compute carbon savings.
+ * vegetarian. Sliders move freely during input — the 100% constraint is
+ * only enforced at submit time (continue button), so the user can rebalance
+ * intuitively without sliders feeling "stuck" at a cap. The serialized
+ * JSON is stored in user_profiles.baseline and later read by
+ * lib/baseline-impact to compute carbon savings.
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
@@ -19,12 +20,16 @@ const TYPES = [
   { key: 'pork',    emoji: '🐖', label: '豬肉' },
   { key: 'lamb',    emoji: '🐑', label: '羊肉' },
   { key: 'chicken', emoji: '🐓', label: '雞肉' },
+  // 蔬食 is the explicit plant share so flexitarians can see their
+  // non-meat ratio directly instead of inferring it from "100 - meats".
+  // Sum across all 5 must equal 100% to advance.
+  { key: 'plant',   emoji: '🌱', label: '蔬食' },
 ];
 
 export default function baseline(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'onb-screen';
-  const state: Record<string, number> = { beef: 0.2, pork: 0.3, lamb: 0.0, chicken: 0.5 };
+  const state: Record<string, number> = { beef: 0.15, pork: 0.25, lamb: 0.05, chicken: 0.35, plant: 0.2 };
 
   function totalPct() { return Object.values(state).reduce((a, b) => a + b, 0); }
 
@@ -48,43 +53,64 @@ export default function baseline(): HTMLElement {
           </div>
         `).join('')}
       </div>
-      <div class="baseline-total">總計：<span id="total-pct">${Math.round(totalPct() * 100)}%</span> <span class="muted">(其他為素食)</span></div>
+      <div class="baseline-total" id="total-row">
+        <span>總計</span>
+        <span id="total-pct">${Math.round(totalPct() * 100)}%</span>
+      </div>
+      <p class="baseline-hint" id="total-hint">合計需為 100% 才能繼續</p>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">繼續</button>
     </div>
   `;
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/onboarding/diet-survey'));
 
-  function sumOthers(exceptKey: string): number {
-    return Object.entries(state)
-      .filter(([k]) => k !== exceptKey)
-      .reduce((a, [, v]) => a + v, 0);
+  function totalIntPct(): number {
+    // Sum rounded ints so what the user sees in the UI matches the
+    // validation — avoids "displays 100% but rejects on submit due to
+    // 0.999999" floating-point drift.
+    return Object.values(state).reduce((a, v) => a + Math.round(v * 100), 0);
   }
 
   function paint(key: string): void {
     const row = wrap.querySelector(`.baseline-row[data-key="${key}"]`);
     const valueEl = row?.querySelector('.baseline-value');
     if (valueEl) valueEl.textContent = Math.round(state[key] * 100) + '%';
-    const slider = row?.querySelector<HTMLInputElement>('.baseline-slider');
-    if (slider) slider.value = String(Math.round(state[key] * 100));
+    const total = totalIntPct();
     const totalEl = wrap.querySelector('#total-pct');
-    if (totalEl) totalEl.textContent = Math.round(totalPct() * 100) + '%';
+    if (totalEl) totalEl.textContent = total + '%';
+    // Visual cue: green when valid, red when over, neutral otherwise.
+    // Continue button reflects the same state so users see the gate.
+    const totalRow = wrap.querySelector('#total-row');
+    totalRow?.classList.toggle('is-ok',   total === 100);
+    totalRow?.classList.toggle('is-over', total > 100);
+    const hint = wrap.querySelector('#total-hint');
+    if (hint) {
+      hint.textContent = total === 100
+        ? '✓ 合計 100%'
+        : total > 100
+          ? `超出 ${total - 100}%，請調整滑桿`
+          : `還差 ${100 - total}%`;
+    }
+    const btn = wrap.querySelector<HTMLButtonElement>('#continue-btn');
+    if (btn) btn.disabled = total !== 100;
   }
 
   wrap.querySelectorAll<HTMLInputElement>('.baseline-slider').forEach(slider => {
     slider.addEventListener('input', () => {
       const key = slider.dataset.key!;
-      const requested = Number(slider.value) / 100;
-      // Cap at the headroom left by the other three so total never exceeds 100%.
-      // If others already sum to 1.0 the user can only drag this bar down.
-      const maxAllowed = Math.max(0, 1 - sumOthers(key));
-      const next = Math.min(requested, maxAllowed);
-      state[key] = next;
+      // No headroom cap — sliders move freely. Total is validated at
+      // submit time, so users can rebalance without bars feeling stuck.
+      state[key] = Number(slider.value) / 100;
       paint(key);
     });
   });
 
+  // Initial paint so the continue button's enabled state matches the
+  // default 100% sum (and the visual cue lights up green).
+  paint('beef');
+
   wrap.querySelector('#continue-btn')?.addEventListener('click', async () => {
+    if (totalIntPct() !== 100) return; // disabled-button safety net
     const u = $user.get();
     const baselineJson = JSON.stringify(state);
     if (u) {

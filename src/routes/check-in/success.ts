@@ -16,11 +16,9 @@
  * stored lastResult) and offers Share / Continue.
  */
 import { navigate } from '@/router';
-import { $checkin, resetCheckin, setLastResult } from '@/store/checkin';
+import { $checkin, resetCheckin } from '@/store/checkin';
 import { $today } from '@/store/today';
 import { $profile } from '@/store/user';
-import { updateCheckInItems } from '@/api/check-ins';
-import type { MockFood } from '@/lib/mock-ai';
 
 const MEAL_LABEL: Record<number, string> = { 1: '第一餐', 2: '第二餐', 3: '第三餐' };
 
@@ -134,34 +132,20 @@ export default function success(): HTMLElement {
         </button>
         <div class="nutrition-content" id="nutrition-content">
           ${nutritionGrid}
+          <button class="btn text-btn-m btn-secondary btn-sm text-mini ai-edit-btn" id="edit-items" type="button">
+            <span class="ms">edit</span>修改內容
+          </button>
           <p class="nutrition-card-hint">由 AI 依本餐食材自動估算</p>
         </div>
       </div>
       <div class="success-secondary">
-        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="edit-items">
-          <span class="ms">edit</span>修改內容
-        </button>
         <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="share">
           <span class="ms">share</span>分享成果
         </button>
       </div>
+      <p class="success-edit-hint">想再回頭調整？到「蔬食旅程」點當天的 ✓ 開啟營養抽屜。<br/>提醒：下一餐記錄後就鎖定了。</p>
       <div class="success-actions">
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="next">繼續守護</button>
-      </div>
-    </div>
-    <div class="edit-sheet" id="edit-sheet" hidden role="dialog" aria-modal="true" aria-labelledby="edit-sheet-title">
-      <div class="edit-sheet-card">
-        <h2 class="edit-sheet-title text-h3" id="edit-sheet-title">修改本餐內容</h2>
-        <p class="edit-sheet-sub text-mini">調整 AI 辨識的食材與份量（不會影響已發放的 XP）</p>
-        <div class="edit-sheet-list" id="edit-sheet-list"></div>
-        <button type="button" class="edit-sheet-add" id="edit-sheet-add">
-          <span class="ms">add</span>新增食材
-        </button>
-        <p class="edit-sheet-error" id="edit-sheet-error" hidden></p>
-        <div class="edit-sheet-actions">
-          <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" id="edit-sheet-cancel">取消</button>
-          <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" id="edit-sheet-save">儲存</button>
-        </div>
       </div>
     </div>
   `;
@@ -224,165 +208,15 @@ export default function success(): HTMLElement {
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
 
-  wireEditSheet(wrap);
+  // 修改內容 sits inside the nutrition section; tapping it sends the
+  // user to 蔬食旅程 where the per-meal editor (with the spec's
+  // "no later meal logged" lock) lives. Keeps a single editor surface
+  // instead of duplicating logic across two screens.
+  wrap.querySelector<HTMLButtonElement>('#edit-items')?.addEventListener('click', () => {
+    navigate('/profile/calendar');
+  });
 
   return wrap;
-}
-
-function wireEditSheet(wrap: HTMLElement): void {
-  const openBtn = wrap.querySelector<HTMLButtonElement>('#edit-items');
-  const sheet = wrap.querySelector<HTMLElement>('#edit-sheet');
-  const list = wrap.querySelector<HTMLElement>('#edit-sheet-list');
-  const addBtn = wrap.querySelector<HTMLButtonElement>('#edit-sheet-add');
-  const cancelBtn = wrap.querySelector<HTMLButtonElement>('#edit-sheet-cancel');
-  const saveBtn = wrap.querySelector<HTMLButtonElement>('#edit-sheet-save');
-  const errorEl = wrap.querySelector<HTMLElement>('#edit-sheet-error');
-  if (!openBtn || !sheet || !list || !addBtn || !cancelBtn || !saveBtn || !errorEl) return;
-
-  // Working copy — committed back to lastResult only on save.
-  let working: MockFood[] = [];
-
-  function renderList(): void {
-    if (!list) return;
-    list.innerHTML = working
-      .map(
-        (it, i) => `
-        <div class="edit-row" data-index="${i}">
-          <input class="input edit-row-name" type="text" maxlength="24" value="${escapeHtml(it.name)}" placeholder="食材名稱" />
-          <input class="input edit-row-weight" type="number" min="0" step="10" value="${it.weightG}" inputmode="numeric" />
-          <span class="edit-row-unit text-mini">g</span>
-          <button type="button" class="edit-row-remove" aria-label="移除"><span class="ms">close</span></button>
-        </div>
-      `,
-      )
-      .join('');
-
-    list.querySelectorAll<HTMLInputElement>('.edit-row-name').forEach((el, i) => {
-      el.addEventListener('input', () => { working[i] = { ...working[i], name: el.value }; });
-    });
-    list.querySelectorAll<HTMLInputElement>('.edit-row-weight').forEach((el, i) => {
-      el.addEventListener('input', () => {
-        const w = Math.max(0, Number(el.value) || 0);
-        working[i] = { ...working[i], weightG: w };
-      });
-    });
-    list.querySelectorAll<HTMLButtonElement>('.edit-row-remove').forEach((el, i) => {
-      el.addEventListener('click', () => {
-        working.splice(i, 1);
-        renderList();
-      });
-    });
-  }
-
-  function showError(msg: string): void {
-    if (!errorEl) return;
-    errorEl.hidden = false;
-    errorEl.textContent = msg;
-  }
-
-  function close(): void {
-    if (sheet) sheet.hidden = true;
-    if (errorEl) errorEl.hidden = true;
-  }
-
-  openBtn.addEventListener('click', () => {
-    const r = $checkin.get().lastResult;
-    if (!r) return;
-    // Deep-ish copy so we can scratch in the working list without
-    // mutating the stored result until the user explicitly saves.
-    working = r.items.map((it) => ({ ...it }));
-    renderList();
-    if (sheet) sheet.hidden = false;
-  });
-
-  addBtn.addEventListener('click', () => {
-    working.push({
-      name: '',
-      cal: 50,
-      protein: 2,
-      carb: 8,
-      fat: 1,
-      fiber: 1,
-      isVeg: true,
-      colors: ['green'],
-      weightG: 100,
-    });
-    renderList();
-  });
-
-  cancelBtn.addEventListener('click', close);
-
-  saveBtn.addEventListener('click', async () => {
-    const cleaned = working
-      .map((it) => ({ ...it, name: it.name.trim() }))
-      .filter((it) => it.name.length > 0);
-    if (cleaned.length === 0) {
-      showError('至少保留一項食材');
-      return;
-    }
-    const r = $checkin.get().lastResult;
-    if (!r) return;
-    const nutrition = aggregateNutrition(cleaned);
-    saveBtn.disabled = true;
-    saveBtn.textContent = '儲存中…';
-    try {
-      if (r.checkInId !== null) {
-        await updateCheckInItems(r.checkInId, cleaned, nutrition);
-      }
-      setLastResult({ ...r, items: cleaned, nutrition });
-      // Re-render the nutrition grid so the user sees the new totals
-      // without leaving the screen.
-      refreshNutritionGrid(wrap, nutrition);
-      close();
-    } catch (err) {
-      console.error('[success] save edit failed:', err);
-      showError('儲存失敗，請稍後再試');
-    } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = '儲存';
-    }
-  });
-}
-
-function aggregateNutrition(items: MockFood[]) {
-  const acc = { cal: 0, protein: 0, carb: 0, fat: 0, fiber: 0 };
-  for (const it of items) {
-    const m = it.weightG / 100;
-    acc.cal += it.cal * m;
-    acc.protein += it.protein * m;
-    acc.carb += it.carb * m;
-    acc.fat += it.fat * m;
-    acc.fiber += it.fiber * m;
-  }
-  for (const k of Object.keys(acc) as Array<keyof typeof acc>) {
-    acc[k] = Math.round(acc[k] * 10) / 10;
-  }
-  return acc;
-}
-
-function refreshNutritionGrid(
-  wrap: HTMLElement,
-  n: { cal: number; protein: number; carb: number; fat: number; fiber: number },
-): void {
-  const grid = wrap.querySelector<HTMLElement>('.nutrition-grid');
-  if (!grid) return;
-  grid.innerHTML = `
-    <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(n.cal)} kcal</strong></div>
-    <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${n.protein} g</strong></div>
-    <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${n.carb} g</strong></div>
-    <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${n.fat} g</strong></div>
-    <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${n.fiber} g</strong></div>
-  `;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) =>
-    c === '&' ? '&amp;'
-      : c === '<' ? '&lt;'
-      : c === '>' ? '&gt;'
-      : c === '"' ? '&quot;'
-      : '&#39;',
-  );
 }
 
 function startGemCountUp(wrap: HTMLElement): void {

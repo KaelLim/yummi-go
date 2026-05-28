@@ -31,15 +31,16 @@ describe('onboarding/baseline', () => {
     mockedUser.$user.get.mockReturnValue({ id: 5, username: 'a', displayName: 'A' });
   });
 
-  it('renders 4 sliders with default values', () => {
+  it('renders 5 sliders (4 meat + 蔬食) with default values', () => {
     const el = baseline();
-    expect(el.querySelectorAll('.baseline-slider').length).toBe(4);
-    expect(el.querySelectorAll('.baseline-row').length).toBe(4);
+    expect(el.querySelectorAll('.baseline-slider').length).toBe(5);
+    expect(el.querySelectorAll('.baseline-row').length).toBe(5);
+    expect(el.querySelector('.baseline-row[data-key="plant"]')).not.toBeNull();
   });
 
-  it('dragging a slider down within headroom updates the displayed % and total', () => {
-    // Defaults sum to 100 (beef 20 + pork 30 + lamb 0 + chicken 50). Drag
-    // chicken down — total drops, displayed value matches.
+  it('dragging a slider updates the displayed % and total', () => {
+    // Defaults sum to 100 (beef 15 + pork 25 + lamb 5 + chicken 35 + plant 20).
+    // Drag chicken down — total drops to 75%, displayed value matches.
     const el = baseline();
     document.body.appendChild(el);
     const chickenSlider = el.querySelector('.baseline-slider[data-key="chicken"]') as HTMLInputElement;
@@ -47,44 +48,47 @@ describe('onboarding/baseline', () => {
     chickenSlider.dispatchEvent(new Event('input'));
     const chickenRow = el.querySelector('.baseline-row[data-key="chicken"]')!;
     expect(chickenRow.querySelector('.baseline-value')!.textContent).toBe('10%');
-    expect(el.querySelector('#total-pct')!.textContent).toBe('60%');
+    expect(el.querySelector('#total-pct')!.textContent).toBe('75%');
     document.body.removeChild(el);
   });
 
-  it('clamps slider to remaining headroom so total never exceeds 100%', () => {
-    // Defaults already sum to 100 (beef 20 + pork 30 + lamb 0 + chicken 50).
-    // Dragging beef up to 40 should clamp at 20 (no headroom left).
+  it('sliders move freely past 100% — no headroom cap during input', () => {
+    // Defaults sum to 100. Drag beef up to 40 → total displayed as 125%
+    // (defaults 100 - beef 15 + 40 = 125). The 100% rule kicks in at
+    // submit time, not during slider drag.
     const el = baseline();
     document.body.appendChild(el);
     const beefSlider = el.querySelector('.baseline-slider[data-key="beef"]') as HTMLInputElement;
     beefSlider.value = '40';
     beefSlider.dispatchEvent(new Event('input'));
     const beefRow = el.querySelector('.baseline-row[data-key="beef"]')!;
-    expect(beefRow.querySelector('.baseline-value')!.textContent).toBe('20%');
-    expect(beefSlider.value).toBe('20'); // visually snaps back to the cap
-    expect(el.querySelector('#total-pct')!.textContent).toBe('100%');
+    expect(beefRow.querySelector('.baseline-value')!.textContent).toBe('40%');
+    expect(beefSlider.value).toBe('40');
+    expect(el.querySelector('#total-pct')!.textContent).toBe('125%');
     document.body.removeChild(el);
   });
 
-  it('once total is 100%, other bars can only slide down (not up)', () => {
+  it('continue button is disabled when total ≠ 100% and re-enables when balanced', () => {
     const el = baseline();
     document.body.appendChild(el);
-    // lamb starts at 0 with no headroom; dragging it up should pin at 0.
-    const lambSlider = el.querySelector('.baseline-slider[data-key="lamb"]') as HTMLInputElement;
-    lambSlider.value = '25';
-    lambSlider.dispatchEvent(new Event('input'));
-    const lambRow = el.querySelector('.baseline-row[data-key="lamb"]')!;
-    expect(lambRow.querySelector('.baseline-value')!.textContent).toBe('0%');
-    expect(el.querySelector('#total-pct')!.textContent).toBe('100%');
+    const cont = el.querySelector<HTMLButtonElement>('#continue-btn')!;
+    // Defaults sum to 100 — button starts enabled.
+    expect(cont.disabled).toBe(false);
 
-    // Free up headroom by sliding pork down, then lamb can climb into it.
-    const porkSlider = el.querySelector('.baseline-slider[data-key="pork"]') as HTMLInputElement;
-    porkSlider.value = '10';
-    porkSlider.dispatchEvent(new Event('input'));
-    lambSlider.value = '25';
-    lambSlider.dispatchEvent(new Event('input'));
-    expect(lambRow.querySelector('.baseline-value')!.textContent).toBe('20%');
+    // Tip the total over 100 by raising beef → button disables.
+    const beefSlider = el.querySelector('.baseline-slider[data-key="beef"]') as HTMLInputElement;
+    beefSlider.value = '50';
+    beefSlider.dispatchEvent(new Event('input'));
+    expect(cont.disabled).toBe(true);
+
+    // Drop chicken to compensate (beef +35 → drop chicken 35→0 brings
+    // total back to 100). Button enabled again.
+    const chickenSlider = el.querySelector('.baseline-slider[data-key="chicken"]') as HTMLInputElement;
+    chickenSlider.value = '0';
+    chickenSlider.dispatchEvent(new Event('input'));
     expect(el.querySelector('#total-pct')!.textContent).toBe('100%');
+    expect(cont.disabled).toBe(false);
+
     document.body.removeChild(el);
   });
 

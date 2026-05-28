@@ -20,8 +20,7 @@
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
-import { $today, $challenge, markMissionDone } from '@/store/today';
-import { inferMealIndex } from '@/store/checkin';
+import { markMissionDone } from '@/store/today';
 import {
   createReview,
   updateReview,
@@ -31,12 +30,7 @@ import {
   REVIEW_XP_REPEAT,
   type RestaurantReview,
 } from '@/api/reviews';
-import { createCheckIn } from '@/api/check-ins';
 import { awardXp } from '@/store/pet';
-import { mealXp } from '@/lib/xp-calc';
-import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
-import { mockScan, type MockFood } from '@/lib/mock-ai';
-import { openItemsEditor } from '@/lib/items-editor';
 import { VEGAN_TIERS, openVeganTierInfo } from '@/lib/vegan-tiers';
 
 const VEGAN_TYPES = VEGAN_TIERS.map((t) => t.value);
@@ -67,11 +61,6 @@ export default function review(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">想說些什麼？</span>
-        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="你的素食體驗、餐點推薦…"></textarea>
-      </div>
-
-      <div class="review-section">
         <div class="review-section-label-row">
           <span class="review-section-label">素別（可複選）</span>
           <button class="vegan-info-btn" id="vegan-info-btn" type="button" aria-label="素別說明">
@@ -86,15 +75,15 @@ export default function review(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">餐點照片 (選填)</span>
+        <span class="review-section-label">想說些什麼？（選填）</span>
+        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="你的素食體驗、餐點推薦…"></textarea>
+      </div>
+
+      <div class="review-section">
+        <span class="review-section-label">餐點照片（選填）</span>
         <input type="file" accept="image/*" id="photo" />
         <img class="review-photo-preview" id="photo-preview" hidden alt="照片預覽" />
       </div>
-
-      <label class="review-checkin">
-        <input type="checkbox" id="as-checkin" />
-        <span>同時當作今日打卡照（+30 XP 打卡）</span>
-      </label>
 
       <div class="review-error" id="error" hidden></div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出評論 (+${REVIEW_XP_FIRST} XP)</button>
@@ -237,10 +226,9 @@ export default function review(params: Record<string, string>): HTMLElement {
     }
     const veganType = Array.from(veganSet).join(',');
     const text = String((wrap.querySelector<HTMLTextAreaElement>('#text')!).value || '').trim();
-    const asCheckin = (wrap.querySelector<HTMLInputElement>('#as-checkin')!).checked;
-    // Photo upload is stubbed (data URL only) so an as-checkin without a
-    // photo still produces useful nutrition output via mockScan. When the
-    // real drust file pipeline lands, gate this on photoDataUrl being set.
+    // Photo upload is stubbed (data URL only) — the real drust file
+    // pipeline lands in a later PR. Photo is optional so users can post
+    // a text-only review.
     void photoDataUrl;
 
     submitBtn.disabled = true;
@@ -285,50 +273,11 @@ export default function review(params: Record<string, string>): HTMLElement {
       // v0.3 §4: first review per restaurant earns more.
       const reviewed = await hasReviewedRestaurant(u.id, restaurantId);
       const reviewXp = reviewed ? REVIEW_XP_REPEAT : REVIEW_XP_FIRST;
-      let totalXp = reviewXp;
-      let scanItems: MockFood[] = [];
-      let nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null = null;
-
-      if (asCheckin) {
-        // Run a mock AI scan over the photo placeholder so the success
-        // card can show real-looking nutrition numbers (the actual photo
-        // bytes aren't sent anywhere yet — that's the same Phase 13
-        // upload-pipeline gap noted at the top of this file).
-        const scan = mockScan();
-        scanItems = scan.items;
-        nutrition = aggregateNutrition(scan.items);
-
-        const day = $today.get().dayNumber;
-        const cur = $challenge.get().currentDay;
-        const luckyEn = normalizeLuckyColor(cur?.lucky_color ?? '');
-        const palette = scan.items.flatMap((it) => it.colors);
-        const luckyMatch = luckyEn ? matchesLucky(palette, luckyEn) : false;
-        const mealIndex = inferMealIndex();
-        const baseXp = mealXp(mealIndex, 3);
-        const xpForCheckin = baseXp + (luckyMatch ? 15 : 0);
-        await createCheckIn({
-          userId: u.id,
-          dayNumber: day,
-          mealIndex,
-          foodItems: scan.items,
-          nutrition,
-          veganType,
-          wasMeatReplaced: false,
-          luckyColorMatched: luckyMatch,
-          xpEarned: xpForCheckin,
-          gemsEarned: 0,
-        });
-        markMissionDone(
-          `meal:${mealIndex === 1 ? 'breakfast' : mealIndex === 2 ? 'lunch' : 'dinner'}`,
-          xpForCheckin,
-        );
-        totalXp += xpForCheckin;
-      }
 
       let xpFedToPet = 0;
       let gemsFromXp = 0;
       try {
-        const award = await awardXp(u.id, totalXp, 'bonus', restaurantId);
+        const award = await awardXp(u.id, reviewXp, 'bonus', restaurantId);
         xpFedToPet = award.xpFedToPet;
         gemsFromXp = award.gemsFromXp;
       } catch { /* server XP soft fail */ }
@@ -336,7 +285,7 @@ export default function review(params: Record<string, string>): HTMLElement {
       // mission so duplicate-clicks don't double-credit if user re-submits).
       markMissionDone(`review:${restaurantId}`, reviewXp);
 
-      renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems, xpFedToPet, gemsFromXp });
+      renderSuccess({ rating, totalXp: reviewXp, xpFedToPet, gemsFromXp });
     } catch (err) {
       console.error('[review] submit failed:', err);
       errorEl.hidden = false;
@@ -365,9 +314,6 @@ export default function review(params: Record<string, string>): HTMLElement {
   function renderSuccess(args: {
     rating: number;
     totalXp: number;
-    asCheckin: boolean;
-    nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null;
-    items: MockFood[];
     xpFedToPet: number;
     gemsFromXp: number;
   }): void {
@@ -392,9 +338,6 @@ export default function review(params: Record<string, string>): HTMLElement {
         <div class="review-success-stars">${stars}</div>
         ${xpPip}
         ${gemsPip}
-        ${args.asCheckin ? '<div class="review-success-checkin-badge"><span class="ms">verified</span>完成打卡</div>' : ''}
-        ${args.asCheckin && args.nutrition ? renderNutritionCard(args.nutrition) : ''}
-        ${args.asCheckin && args.nutrition ? '<button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="edit-items" type="button"><span class="ms">edit</span>修改內容</button>' : ''}
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back-to-map" type="button">
           回到地圖
         </button>
@@ -403,81 +346,7 @@ export default function review(params: Record<string, string>): HTMLElement {
     form.querySelector('#back-to-map')?.addEventListener('click', () => {
       navigate('/map');
     });
-    if (args.asCheckin && args.nutrition) {
-      // Local mutable state so the user can edit the AI-scanned items the
-      // same way they can on /check-in/success.
-      let liveItems = args.items.slice();
-      let liveNutrition = args.nutrition;
-      form.querySelector('#edit-items')?.addEventListener('click', () => {
-        openItemsEditor({
-          host: wrap,
-          initial: liveItems,
-          onSave: (next, nextN) => {
-            liveItems = next;
-            liveNutrition = nextN;
-            const card = form.querySelector('.nutrition-card');
-            if (card) card.outerHTML = renderNutritionCard(liveNutrition);
-          },
-        });
-      });
-    }
-  }
-
-  /**
-   * Reuses the check-in success page's `.nutrition-card` styling so the
-   * 營養成分 block reads identically across the two surfaces (per the user
-   * pivot: "感謝你的評論當頁的營養成分長得要與平常打卡一致"). Same 5 cells,
-   * same combined "{value} {unit}" format inside `<strong>`, same green
-   * gradient card with reveal animation.
-   */
-  function renderNutritionCard(n: {
-    cal: number; protein: number; carb: number; fat: number; fiber: number;
-  }): string {
-    return `
-      <section class="nutrition-card is-revealed">
-        <div class="nutrition-card-head">
-          <span class="ms">restaurant_menu</span>
-          <strong>本餐營養成分</strong>
-        </div>
-        <div class="nutrition-grid">
-          <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(n.cal)} kcal</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${n.protein} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${n.carb} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${n.fat} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${n.fiber} g</strong></div>
-        </div>
-        <p class="nutrition-card-hint">由 AI 依本餐食材自動估算</p>
-      </section>
-    `;
   }
 
   return wrap;
-}
-
-function aggregateNutrition(items: MockFood[]): {
-  cal: number;
-  protein: number;
-  carb: number;
-  fat: number;
-  fiber: number;
-} {
-  const acc = { cal: 0, protein: 0, carb: 0, fat: 0, fiber: 0 };
-  for (const it of items) {
-    const m = it.weightG / 100;
-    acc.cal += it.cal * m;
-    acc.protein += it.protein * m;
-    acc.carb += it.carb * m;
-    acc.fat += it.fat * m;
-    acc.fiber += it.fiber * m;
-  }
-  for (const k of Object.keys(acc) as Array<keyof typeof acc>) {
-    acc[k] = Math.round(acc[k] * 10) / 10;
-  }
-  return acc;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) =>
-    c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;',
-  );
 }

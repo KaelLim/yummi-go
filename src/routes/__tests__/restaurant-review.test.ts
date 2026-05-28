@@ -32,11 +32,13 @@ describe('restaurant-review route', () => {
     vi.spyOn(window, 'alert').mockImplementation(() => {});
   });
 
-  it('renders 5 stars + 4 vegan-type chips', () => {
+  it('renders 5 stars + 4 vegan-type chips (no as-checkin checkbox)', () => {
     const el = review({ id: '5' });
     expect(el.querySelectorAll('.star').length).toBe(5);
     expect(el.querySelectorAll('.vegan-chip').length).toBe(4);
-    expect(el.querySelector('#as-checkin')).not.toBeNull();
+    // as-checkin combo was removed — review-and-also-check-in path is
+    // gone; users handle the meal log via /check-in directly.
+    expect(el.querySelector('#as-checkin')).toBeNull();
   });
 
   it('submitting without rating shows error', () => {
@@ -86,21 +88,17 @@ describe('restaurant-review route', () => {
     el.remove();
   });
 
-  it('with as-checkin checked, also creates check-in and shows nutrition card', async () => {
+  it('does not trigger a check-in row — review and checkin flows are separate', async () => {
     const el = review({ id: '5' });
     document.body.appendChild(el);
     el.querySelector<HTMLButtonElement>('.star[data-value="5"]')?.click();
     el.querySelector<HTMLButtonElement>('.vegan-chip')?.click();
-    (el.querySelector<HTMLInputElement>('#as-checkin')!).checked = true;
     el.querySelector<HTMLFormElement>('#form')?.requestSubmit();
     await vi.waitFor(() =>
-      expect(el.querySelector('.nutrition-card')).not.toBeNull(),
+      expect(el.querySelector('.review-success')).not.toBeNull(),
     );
     expect(mockedCreateReview).toHaveBeenCalled();
-    expect(mockedCreateCheckIn).toHaveBeenCalled();
-    // Reuses the check-in success layout: 5 cells (cal / protein / carb
-    // / fat / fiber) in `.nutrition-grid`.
-    expect(el.querySelectorAll('.nutrition-cell').length).toBe(5);
+    expect(mockedCreateCheckIn).not.toHaveBeenCalled();
     el.remove();
   });
 });

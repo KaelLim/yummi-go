@@ -128,46 +128,15 @@ describe('check-in/success', () => {
     });
   });
 
-  describe('modify-content sheet', () => {
-    it('opens when 修改內容 is clicked, populated from lastResult.items', () => {
-      const el = success();
-      const sheet = el.querySelector<HTMLElement>('#edit-sheet')!;
-      expect(sheet.hidden).toBe(true);
-      el.querySelector<HTMLButtonElement>('#edit-items')?.click();
-      expect(sheet.hidden).toBe(false);
-      expect(el.querySelectorAll('.edit-row').length).toBe(1);
-      expect(el.querySelector<HTMLInputElement>('.edit-row-name')?.value).toBe('青菜');
-    });
-
-    it('+新增食材 appends a blank row to the editor list', () => {
+  describe('修改內容 button', () => {
+    // The inline edit-sheet was removed — editing now lives on the
+    // 蔬食旅程 page so the same "no later meal logged" lock rule
+    // applies whether the user fixes the just-logged meal or a past
+    // one. The button here is a navigation shortcut.
+    it('navigates to /profile/calendar (蔬食旅程) on click', () => {
       const el = success();
       el.querySelector<HTMLButtonElement>('#edit-items')?.click();
-      el.querySelector<HTMLButtonElement>('#edit-sheet-add')?.click();
-      expect(el.querySelectorAll('.edit-row').length).toBe(2);
-    });
-
-    it('儲存 calls updateCheckInItems, patches lastResult, and closes the sheet', async () => {
-      const el = success();
-      el.querySelector<HTMLButtonElement>('#edit-items')?.click();
-      const nameInput = el.querySelector<HTMLInputElement>('.edit-row-name')!;
-      nameInput.value = '空心菜';
-      nameInput.dispatchEvent(new Event('input'));
-      vi.useRealTimers();
-      el.querySelector<HTMLButtonElement>('#edit-sheet-save')?.click();
-      await vi.waitFor(() => expect(mockedCheckIns.updateCheckInItems).toHaveBeenCalled());
-      const [id, items] = mockedCheckIns.updateCheckInItems.mock.calls[0];
-      expect(id).toBe(99);
-      expect(items[0].name).toBe('空心菜');
-      expect($checkin.get().lastResult?.items[0].name).toBe('空心菜');
-      expect(el.querySelector<HTMLElement>('#edit-sheet')?.hidden).toBe(true);
-    });
-
-    it('取消 closes without writing', () => {
-      const el = success();
-      el.querySelector<HTMLButtonElement>('#edit-items')?.click();
-      el.querySelector<HTMLButtonElement>('#edit-sheet-cancel')?.click();
-      expect(mockedCheckIns.updateCheckInItems).not.toHaveBeenCalled();
-      expect(el.querySelector<HTMLElement>('#edit-sheet')?.hidden).toBe(true);
+      expect(mockedRouter.navigate).toHaveBeenCalledWith('/profile/calendar');
     });
   });
 

@@ -32,7 +32,13 @@ export interface Baseline {
   beef: number;
   pork: number;
   lamb: number;
-  chicken: number; // ratios summing to <= 1
+  chicken: number;
+  /** Explicit plant-based share. Optional for back-compat with older
+   *  baselines that pre-date the 蔬食 slider — when absent, the
+   *  remainder of (1 - meat sum) is treated as plant. Impact math
+   *  doesn't read this directly (it's "meat replaced by plants"
+   *  weighted by meat ratios), so older records still compute right. */
+  plant?: number;
 }
 
 const PLANT_AVG_CO2 = 1.0; // kg CO2e per kg plant food

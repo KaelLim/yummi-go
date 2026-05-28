@@ -21,11 +21,15 @@
  */
 import { $user, $profile } from '@/store/user';
 import { $gems } from '@/store/pet';
+import { $ui } from '@/store/ui';
+import { $today } from '@/store/today';
 import { navigate } from '@/router';
-import { listCheckIns, type CheckInRow } from '@/api/check-ins';
+import { listCheckIns, updateCheckInItems, type CheckInRow } from '@/api/check-ins';
 import { spendGemsForMakeup } from '@/api/wallet';
 import { getGemBalance } from '@/api/wallet';
 import { buildCalendar, type CalendarCell, type DayStatus } from '@/lib/calendar';
+import { openItemsEditor } from '@/lib/items-editor';
+import type { MockFood } from '@/lib/mock-ai';
 import {
   readMakeups,
   recordMakeup,
@@ -85,6 +89,15 @@ export default function calendarPage(): HTMLElement {
       : null;
     const makeups = u ? readMakeups(u.id) : { days: [], history: [] };
     const checkedInDays = new Set(checkInRows.map((r) => r.day_number));
+    // Dev manual-day override: when the user drags the DevPanel day slider
+    // to D=N, treat days 1..N-1 as ✓ on the calendar so the streak chip
+    // and the calendar visuals agree without seeding a check-in per day.
+    // Only kicks in when timeMode === 'manual' (prod stays untouched).
+    const ui = $ui.get();
+    if (ui.timeMode === 'manual') {
+      const todayDay = $today.get().dayNumber;
+      for (let d = 1; d <= todayDay; d++) checkedInDays.add(d);
+    }
     const madeUpDays = new Set(makeups.days);
 
     const cells = buildCalendar({
@@ -114,16 +127,34 @@ export default function calendarPage(): HTMLElement {
         openMakeupModal({ host: wrap, iso, dayNumber, onDone: paint });
       });
     });
-    // Wire done-day taps to open the nutrition recap modal — shows the
-    // AI-scanned items and aggregated macros for that day so the user
-    // sees their actual food log, not just a checkmark.
-    grid.querySelectorAll<HTMLElement>('.cal-cell.is-done').forEach((el) => {
+    // Done + today + lost days all open the nutrition recap modal. The
+    // modal renders an empty-state message when no meals were logged
+    // (e.g. today before first check-in, or a missed past day), so the
+    // user can browse the calendar and tap any in-challenge day to see
+    // what's there. The makeable case below still routes to the makeup
+    // modal — that's its own decision flow.
+    grid.querySelectorAll<HTMLElement>(
+      '.cal-cell.is-done, .cal-cell.is-today, .cal-cell.is-lost',
+    ).forEach((el) => {
       el.addEventListener('click', () => {
         const dayNumber = Number(el.dataset.day);
         const iso = el.dataset.iso!;
         if (!Number.isFinite(dayNumber)) return;
-        const rowsForDay = checkInRows.filter((r) => r.day_number === dayNumber);
-        openNutritionModal({ host: wrap, iso, dayNumber, rows: rowsForDay });
+        openNutritionModal({
+          host: wrap,
+          iso,
+          dayNumber,
+          getRowsForDay: () => checkInRows.filter((r) => r.day_number === dayNumber),
+          // After a successful meal edit, re-fetch check-ins so the
+          // calendar (and any subsequent modal reopen) reflects the
+          // updated nutrition.
+          onChanged: async () => {
+            const u = $user.get();
+            if (!u) return;
+            try { checkInRows = await listCheckIns(u.id); } catch { /* soft fail */ }
+            paint();
+          },
+        });
       });
     });
   }
@@ -151,6 +182,17 @@ export default function calendarPage(): HTMLElement {
     }
     paint();
   })();
+
+  // Repaint when the DevPanel slider changes the manual day, so the
+  // synthesized "all-days-done" preview matches the slider position.
+  const unsubUi = $ui.subscribe(() => paint());
+  const unsubToday = $today.subscribe(() => paint());
+  // Tear the subscriptions down with the route element so SPA navigation
+  // doesn't leak listeners.
+  wrap.addEventListener('lifecycle:unmount', () => {
+    unsubUi();
+    unsubToday();
+  });
 
   return wrap;
 }
@@ -308,83 +350,127 @@ interface NutritionRecapArgs {
   host: HTMLElement;
   iso: string;
   dayNumber: number;
-  rows: CheckInRow[];
+  /** Resolver so the modal always reads the latest checkInRows from the
+   *  calendar page after an edit refreshes them. */
+  getRowsForDay: () => CheckInRow[];
+  /** Called after a successful per-meal edit so the calendar page can
+   *  re-fetch and the modal can repaint with new totals. */
+  onChanged: () => void | Promise<void>;
 }
 
 /**
  * Nutrition recap modal — opens when the user taps a green ✓ day in the
  * calendar. Shows the day-total macros plus a per-meal breakdown of the
- * AI-scanned items. No edit affordance here — that's intentional, this
- * is a read-only diary view; edits happen at the time of check-in via
- * the success screen's 修改內容 sheet.
+ * AI-scanned items. Each meal section carries a 修改內容 button, but only
+ * on the LATEST logged meal of the day — once a later meal is recorded
+ * the earlier ones lock per the spec rule "Once the data of the next
+ * meal enters, you can not change the previous ones".
  */
-function openNutritionModal({ host, iso, dayNumber, rows }: NutritionRecapArgs): void {
-  const md = new Date(iso);
-  const dateLabel = `${md.getMonth() + 1}/${md.getDate()}`;
-  const totals = aggregateDayTotals(rows);
-  const challengeLevel = $profile.get()?.challenge_level ?? null;
-  const mealTarget = challengeLevel ?? 1; // 等級 N = N meals/day per spec
-  const mealsToday = rows.length;
-
-  const totalsCard = `
-    <section class="nutrition-card is-revealed">
-      <div class="nutrition-card-head">
-        <span class="ms">restaurant_menu</span>
-        <strong>當日總攝取</strong>
-      </div>
-      <div class="nutrition-grid">
-        <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(totals.cal)} kcal</strong></div>
-        <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${totals.protein} g</strong></div>
-        <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${totals.carb} g</strong></div>
-        <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${totals.fat} g</strong></div>
-        <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${totals.fiber} g</strong></div>
-      </div>
-    </section>
-  `;
-
-  const sortedRows = rows.slice().sort((a, b) => a.meal_index - b.meal_index);
-  const mealCards = sortedRows.map((row) => {
-    const items = safeParse<ScannedItem[]>(row.food_items) ?? [];
-    const veg = row.vegan_type ? `<span class="recap-meal-veg">${escapeHtml(row.vegan_type)}</span>` : '';
-    const itemsHtml = items.length
-      ? items.map((it) => `<li class="recap-item"><span>${escapeHtml(it.name ?? '未命名')}</span>${it.weightG ? `<span class="recap-item-w">${Math.round(it.weightG)} g</span>` : ''}</li>`).join('')
-      : '<li class="recap-item recap-item-empty">沒有食材紀錄</li>';
-    return `
-      <section class="recap-meal">
-        <header class="recap-meal-head">
-          <strong>${MEAL_LABEL[row.meal_index] ?? `第 ${row.meal_index} 餐`}</strong>
-          ${veg}
-        </header>
-        <ul class="recap-items">${itemsHtml}</ul>
-      </section>
-    `;
-  }).join('');
-
+function openNutritionModal({ host, iso, dayNumber, getRowsForDay, onChanged }: NutritionRecapArgs): void {
   const overlay = document.createElement('div');
   overlay.className = 'nutrition-recap-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.innerHTML = `
-    <div class="nutrition-recap-card">
-      <header class="nutrition-recap-head">
-        <div class="nutrition-recap-titles">
-          <h2 class="nutrition-recap-title">${dateLabel} · Day ${dayNumber}</h2>
-          <p class="nutrition-recap-sub">完成 ${mealsToday} / ${mealTarget} 餐蔬食${challengeLevel ? `（等級 ${challengeLevel}）` : ''}</p>
-        </div>
-        <button class="nutrition-recap-close" type="button" aria-label="關閉">
-          <span class="ms">close</span>
-        </button>
-      </header>
-      ${rows.length ? totalsCard : '<p class="nutrition-recap-empty">這天還沒有 AI 掃描紀錄。</p>'}
-      ${mealCards}
-    </div>
-  `;
 
-  const close = () => overlay.remove();
-  overlay.querySelector('.nutrition-recap-close')?.addEventListener('click', close);
+  const md = new Date(iso);
+  const dateLabel = `${md.getMonth() + 1}/${md.getDate()}`;
+  const challengeLevel = $profile.get()?.challenge_level ?? null;
+  const mealTarget = challengeLevel ?? 1;
+
+  function paint(): void {
+    const rows = getRowsForDay();
+    const totals = aggregateDayTotals(rows);
+    const sortedRows = rows.slice().sort((a, b) => a.meal_index - b.meal_index);
+    const maxMealIndex = rows.length > 0
+      ? Math.max(...rows.map((r) => r.meal_index))
+      : 0;
+
+    const totalsCard = `
+      <section class="nutrition-card is-revealed">
+        <div class="nutrition-card-head">
+          <span class="ms">restaurant_menu</span>
+          <strong>當日總攝取</strong>
+        </div>
+        <div class="nutrition-grid">
+          <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(totals.cal)} kcal</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${totals.protein} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${totals.carb} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${totals.fat} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${totals.fiber} g</strong></div>
+        </div>
+      </section>
+    `;
+
+    const mealCards = sortedRows.map((row) => {
+      const items = safeParse<ScannedItem[]>(row.food_items) ?? [];
+      const veg = row.vegan_type ? `<span class="recap-meal-veg">${escapeHtml(row.vegan_type)}</span>` : '';
+      const itemsHtml = items.length
+        ? items.map((it) => `<li class="recap-item"><span>${escapeHtml(it.name ?? '未命名')}</span>${it.weightG ? `<span class="recap-item-w">${Math.round(it.weightG)} g</span>` : ''}</li>`).join('')
+        : '<li class="recap-item recap-item-empty">沒有食材紀錄</li>';
+      const isLatest = row.meal_index === maxMealIndex;
+      const editAction = isLatest
+        ? `<button class="recap-meal-edit" type="button" data-check-in-id="${row.id}"><span class="ms">edit</span>修改內容</button>`
+        : `<span class="recap-meal-locked" title="已記錄下一餐，無法再修改"><span class="ms">lock</span>已鎖定</span>`;
+      return `
+        <section class="recap-meal">
+          <header class="recap-meal-head">
+            <strong>${MEAL_LABEL[row.meal_index] ?? `第 ${row.meal_index} 餐`}</strong>
+            ${veg}
+            ${editAction}
+          </header>
+          <ul class="recap-items">${itemsHtml}</ul>
+        </section>
+      `;
+    }).join('');
+
+    overlay.innerHTML = `
+      <div class="nutrition-recap-card">
+        <header class="nutrition-recap-head">
+          <div class="nutrition-recap-titles">
+            <h2 class="nutrition-recap-title">${dateLabel} · Day ${dayNumber}</h2>
+            <p class="nutrition-recap-sub">完成 ${rows.length} / ${mealTarget} 餐蔬食${challengeLevel ? `（等級 ${challengeLevel}）` : ''}</p>
+            <p class="nutrition-recap-rule"><span class="ms">info</span>下一餐記錄後，前面餐次不再可修改</p>
+          </div>
+          <button class="nutrition-recap-close" type="button" aria-label="關閉">
+            <span class="ms">close</span>
+          </button>
+        </header>
+        ${rows.length ? totalsCard : '<p class="nutrition-recap-empty">這天還沒有 AI 掃描紀錄。</p>'}
+        ${mealCards}
+      </div>
+    `;
+
+    overlay.querySelector('.nutrition-recap-close')?.addEventListener('click', close);
+    overlay.querySelectorAll<HTMLButtonElement>('.recap-meal-edit').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const checkInId = Number(btn.dataset.checkInId);
+        const row = rows.find((r) => r.id === checkInId);
+        if (!row) return;
+        const initial = (safeParse<MockFood[]>(row.food_items) ?? []) as MockFood[];
+        openItemsEditor({
+          host: overlay,
+          initial,
+          onSave: async (next, nextNutrition) => {
+            try {
+              await updateCheckInItems(checkInId, next, nextNutrition);
+            } catch (err) {
+              console.error('[recap] updateCheckInItems failed:', err);
+              window.alert('儲存失敗，請稍後再試');
+              return;
+            }
+            await onChanged();
+            paint();
+          },
+        });
+      });
+    });
+  }
+
+  function close(): void { overlay.remove(); }
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) close();
   });
+  paint();
   host.appendChild(overlay);
 }
 

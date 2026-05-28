@@ -346,8 +346,25 @@ body {
 }
 .baseline-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--color-primary); cursor: pointer; box-shadow: 0 2px 6px rgba(29,89,55,0.3); }
 .baseline-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--color-primary); cursor: pointer; border: none; }
-.baseline-total { margin-top: var(--space-4); font-size: var(--text-mini-size); font-weight: var(--font-weight-semibold); color: var(--color-foreground-alt, #2d2a26); }
-.baseline-total .muted { color: var(--color-neutral-darker); font-weight: var(--font-weight-medium); }
+.baseline-total {
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  font-size: var(--text-mini-size); font-weight: var(--font-weight-semibold);
+  color: var(--color-foreground-alt, #2d2a26);
+  background: var(--color-neutral-light, #f5f5f5);
+  display: flex; align-items: center; gap: 8px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.baseline-total #total-pct { font-variant-numeric: tabular-nums; font-weight: var(--font-weight-extrabold); }
+.baseline-total .muted { color: var(--color-neutral-darker); font-weight: var(--font-weight-medium); margin-left: auto; }
+.baseline-total.is-ok { background: var(--color-primary-light); color: var(--color-primary-dark); }
+.baseline-total.is-over { background: #fde7e3; color: #b1361f; }
+.baseline-hint {
+  margin: 4px 0 0; font-size: var(--text-caption-size);
+  color: var(--color-foreground-alt);
+}
+.baseline-total.is-ok + .baseline-hint { color: var(--color-primary-dark); }
+.baseline-total.is-over + .baseline-hint { color: #b1361f; }
 
 /* Challenge level cards (Task 44) */
 .level-choice { padding: var(--space-5) var(--space-5); }
@@ -723,10 +740,22 @@ body {
 .calendar-screen .cal-cell-lost { background: var(--color-neutral-light-active, #ddd); opacity: 0.4; }
 .calendar-screen .cal-cell.is-makeable { cursor: pointer; }
 .calendar-screen .cal-cell.is-makeable:hover { background: var(--color-neutral-light, #f5f5f5); outline: 1.5px dashed var(--color-secondary-dark); }
-/* ✓ days are tappable to surface the nutrition recap modal. Slightly
-   tinted hover so it's discoverable without shouting. */
-.calendar-screen .cal-cell.is-done { cursor: pointer; }
-.calendar-screen .cal-cell.is-done:hover { background: var(--color-primary-light); outline: 1.5px dashed var(--color-primary); }
+/* ✓ + today + lost days are all tappable to surface the nutrition
+   recap modal. The modal shows an empty state when the day has no
+   meal logs, so users can browse the calendar to see what's there.
+   Hover styling is shared so all three "view-nutrition" states feel
+   the same to tap. */
+.calendar-screen .cal-cell.is-done,
+.calendar-screen .cal-cell.is-today,
+.calendar-screen .cal-cell.is-lost {
+  cursor: pointer;
+}
+.calendar-screen .cal-cell.is-done:hover,
+.calendar-screen .cal-cell.is-today:hover,
+.calendar-screen .cal-cell.is-lost:hover {
+  background: var(--color-primary-light);
+  outline: 1.5px dashed var(--color-primary);
+}
 .calendar-screen .calendar-legend {
   display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-4);
   padding: var(--space-3) var(--space-2); font-size: var(--text-caption-size);
@@ -788,6 +817,47 @@ body {
   background: var(--color-primary-light); color: var(--color-primary-dark);
   padding: 1px 6px; border-radius: 4px;
   font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+}
+/* 修改內容 button on the latest meal of a day in the nutrition recap.
+   Once a later meal is logged, this swaps to a 已鎖定 pill. */
+.recap-meal-edit, .recap-meal-locked {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+  font-family: inherit;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-pill);
+}
+.recap-meal-edit {
+  background: var(--color-card); color: var(--color-primary-dark);
+  border: 1px solid var(--color-primary); cursor: pointer;
+}
+.recap-meal-edit:hover { background: var(--color-primary-light); }
+.recap-meal-edit .ms { font-size: 14px; }
+.recap-meal-locked {
+  background: var(--color-neutral-light, #f5f5f5);
+  color: var(--color-neutral-darker);
+  border: 1px dashed var(--color-neutral-darker);
+}
+.recap-meal-locked .ms { font-size: 14px; }
+.nutrition-recap-rule {
+  display: flex; align-items: center; gap: 4px;
+  margin: 4px 0 0; font-size: var(--text-caption-size);
+  color: var(--color-foreground-alt);
+}
+.nutrition-recap-rule .ms { font-size: 14px; }
+/* (Display rules for the inline 修改內容 button live near the
+   .nutrition-content collapse selectors so the show/hide behaviour
+   stays one block to read.) */
+.success-edit-hint {
+  margin: var(--space-2) auto 0; max-width: 320px; text-align: center;
+  font-size: var(--text-caption-size); color: var(--color-foreground-alt);
+  line-height: 1.5;
+}
+.review-success-edit-hint {
+  margin: var(--space-2) 0 0; text-align: center;
+  font-size: var(--text-caption-size); color: var(--color-foreground-alt);
+  line-height: 1.5;
 }
 .recap-items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .recap-item {
@@ -1395,10 +1465,19 @@ body {
 .nutrition-content > * { min-height: 0; }
 .nutrition-content > .nutrition-grid,
 .nutrition-content > .nutrition-empty,
-.nutrition-content > .nutrition-card-hint {
+.nutrition-content > .nutrition-card-hint,
+.nutrition-content > .ai-edit-btn {
   overflow: hidden;
   padding-left: var(--space-4); padding-right: var(--space-4);
   margin: 0;
+}
+/* The button keeps a sensible centred display only when the section
+   is open. When collapsed it shares the grid-row clamp and effectively
+   disappears with the rest of the nutrition content. */
+.nutrition-content > .ai-edit-btn { display: none; }
+.nutrition-details.is-open > .nutrition-content > .ai-edit-btn {
+  display: inline-flex; align-self: center; justify-self: center;
+  margin: 0 auto var(--space-2);
 }
 .nutrition-details.is-open > .nutrition-content > .nutrition-grid {
   padding-bottom: var(--space-3);
