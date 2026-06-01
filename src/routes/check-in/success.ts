@@ -139,6 +139,9 @@ export default function success(): HTMLElement {
         </div>
       </div>
       <div class="success-secondary">
+        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="review">
+          <span class="ms">rate_review</span>為餐廳留評論
+        </button>
         <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="share">
           <span class="ms">share</span>分享成果
         </button>
@@ -198,6 +201,15 @@ export default function success(): HTMLElement {
 
   wrap.querySelector('#share')?.addEventListener('click', () => {
     void shareSummary(today, r.xpEarned, r.luckyColorMatched);
+  });
+
+  // Optional "leave a review for the restaurant you just ate at" path.
+  // Sends the user to /map to pick the restaurant — we don't know which
+  // place the meal came from since the check-in flow doesn't carry a
+  // restaurant_id today, so the map's filter + search is the friction-
+  // less landing spot.
+  wrap.querySelector('#review')?.addEventListener('click', () => {
+    navigate('/map');
   });
 
   const toggle = wrap.querySelector<HTMLButtonElement>('#nutrition-toggle');
