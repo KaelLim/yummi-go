@@ -13,6 +13,7 @@ import { updateProfile } from '@/api/profile';
 import { $ui, setTheme } from '@/store/ui';
 import { bind } from '@/lib/lifecycle';
 import { requestMealNotificationPermission } from '@/lib/meal-notifier';
+import { $locale, setLocale, t } from '@/lib/i18n';
 
 const MEALS = [
   { key: 'breakfast', label: '第一餐', defaultTime: '08:00' },
@@ -74,6 +75,14 @@ export default function settings(): HTMLElement {
         </div>
       </section>
 
+      <section class="settings-section">
+        <span class="settings-label" data-i18n="settings.language">語言</span>
+        <div class="vegan-chips" id="locale-chips">
+          <button class="vegan-chip locale-chip" data-locale="zh" data-i18n="settings.zh">繁體中文</button>
+          <button class="vegan-chip locale-chip" data-locale="en" data-i18n="settings.en">English</button>
+        </div>
+      </section>
+
       <div class="settings-success" id="ok" hidden>已儲存</div>
       <div class="review-error" id="err" hidden></div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">儲存變更</button>
@@ -117,8 +126,29 @@ export default function settings(): HTMLElement {
 
   wrap.querySelectorAll<HTMLButtonElement>('.theme-chip').forEach((c) => {
     c.addEventListener('click', () => {
-      const t = c.dataset.theme as 'light' | 'dark';
-      setTheme(t);
+      const next = c.dataset.theme as 'light' | 'dark';
+      setTheme(next);
+    });
+  });
+
+  // Locale picker — Phase A surface. Saves to localStorage via setLocale
+  // and the $locale subscription on every i18n'd surface repaints.
+  function reflectLocale(): void {
+    const cur = $locale.get();
+    wrap.querySelectorAll<HTMLButtonElement>('.locale-chip').forEach((c) => {
+      c.classList.toggle('selected', c.dataset.locale === cur);
+    });
+    wrap.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+      const key = el.dataset.i18n;
+      if (key) el.textContent = t(key);
+    });
+  }
+  reflectLocale();
+  bind(wrap, $locale, reflectLocale);
+  wrap.querySelectorAll<HTMLButtonElement>('.locale-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      const next = c.dataset.locale as 'zh' | 'en';
+      setLocale(next);
     });
   });
 

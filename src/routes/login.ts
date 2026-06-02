@@ -32,7 +32,7 @@ export default function login(): HTMLElement {
       </form>
 
       <p class="auth-foot">
-        還沒有帳號？<a href="#/onboarding/diet-survey" class="link">立即註冊</a>
+        第一次來？<a href="#/" class="link">回首頁開始挑戰</a>
       </p>
     </div>
   `;

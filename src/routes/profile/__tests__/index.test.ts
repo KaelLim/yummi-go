@@ -6,6 +6,7 @@ vi.mock('@/api/check-ins', () => ({ listCheckIns: vi.fn().mockResolvedValue([]) 
 import profile from '../index';
 import { $user, $profile } from '@/store/user';
 import { $today } from '@/store/today';
+import { $locale } from '@/lib/i18n';
 import * as router from '@/router';
 
 const mockedRouter = router as unknown as { navigate: ReturnType<typeof vi.fn> };
@@ -16,6 +17,8 @@ describe('profile hub', () => {
     $user.set({ id: 7, username: 'kael', displayName: '阿凱' });
     $profile.set(null);
     $today.set({ dayNumber: 1, totalXpToday: 0, missionsDone: [], luckyColor: '' });
+    // Pin locale so the link-label assertions stay deterministic.
+    $locale.set('zh');
   });
 
   it('renders header card + 4 stat cards (inline calendar removed)', () => {

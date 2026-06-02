@@ -34,7 +34,6 @@ import {
 import { listAllReviews, aggregateConsensusTiers } from '@/api/reviews';
 import { onUnmount } from '@/lib/lifecycle';
 import { $user } from '@/store/user';
-import { requireRealName } from '@/lib/name-prompt';
 import { googleMapsPlaceUrl } from '@/lib/google-maps-link';
 import { openVeganTierInfo } from '@/lib/vegan-tiers';
 
@@ -235,13 +234,10 @@ export default function map(): HTMLElement {
     `;
     card.querySelector('#card-detail')?.addEventListener('click', () => {
       if (isGray) {
-        // 認證餐廳 is a social action — make sure the user has a real
-        // display name first so the verification's review credit reads
-        // sensibly to other users.
-        void (async () => {
-          await requireRealName(wrap);
-          navigate(`/map/restaurant/${r.id}/verify`);
-        })();
+        // Verify (gray pin) no longer triggers the Google-bind prompt.
+        // The prompt now only fires on the review CTA so users can
+        // browse and tap around without being pushed to bind.
+        navigate(`/map/restaurant/${r.id}/verify`);
       } else {
         navigate(`/map/restaurant/${r.id}`);
       }
@@ -372,9 +368,8 @@ export default function map(): HTMLElement {
   };
   const rafId = requestAnimationFrame(safeInvalidate);
 
-  // First-visit prompt: surface the name overlay once on map entry so
-  // returning users land on the map already-named.
-  void requireRealName(wrap);
+  // Map mount no longer auto-triggers the Google-bind prompt. It only
+  // fires when the user taps 寫評論 — see restaurant-detail.ts.
 
   void (async () => {
     try {

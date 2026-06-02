@@ -21,6 +21,7 @@ import { navigate } from '@/router';
 import { registerGuest } from '@/api/auth';
 import createButton from '@/components/Button';
 import { MOCK_GOOGLE_ACCOUNTS, mockGoogleSignIn } from '@/lib/mock-google-auth';
+import { $locale, setLocale, t } from '@/lib/i18n';
 
 export default function splash(): HTMLElement {
   const wrap = document.createElement('div');
@@ -29,32 +30,63 @@ export default function splash(): HTMLElement {
     <div class="splash-logo">
       <div class="splash-logo-mark">🌿</div>
       <div class="splash-title text-title is-latin">Yummi Go</div>
-      <div class="splash-tagline">吃出更好的自己 · 養好你的寵物</div>
     </div>
     <div class="splash-loader" id="splash-loader">
       <div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>
     <div class="splash-actions" id="splash-actions" hidden>
       <p class="splash-error" id="guest-error" hidden></p>
+      <div class="splash-locale" id="splash-locale" role="group" aria-label="Language">
+        <button class="splash-locale-chip" data-locale="zh" type="button">繁中</button>
+        <button class="splash-locale-chip" data-locale="en" type="button">EN</button>
+      </div>
     </div>
   `;
+
+  // Locale chips — pick a language before tapping a CTA. The toggle
+  // persists via setLocale so the user lands on the chosen language
+  // for the rest of the session and on next visits.
+  function reflectLocale(): void {
+    const cur = $locale.get();
+    wrap.querySelectorAll<HTMLButtonElement>('.splash-locale-chip').forEach((c) => {
+      c.classList.toggle('selected', c.dataset.locale === cur);
+    });
+    // Pre-actions-render CTAs may not exist yet on first call; the
+    // button refs below handle their own re-label after creation.
+    startBtnRef?.replaceChildren(document.createTextNode(t('splash.getStarted')));
+    if (googleBtnRef) {
+      googleBtnRef.innerHTML =
+        '<span class="splash-google-mark" aria-hidden="true">G</span>' + t('splash.googleLogin');
+    }
+  }
+  let startBtnRef: HTMLButtonElement | null = null;
+  let googleBtnRef: HTMLButtonElement | null = null;
+  wrap.querySelectorAll<HTMLButtonElement>('.splash-locale-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      const next = c.dataset.locale as 'zh' | 'en';
+      setLocale(next);
+    });
+  });
+  const unsubLocale = $locale.subscribe(reflectLocale);
+  wrap.addEventListener('lifecycle:unmount', () => unsubLocale());
 
   const actions = wrap.querySelector<HTMLElement>('#splash-actions')!;
   const errorEl = wrap.querySelector<HTMLElement>('#guest-error')!;
 
   const startBtn = createButton({
-    label: '匿名玩家 / Get Started',
+    label: t('splash.getStarted'),
     variant: 'primary',
     size: 'lg',
   });
   startBtn.id = 'get-started';
   actions.insertBefore(startBtn, errorEl);
+  startBtnRef = startBtn;
 
   // Second CTA: mock Google sign-in. Real Google OAuth is a Phase 2 PR;
   // see lib/mock-google-auth for the stub. Existing email → /home,
   // new email → onboarding/diet-survey.
   const googleBtn = createButton({
-    label: 'Google Log In',
+    label: t('splash.googleLogin'),
     variant: 'secondary',
     size: 'lg',
   });
@@ -62,6 +94,10 @@ export default function splash(): HTMLElement {
   googleBtn.classList.add('splash-google-btn');
   googleBtn.innerHTML = '<span class="splash-google-mark" aria-hidden="true">G</span>' + googleBtn.innerHTML;
   actions.insertBefore(googleBtn, errorEl);
+  googleBtnRef = googleBtn;
+  // Now that both buttons exist, run an initial paint to highlight the
+  // active locale chip and ensure all labels are in sync.
+  reflectLocale();
 
   // Once Get Started is tapped, the auto-redirect must never fire — the
   // user has explicitly chosen the onboarding path, and any race where
@@ -83,7 +119,7 @@ export default function splash(): HTMLElement {
     getStartedTapped = true;
     clearTimeout(splashTimeoutId);
     startBtn.disabled = true;
-    startBtn.textContent = '準備中…';
+    startBtn.textContent = t('splash.preparing');
     try {
       const u = await registerGuest();
       setLoggedInUser(u);
@@ -92,9 +128,9 @@ export default function splash(): HTMLElement {
       console.error('[splash] registerGuest failed:', e);
       getStartedTapped = false;
       startBtn.disabled = false;
-      startBtn.textContent = '匿名玩家 / Get Started';
+      startBtn.textContent = t('splash.getStarted');
       errorEl.hidden = false;
-      errorEl.textContent = '建立帳號失敗，請稍後再試或選擇登入。';
+      errorEl.textContent = t('splash.guestError');
     }
   });
 
@@ -114,7 +150,7 @@ export default function splash(): HTMLElement {
         getStartedTapped = false;
         googleBtn.disabled = false;
         errorEl.hidden = false;
-        errorEl.textContent = 'Google 登入失敗，請稍後再試。';
+        errorEl.textContent = t('splash.googleError');
       }
     });
   });
@@ -139,9 +175,9 @@ function openGooglePicker(
     <div class="google-picker-card">
       <header class="google-picker-head">
         <span class="google-picker-mark">G</span>
-        <h2 class="google-picker-title">選擇帳號</h2>
+        <h2 class="google-picker-title">${t('google.pickAccount')}</h2>
       </header>
-      <p class="google-picker-sub">繼續前往 Yummi Go（原型示範）</p>
+      <p class="google-picker-sub">${t('google.pickSub')}</p>
       <ul class="google-picker-accounts">
         ${MOCK_GOOGLE_ACCOUNTS.map(
           (a) => `
@@ -157,12 +193,12 @@ function openGooglePicker(
         ).join('')}
         <li>
           <div class="google-picker-custom">
-            <input type="email" class="input" id="google-picker-email" placeholder="使用其他 Google 帳號（email）" autocomplete="off" />
-            <button class="btn text-btn-m btn-primary btn-sm text-mini" id="google-picker-go" type="button">登入</button>
+            <input type="email" class="input" id="google-picker-email" placeholder="${t('google.useOther')}" autocomplete="off" />
+            <button class="btn text-btn-m btn-primary btn-sm text-mini" id="google-picker-go" type="button">${t('google.signIn')}</button>
           </div>
         </li>
       </ul>
-      <button class="google-picker-cancel" type="button" id="google-picker-cancel">取消</button>
+      <button class="google-picker-cancel" type="button" id="google-picker-cancel">${t('google.cancel')}</button>
     </div>
   `;
   function close(): void { overlay.remove(); }

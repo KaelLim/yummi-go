@@ -7,24 +7,24 @@
  */
 import { $route, navigate } from '@/router';
 import { bind } from '@/lib/lifecycle';
+import { $locale, t } from '@/lib/i18n';
 
 interface Tab {
   key: string;
   href: string;
   icon: string;
-  label: string;
+  /** i18n key for the label. Resolved at render time so locale toggles
+   *  repaint the bar without re-instantiating it. */
+  labelKey: string;
   center?: boolean;
 }
 
 const TABS: Tab[] = [
-  { key: 'home', href: '/home', icon: 'home', label: '首頁' },
-  { key: 'map', href: '/map', icon: 'map', label: '地圖' },
-  { key: 'check-in', href: '/check-in', icon: 'photo_camera', label: '打卡', center: true },
-  { key: 'store', href: '/store', icon: 'diamond', label: '商店' },
-  // 我的 moved to the global top-right person button on the main tab
-  // routes; this slot is now the vegan journey (= the calendar) so
-  // users still see their 30-day record at a glance from the main nav.
-  { key: 'calendar', href: '/profile/calendar', icon: 'calendar_month', label: '蔬食旅程' },
+  { key: 'home',     href: '/home',             icon: 'home',           labelKey: 'tab.home' },
+  { key: 'map',      href: '/map',              icon: 'map',            labelKey: 'tab.map' },
+  { key: 'check-in', href: '/check-in',         icon: 'photo_camera',   labelKey: 'tab.checkin', center: true },
+  { key: 'store',    href: '/store',            icon: 'diamond',        labelKey: 'tab.store' },
+  { key: 'calendar', href: '/profile/calendar', icon: 'calendar_month', labelKey: 'tab.journey' },
 ];
 
 export function createTabBar(): HTMLElement {
@@ -34,19 +34,20 @@ export function createTabBar(): HTMLElement {
   function render() {
     const cur = $route.get().path;
     bar.innerHTML = '';
-    for (const t of TABS) {
+    for (const tab of TABS) {
       const item = document.createElement('button');
-      const active = cur.startsWith(t.href);
+      const active = cur.startsWith(tab.href);
       item.className =
-        'tab' + (active ? ' active' : '') + (t.center ? ' center' : '');
+        'tab' + (active ? ' active' : '') + (tab.center ? ' center' : '');
       item.innerHTML =
-        `<span class="ms" aria-hidden="true">${t.icon}</span>` +
-        `<span class="tab-label">${t.label}</span>`;
-      item.addEventListener('click', () => navigate(t.href));
+        `<span class="ms" aria-hidden="true">${tab.icon}</span>` +
+        `<span class="tab-label">${t(tab.labelKey)}</span>`;
+      item.addEventListener('click', () => navigate(tab.href));
       bar.appendChild(item);
     }
   }
 
   bind(bar, $route, render);
+  bind(bar, $locale, render);
   return bar;
 }

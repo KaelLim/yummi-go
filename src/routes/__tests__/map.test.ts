@@ -126,62 +126,46 @@ describe('map route', () => {
     expect(all.classList.contains('selected')).toBe(false);
   });
 
-  describe('first-visit name prompt', () => {
-    // The name-prompt overlay is now built dynamically by
-    // lib/name-prompt.ts and appended to the route wrap. Tests assert on
-    // the mounted overlay's presence/absence rather than a pre-rendered
-    // hidden element.
-    it('stays out of the DOM when display name is already customised', async () => {
+  describe('Google bind prompt (was name prompt)', () => {
+    // The Google-bind prompt no longer auto-fires on map mount. It only
+    // appears on the review CTA — see restaurant-detail.ts. These tests
+    // assert that map mount stays prompt-free regardless of guest state.
+    it('does not mount the prompt when display name is already customised', async () => {
       $user.set({ id: 1, username: 'kael', displayName: 'Kael' });
       const el = map();
       await vi.waitFor(() => {
-        // Helper returns early; no overlay is ever mounted.
         expect(el.querySelector('.name-prompt')).toBeNull();
       });
     });
 
-    it('mounts an overlay when display name still has the 訪客 prefix', async () => {
+    it('does not mount the prompt even when the user is still a guest', async () => {
       $user.set({ id: 1, username: 'guest_a', displayName: '訪客 ab12' });
       const el = map();
       document.body.appendChild(el);
-      await vi.waitFor(() => {
-        expect(el.querySelector('.name-prompt')).not.toBeNull();
-      });
+      // Wait one tick — the prompt is no longer triggered, so the
+      // assertion should hold after any microtasks settle.
+      await new Promise((r) => setTimeout(r, 0));
+      expect(el.querySelector('.name-prompt')).toBeNull();
       el.remove();
     });
 
-    it('saves the new name via updateDisplayName and removes the overlay', async () => {
+    it('does not call updateDisplayName from the map mount path', async () => {
       $user.set({ id: 7, username: 'guest_a', displayName: '訪客 ab12' });
       const el = map();
       document.body.appendChild(el);
-      await vi.waitFor(() => {
-        expect(el.querySelector<HTMLInputElement>('#name-prompt-input')).not.toBeNull();
-      });
-      const input = el.querySelector<HTMLInputElement>('#name-prompt-input')!;
-      input.value = '阿綠';
-      el.querySelector<HTMLButtonElement>('#name-prompt-save')?.click();
-      await vi.waitFor(() => {
-        expect(mockedProfile.updateDisplayName).toHaveBeenCalledWith(7, '阿綠');
-      });
-      expect($user.get()?.displayName).toBe('阿綠');
-      await vi.waitFor(() => {
-        expect(el.querySelector('.name-prompt')).toBeNull();
-      });
-      el.remove();
-    });
-
-    it('skip button dismisses without writing', async () => {
-      $user.set({ id: 7, username: 'guest_a', displayName: '訪客 ab12' });
-      const el = map();
-      document.body.appendChild(el);
-      await vi.waitFor(() => {
-        expect(el.querySelector<HTMLButtonElement>('#name-prompt-skip')).not.toBeNull();
-      });
-      el.querySelector<HTMLButtonElement>('#name-prompt-skip')?.click();
+      await new Promise((r) => setTimeout(r, 0));
       expect(mockedProfile.updateDisplayName).not.toHaveBeenCalled();
-      await vi.waitFor(() => {
-        expect(el.querySelector('.name-prompt')).toBeNull();
-      });
+      el.remove();
+    });
+
+    it('skip button is irrelevant — no overlay mounts to skip', async () => {
+      $user.set({ id: 7, username: 'guest_a', displayName: '訪客 ab12' });
+      const el = map();
+      document.body.appendChild(el);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(el.querySelector<HTMLButtonElement>('#name-prompt-skip')).toBeNull();
+      expect(mockedProfile.updateDisplayName).not.toHaveBeenCalled();
+      expect(el.querySelector('.name-prompt')).toBeNull();
       el.remove();
     });
   });

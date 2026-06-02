@@ -1,19 +1,29 @@
 /**
- * Reusable "tell us your name" prompt.
+ * Google bind-to-account prompt (formerly the "tell us your name" prompt).
  *
- * Guests sign up with an auto-generated `訪客 abcd` display name. The
- * social surfaces (map, reviews, verifications) attribute actions to the
- * display name, so any first-time social action should make the user pick
- * a real name first.
+ * Guests sign up with an auto-generated `訪客 abcd` display name and a
+ * throwaway `guest_<hex>` username. The social surfaces (reviews,
+ * verifications) need a real attributable identity — so when a guest
+ * tries to leave a review, this prompt asks them to bind a Google
+ * account first.
  *
- * `requireRealName(host)` is the single entry point. It resolves
- * immediately when the user already has a non-guest display name; otherwise
- * it mounts an overlay onto `host`, waits for the user to save or skip,
- * and then resolves. Callers await it before proceeding with the social
- * action (navigating to a review form, opening verify, etc.).
+ * Behaviour: opens a Google-style account picker (same UX shape as the
+ * splash login) and on confirm switches the in-memory session to the
+ * google_<email> row via mockGoogleSignIn (real OAuth is a Phase-2 PR).
+ *
+ * Scope: this prompt fires ONLY before leaving a review. The map mount
+ * and the gray-pin verify CTA no longer trigger it — guests can browse
+ * and tap around without being asked to bind.
+ *
+ * `requireRealName(host)` is kept as the entry-point name so existing
+ * callers don't have to rename; the implementation is now a Google
+ * bind, not a display-name picker.
  */
 import { $user, $profile } from '@/store/user';
-import { updateDisplayName, getUserFull } from '@/api/profile';
+import { setLoggedInUser } from '@/store/user';
+import { getUserFull } from '@/api/profile';
+import { mockGoogleSignIn, MOCK_GOOGLE_ACCOUNTS } from '@/lib/mock-google-auth';
+import { t } from '@/lib/i18n';
 
 export const GUEST_NAME_PREFIX = '訪客 ';
 
@@ -22,7 +32,7 @@ export function hasGuestName(displayName: string): boolean {
 }
 
 export interface RequireRealNameOptions {
-  /** Allow the user to dismiss without saving. Default true. */
+  /** Allow the user to dismiss without binding. Default true. */
   allowSkip?: boolean;
 }
 
@@ -42,21 +52,42 @@ export async function requireRealName(
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-labelledby', 'name-prompt-title');
     overlay.innerHTML = `
-      <div class="name-prompt-card">
-        <h2 class="name-prompt-title text-h3" id="name-prompt-title">嗨，先取個名字吧</h2>
-        <p class="name-prompt-sub text-mini">讓小綠在地圖上認得你</p>
-        <input type="text" class="input" id="name-prompt-input" maxlength="20" autocomplete="off" />
+      <div class="name-prompt-card google-bind-card">
+        <header class="google-bind-head">
+          <span class="google-picker-mark" aria-hidden="true">G</span>
+          <h2 class="name-prompt-title text-h3" id="name-prompt-title">${t('bind.title')}</h2>
+        </header>
+        <p class="name-prompt-sub text-mini">${t('bind.sub')}</p>
+        <ul class="google-picker-accounts">
+          ${MOCK_GOOGLE_ACCOUNTS.map(
+            (a) => `
+            <li>
+              <button class="google-picker-account" type="button" data-email="${a.email}" data-name="${a.displayName}">
+                <span class="google-picker-avatar" aria-hidden="true">${a.avatarEmoji}</span>
+                <span class="google-picker-account-meta">
+                  <span class="google-picker-account-name">${a.displayName}</span>
+                  <span class="google-picker-account-email">${a.email}</span>
+                </span>
+              </button>
+            </li>`,
+          ).join('')}
+          <li>
+            <div class="google-picker-custom">
+              <input type="email" class="input" id="name-prompt-input" placeholder="${t('bind.useOther')}" autocomplete="off" />
+              <button type="button" class="btn text-btn-m btn-primary btn-sm text-mini" id="name-prompt-go">${t('bind.confirm')}</button>
+            </div>
+          </li>
+        </ul>
         <p class="name-prompt-error" id="name-prompt-error" hidden></p>
         <div class="name-prompt-actions">
-          ${allowSkip ? '<button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" id="name-prompt-skip">先跳過</button>' : ''}
-          <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" id="name-prompt-save">儲存</button>
+          ${allowSkip ? `<button type="button" class="google-picker-cancel" id="name-prompt-skip">${t('bind.skip')}</button>` : ''}
         </div>
       </div>
     `;
 
     const input = overlay.querySelector<HTMLInputElement>('#name-prompt-input')!;
     const errorEl = overlay.querySelector<HTMLElement>('#name-prompt-error')!;
-    const saveBtn = overlay.querySelector<HTMLButtonElement>('#name-prompt-save')!;
+    const goBtn = overlay.querySelector<HTMLButtonElement>('#name-prompt-go')!;
     const skipBtn = overlay.querySelector<HTMLButtonElement>('#name-prompt-skip');
 
     function close(): void {
@@ -71,33 +102,40 @@ export async function requireRealName(
 
     skipBtn?.addEventListener('click', close);
 
-    saveBtn.addEventListener('click', async () => {
+    async function bind(email: string, displayName: string): Promise<void> {
       errorEl.hidden = true;
-      const name = input.value.trim();
-      if (!name) {
-        showError('幫自己取個名字吧');
-        return;
-      }
-      if (name.startsWith(GUEST_NAME_PREFIX)) {
-        showError('換一個吧，這個是預設訪客名');
-        return;
-      }
-      saveBtn.disabled = true;
-      saveBtn.textContent = '儲存中…';
       try {
-        await updateDisplayName(u.id, name);
-        $user.set({ ...u, displayName: name });
-        // Refresh $profile in the background so other screens see the
-        // new name on their next render. Soft fail is fine — the local
-        // session update is enough for the current screen.
-        void getUserFull(u.id).then((full) => { if (full) $profile.set(full); });
+        const result = await mockGoogleSignIn(email, displayName);
+        // Swap the in-memory session to the Google-bound row. The guest
+        // user's prior pet / XP rows stay in drust but the active
+        // identity is now the bound account.
+        setLoggedInUser(result.user);
+        const full = await getUserFull(result.user.id);
+        if (full) $profile.set(full);
         close();
       } catch (err) {
-        console.error('[name-prompt] updateDisplayName failed:', err);
-        showError('儲存失敗，請稍後再試');
-        saveBtn.disabled = false;
-        saveBtn.textContent = '儲存';
+        console.error('[name-prompt] mockGoogleSignIn failed:', err);
+        showError(t('bind.failed'));
       }
+    }
+
+    overlay.querySelectorAll<HTMLButtonElement>('.google-picker-account').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const email = btn.dataset.email ?? '';
+        const displayName = btn.dataset.name ?? '';
+        void bind(email, displayName);
+      });
+    });
+
+    goBtn.addEventListener('click', () => {
+      const email = input.value.trim();
+      if (!email || !email.includes('@')) {
+        input.focus();
+        showError(t('bind.emailError'));
+        return;
+      }
+      const displayName = email.split('@')[0] ?? email;
+      void bind(email, displayName);
     });
 
     host.appendChild(overlay);

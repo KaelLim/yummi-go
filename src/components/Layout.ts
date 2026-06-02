@@ -15,6 +15,7 @@ import { $ui } from '@/store/ui';
 import { bind } from '@/lib/lifecycle';
 import { createTabBar } from './TabBar';
 import { createDevPanel } from './DevPanel';
+import { $locale, t } from '@/lib/i18n';
 
 const HIDE_TAB_PATHS = ['/login', '/register', '/onboarding'];
 /**
@@ -40,10 +41,13 @@ export function createLayout(child: HTMLElement): HTMLElement {
   // display.
   const profileFab = document.createElement('button');
   profileFab.className = 'profile-fab';
-  profileFab.setAttribute('aria-label', '我的');
-  profileFab.setAttribute('title', '我的');
   profileFab.innerHTML = '<span class="ms">person</span>';
   profileFab.addEventListener('click', () => navigate('/profile'));
+  // i18n: aria-label + tooltip repaint on locale toggle.
+  bind(profileFab, $locale, () => {
+    profileFab.setAttribute('aria-label', t('fab.profile'));
+    profileFab.setAttribute('title', t('fab.profile'));
+  });
 
   layout.appendChild(main);
   layout.appendChild(profileFab);

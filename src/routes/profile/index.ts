@@ -19,6 +19,7 @@ import { bind } from '@/lib/lifecycle';
 import { spriteFor } from '@/lib/pet-sprites';
 import type { PetStage } from '@/lib/pet-evolution';
 import { $pet, effectiveMood } from '@/store/pet';
+import { $locale, t } from '@/lib/i18n';
 
 function describeTolerance(level: number | null | undefined, fails: number): {
   show: boolean; total: number | null; used: number; broken: boolean; label: string;
@@ -50,27 +51,27 @@ export default function profile(): HTMLElement {
     <section class="profile-links">
       <button class="profile-link" data-route="/profile/calendar">
         <span class="ms">calendar_month</span>
-        <span>蔬食旅程</span>
+        <span data-i18n="profile.linkJourney">蔬食旅程</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
       <button class="profile-link" data-route="/profile/reviews">
         <span class="ms">rate_review</span>
-        <span>我的評論</span>
+        <span data-i18n="profile.linkReviews">我的評論</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
       <button class="profile-link" data-route="/profile/baseline">
         <span class="ms">tune</span>
-        <span>編輯基本飲食</span>
+        <span data-i18n="profile.linkBaseline">編輯基本飲食</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
       <button class="profile-link" data-route="/profile/eat-times">
         <span class="ms">schedule</span>
-        <span>用餐時間</span>
+        <span data-i18n="profile.linkEatTimes">用餐時間</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
       <button class="profile-link" data-route="/profile/settings">
         <span class="ms">settings</span>
-        <span>設定</span>
+        <span data-i18n="profile.linkSettings">設定</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
     </section>
@@ -94,7 +95,7 @@ export default function profile(): HTMLElement {
         <img class="pet-frog" src="${spriteFor(stage, mood)}" alt="守護者" draggable="false" />
       </div>
       <div class="profile-meta">
-        <div class="profile-name">${escapeHtml(u?.displayName ?? '訪客')}</div>
+        <div class="profile-name">${escapeHtml(u?.displayName ?? t('profile.guestName'))}</div>
         <div class="profile-tags">
           <span class="profile-tag profile-tag-level">LV.${p?.level ?? 1}</span>
           ${dietLabel ? `<span class="profile-tag">${escapeHtml(dietLabel)}</span>` : ''}
@@ -125,19 +126,19 @@ export default function profile(): HTMLElement {
     wrap.querySelector<HTMLElement>('#stats')!.innerHTML = `
       <div class="stat-card">
         <span class="stat-value">${daysWithCheckIn}</span>
-        <span class="stat-label">挑戰天數</span>
+        <span class="stat-label">${t('profile.statsDays')}</span>
       </div>
       <div class="stat-card">
         <span class="stat-value">${totalCheckIns}</span>
-        <span class="stat-label">打卡餐次</span>
+        <span class="stat-label">${t('profile.statsMeals')}</span>
       </div>
       <div class="stat-card stat-highlight">
         <span class="stat-value">${co2Saved.toFixed(1)}</span>
-        <span class="stat-label">減碳 kg CO₂e</span>
+        <span class="stat-label">${t('profile.statsCo2')}</span>
       </div>
       <div class="stat-card">
         <span class="stat-value">${luckyHits}</span>
-        <span class="stat-label">幸運色命中</span>
+        <span class="stat-label">${t('profile.statsLucky')}</span>
       </div>
     `;
   }
@@ -167,6 +168,15 @@ export default function profile(): HTMLElement {
   bind(wrap, $user, renderAll);
   bind(wrap, $profile, renderAll);
   bind(wrap, $pet, () => renderIdentity());
+  // i18n: swap link labels + stats labels on locale toggle.
+  bind(wrap, $locale, () => {
+    wrap.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+      const key = el.dataset.i18n;
+      if (key) el.textContent = t(key);
+    });
+    renderStats();
+    renderIdentity();
+  });
 
   wrap.querySelectorAll<HTMLButtonElement>('.profile-link').forEach((btn) => {
     btn.addEventListener('click', () => {

@@ -21,6 +21,7 @@ import { $user } from '@/store/user';
 import { XP_PER_LEVEL } from '@/lib/pet-evolution';
 import { normalizeLuckyColor } from '@/lib/lucky-color';
 import { bind } from '@/lib/lifecycle';
+import { $locale, t } from '@/lib/i18n';
 import { createPetView } from '@/components/PetView';
 import { listCheckIns } from '@/api/check-ins';
 import { deriveStreak } from '@/lib/streak';
@@ -63,21 +64,21 @@ export default function home(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="home-resources" aria-label="resources">
-      <div class="resource-chip" data-resource="gem" title="能量石">
+      <div class="resource-chip" data-resource="gem" data-bind="gem-chip" title="${t('home.gem')}">
         <span class="ms">diamond</span>
         <span class="resource-num" data-bind="gems">0</span>
       </div>
-      <button class="resource-chip resource-chip-button" data-resource="streak" id="streak-chip" type="button" title="連續打卡天數 — 點擊查看蔬食旅程">
+      <button class="resource-chip resource-chip-button" data-resource="streak" id="streak-chip" type="button" data-bind="streak-chip" title="${t('home.streakTooltip')}">
         <span class="resource-emoji" aria-hidden="true">🔥</span>
         <span class="resource-num" data-bind="streak">0</span>
-        <span class="resource-unit">天</span>
+        <span class="resource-unit" data-bind="streak-unit">${t('home.streakUnit')}</span>
       </button>
     </header>
     <section class="lucky-card" id="lucky-card" role="button" tabindex="0">
       <div class="lucky-card-emoji" data-bind="lucky-emoji">🎨</div>
       <div class="lucky-card-body">
-        <div class="lucky-card-title">今日幸運色</div>
-        <div class="lucky-card-color" data-bind="lucky-label">未設定</div>
+        <div class="lucky-card-title" data-bind="lucky-title">${t('home.luckyTitle')}</div>
+        <div class="lucky-card-color" data-bind="lucky-label">${t('home.luckyUnset')}</div>
         <div class="lucky-card-status" data-bind="lucky-status"></div>
       </div>
       <span class="ms lucky-card-arrow">arrow_forward</span>
@@ -245,9 +246,23 @@ export default function home(): HTMLElement {
     }
   }
 
+  // Locale: re-paint the static labels on the top row when the user
+  // toggles language. Dynamic values (gem count, streak number, lucky
+  // colour name) are repainted by their own subscriptions; this only
+  // touches the i18n'd labels.
+  bind(wrap, $locale, () => {
+    const gemChip = wrap.querySelector<HTMLElement>('[data-bind="gem-chip"]');
+    if (gemChip) gemChip.title = t('home.gem');
+    const streakChip = wrap.querySelector<HTMLElement>('[data-bind="streak-chip"]');
+    if (streakChip) streakChip.title = t('home.streakTooltip');
+    const unit = wrap.querySelector<HTMLElement>('[data-bind="streak-unit"]');
+    if (unit) unit.textContent = t('home.streakUnit');
+    const luckyTitle = wrap.querySelector<HTMLElement>('[data-bind="lucky-title"]');
+    if (luckyTitle) luckyTitle.textContent = t('home.luckyTitle');
+  });
   bind(wrap, $pet, renderPet);
-  bind(wrap, $today, (t) => {
-    renderToday(t);
+  bind(wrap, $today, (today) => {
+    renderToday(today);
     void refreshStreak();
   });
   bind(wrap, $gems, renderWallet);

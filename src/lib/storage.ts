@@ -27,4 +27,5 @@ export const KEYS = {
   THEME: 'yummi.theme',
   TIME_MODE: 'yummi.timeMode',
   MANUAL_DAY: 'yummi.manualDay',
+  LOCALE: 'yummi.locale',
 } as const;
