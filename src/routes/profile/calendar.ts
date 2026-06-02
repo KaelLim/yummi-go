@@ -77,32 +77,44 @@ export default function calendarPage(): HTMLElement {
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/profile'));
 
   // Mutable view state.
-  const today = new Date();
-  let anchor = new Date(today.getFullYear(), today.getMonth(), 1);
+  const realNow = new Date();
+  let anchor = new Date(realNow.getFullYear(), realNow.getMonth(), 1);
   let checkInRows: CheckInRow[] = [];
+  const MS_PER_DAY = 86400_000;
 
   function paint(): void {
     const u = $user.get();
     const profile = $profile.get();
-    const startedAt = profile?.challenge_started_at
+    let startedAt = profile?.challenge_started_at
       ? new Date(profile.challenge_started_at)
       : null;
     const makeups = u ? readMakeups(u.id) : { days: [], history: [] };
     const checkedInDays = new Set(checkInRows.map((r) => r.day_number));
-    // Dev manual-day override: when the user drags the DevPanel day slider
-    // to D=N, treat days 1..N-1 as ✓ on the calendar so the streak chip
-    // and the calendar visuals agree without seeding a check-in per day.
-    // Only kicks in when timeMode === 'manual' (prod stays untouched).
+    // Dev manual-day override: when the user drags the DevPanel day
+    // slider to D=N, synthesise both the check-ins AND the wall clock so
+    // the calendar shows days 1..N as ✓. buildCalendar early-returns
+    // 'future' for anything past `now`, so we also have to shift `now`
+    // forward to challenge_started_at + (N - 1) days. When there's no
+    // real challenge_started_at yet, derive one so the calendar still
+    // anchors against a sensible range.
     const ui = $ui.get();
+    let effectiveNow = realNow;
     if (ui.timeMode === 'manual') {
       const todayDay = $today.get().dayNumber;
+      if (!startedAt) {
+        // Pretend the challenge started (todayDay - 1) days ago so today
+        // lands at the slider position.
+        startedAt = new Date(realNow.getTime() - (todayDay - 1) * MS_PER_DAY);
+      } else {
+        effectiveNow = new Date(startedAt.getTime() + (todayDay - 1) * MS_PER_DAY);
+      }
       for (let d = 1; d <= todayDay; d++) checkedInDays.add(d);
     }
     const madeUpDays = new Set(makeups.days);
 
     const cells = buildCalendar({
       anchor,
-      now: today,
+      now: effectiveNow,
       challengeStartedAt: startedAt,
       checkedInDays,
       madeUpDays,

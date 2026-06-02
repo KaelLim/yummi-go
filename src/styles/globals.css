@@ -189,10 +189,94 @@ body {
 .splash-loader .dot:nth-child(2) { animation-delay: 0.2s; }
 .splash-loader .dot:nth-child(3) { animation-delay: 0.4s; }
 .splash-actions {
-  display: flex; flex-direction: column; gap: var(--space-3);
+  display: flex; flex-direction: column; gap: var(--space-2);
   width: min(320px, 80vw);
   animation: splash-fade-in 0.4s ease-out;
 }
+/* Google login button — secondary variant with a coloured G mark on
+   the left so it reads as "Sign in with Google" without needing the
+   full multi-colour Google logo asset. Mock flow lives in
+   lib/mock-google-auth.ts. */
+.splash-google-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.splash-google-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff;
+  color: #4285f4;
+  font-weight: var(--font-weight-extrabold);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Mock Google account picker — centred modal that mimics the real
+   account chooser. Two pre-baked accounts + an email input row. */
+.google-picker-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(15, 23, 25, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+}
+.google-picker-card {
+  width: 100%; max-width: 360px;
+  background: var(--color-card); border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.25);
+}
+.google-picker-head { display: flex; align-items: center; gap: 8px; }
+.google-picker-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #4285f4; color: #fff;
+  font-weight: var(--font-weight-extrabold);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.google-picker-title {
+  margin: 0; font-size: var(--text-h3-size);
+  font-weight: var(--font-weight-extrabold); color: var(--color-foreground);
+}
+.google-picker-sub {
+  margin: 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt);
+}
+.google-picker-accounts {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.google-picker-account {
+  display: flex; align-items: center; gap: var(--space-2);
+  width: 100%; padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-neutral); border-radius: var(--radius-md);
+  background: var(--color-card); cursor: pointer; font-family: inherit;
+  transition: background 0.15s;
+}
+.google-picker-account:hover { background: var(--color-primary-light); }
+.google-picker-avatar { font-size: 26px; line-height: 1; }
+.google-picker-account-meta {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 1px; flex: 1;
+}
+.google-picker-account-name {
+  font-size: var(--text-mini-size); font-weight: var(--font-weight-bold);
+  color: var(--color-foreground);
+}
+.google-picker-account-email {
+  font-size: var(--text-caption-size); color: var(--color-foreground-alt);
+}
+.google-picker-custom {
+  display: flex; gap: 6px; align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--color-neutral-darker); border-radius: var(--radius-md);
+}
+.google-picker-custom .input { flex: 1; min-width: 0; }
+.google-picker-cancel {
+  background: none; border: none; color: var(--color-foreground-alt);
+  font-family: inherit; font-size: var(--text-mini-size);
+  cursor: pointer; padding: var(--space-2); border-radius: var(--radius-sm);
+}
+.google-picker-cancel:hover { background: var(--color-neutral-light); }
 @keyframes splash-fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

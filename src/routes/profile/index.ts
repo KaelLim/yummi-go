@@ -63,6 +63,11 @@ export default function profile(): HTMLElement {
         <span>編輯基本飲食</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
+      <button class="profile-link" data-route="/profile/eat-times">
+        <span class="ms">schedule</span>
+        <span>用餐時間</span>
+        <span class="ms profile-link-arrow">arrow_forward_ios</span>
+      </button>
       <button class="profile-link" data-route="/profile/settings">
         <span class="ms">settings</span>
         <span>設定</span>

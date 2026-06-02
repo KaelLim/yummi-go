@@ -20,6 +20,7 @@ import { $isLoggedIn, setLoggedInUser } from '@/store/user';
 import { navigate } from '@/router';
 import { registerGuest } from '@/api/auth';
 import createButton from '@/components/Button';
+import { MOCK_GOOGLE_ACCOUNTS, mockGoogleSignIn } from '@/lib/mock-google-auth';
 
 export default function splash(): HTMLElement {
   const wrap = document.createElement('div');
@@ -42,12 +43,25 @@ export default function splash(): HTMLElement {
   const errorEl = wrap.querySelector<HTMLElement>('#guest-error')!;
 
   const startBtn = createButton({
-    label: 'Get Started',
+    label: '匿名玩家 / Get Started',
     variant: 'primary',
     size: 'lg',
   });
   startBtn.id = 'get-started';
   actions.insertBefore(startBtn, errorEl);
+
+  // Second CTA: mock Google sign-in. Real Google OAuth is a Phase 2 PR;
+  // see lib/mock-google-auth for the stub. Existing email → /home,
+  // new email → onboarding/diet-survey.
+  const googleBtn = createButton({
+    label: 'Google Log In',
+    variant: 'secondary',
+    size: 'lg',
+  });
+  googleBtn.id = 'google-login';
+  googleBtn.classList.add('splash-google-btn');
+  googleBtn.innerHTML = '<span class="splash-google-mark" aria-hidden="true">G</span>' + googleBtn.innerHTML;
+  actions.insertBefore(googleBtn, errorEl);
 
   // Once Get Started is tapped, the auto-redirect must never fire — the
   // user has explicitly chosen the onboarding path, and any race where
@@ -78,11 +92,102 @@ export default function splash(): HTMLElement {
       console.error('[splash] registerGuest failed:', e);
       getStartedTapped = false;
       startBtn.disabled = false;
-      startBtn.textContent = 'Get Started';
+      startBtn.textContent = '匿名玩家 / Get Started';
       errorEl.hidden = false;
       errorEl.textContent = '建立帳號失敗，請稍後再試或選擇登入。';
     }
   });
 
+  googleBtn.addEventListener('click', () => {
+    getStartedTapped = true;
+    clearTimeout(splashTimeoutId);
+    openGooglePicker(wrap, async ({ email, displayName }) => {
+      googleBtn.disabled = true;
+      try {
+        const result = await mockGoogleSignIn(email, displayName);
+        setLoggedInUser(result.user);
+        // Returning user → /home (they already finished onboarding).
+        // New user → /onboarding/diet-survey so their profile gets set up.
+        navigate(result.isReturning ? '/home' : '/onboarding/diet-survey');
+      } catch (e) {
+        console.error('[splash] mockGoogleSignIn failed:', e);
+        getStartedTapped = false;
+        googleBtn.disabled = false;
+        errorEl.hidden = false;
+        errorEl.textContent = 'Google 登入失敗，請稍後再試。';
+      }
+    });
+  });
+
   return wrap;
+}
+
+/**
+ * Centred Google-style account chooser overlay. Two pre-baked demo
+ * accounts + a free-form email input. On confirm, calls back with the
+ * picked email + displayName so the caller can drive mockGoogleSignIn.
+ */
+function openGooglePicker(
+  host: HTMLElement,
+  onPick: (args: { email: string; displayName: string }) => void,
+): void {
+  const overlay = document.createElement('div');
+  overlay.className = 'google-picker-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.innerHTML = `
+    <div class="google-picker-card">
+      <header class="google-picker-head">
+        <span class="google-picker-mark">G</span>
+        <h2 class="google-picker-title">選擇帳號</h2>
+      </header>
+      <p class="google-picker-sub">繼續前往 Yummi Go（原型示範）</p>
+      <ul class="google-picker-accounts">
+        ${MOCK_GOOGLE_ACCOUNTS.map(
+          (a) => `
+          <li>
+            <button class="google-picker-account" type="button" data-email="${a.email}" data-name="${a.displayName}">
+              <span class="google-picker-avatar" aria-hidden="true">${a.avatarEmoji}</span>
+              <span class="google-picker-account-meta">
+                <span class="google-picker-account-name">${a.displayName}</span>
+                <span class="google-picker-account-email">${a.email}</span>
+              </span>
+            </button>
+          </li>`,
+        ).join('')}
+        <li>
+          <div class="google-picker-custom">
+            <input type="email" class="input" id="google-picker-email" placeholder="使用其他 Google 帳號（email）" autocomplete="off" />
+            <button class="btn text-btn-m btn-primary btn-sm text-mini" id="google-picker-go" type="button">登入</button>
+          </div>
+        </li>
+      </ul>
+      <button class="google-picker-cancel" type="button" id="google-picker-cancel">取消</button>
+    </div>
+  `;
+  function close(): void { overlay.remove(); }
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+  overlay.querySelector('#google-picker-cancel')?.addEventListener('click', close);
+  overlay.querySelectorAll<HTMLButtonElement>('.google-picker-account').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const email = btn.dataset.email ?? '';
+      const displayName = btn.dataset.name ?? '';
+      close();
+      onPick({ email, displayName });
+    });
+  });
+  overlay.querySelector('#google-picker-go')?.addEventListener('click', () => {
+    const input = overlay.querySelector<HTMLInputElement>('#google-picker-email');
+    const email = (input?.value ?? '').trim();
+    if (!email || !email.includes('@')) {
+      input?.focus();
+      return;
+    }
+    const displayName = email.split('@')[0] ?? email;
+    close();
+    onPick({ email, displayName });
+  });
+  host.appendChild(overlay);
 }

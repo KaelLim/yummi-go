@@ -70,6 +70,7 @@ defRoute('/profile', wrap(() => import('./routes/profile/index')));
 defRoute('/profile/settings', wrap(() => import('./routes/profile/settings')));
 defRoute('/profile/reviews', wrap(() => import('./routes/profile/reviews')));
 defRoute('/profile/baseline', wrap(() => import('./routes/profile/baseline')));
+defRoute('/profile/eat-times', wrap(() => import('./routes/profile/eat-times')));
 defRoute('/profile/calendar', wrap(() => import('./routes/profile/calendar')));
 defRoute('/challenge/day-30', wrap(() => import('./routes/day-30')));
 // Dev tools render their own full-viewport chrome — bypass the app layout.

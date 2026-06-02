@@ -20,7 +20,8 @@ import {
   setMeatReplaced,
   setLastResult,
 } from '@/store/checkin';
-import { $user } from '@/store/user';
+import { $user, setLoggedInUser } from '@/store/user';
+import { registerGuest } from '@/api/auth';
 import { $today, $challenge, markMissionDone } from '@/store/today';
 import { MEAL_COMPLETE_BONUS_KEY, MEAL_COMPLETE_BONUS_XP } from '@/lib/xp-calc';
 import type { MockFood } from '@/lib/mock-ai';
@@ -106,10 +107,22 @@ export default function result(): HTMLElement {
 }
 
 async function submitCheckin(wrap: HTMLElement): Promise<void> {
-  const u = $user.get();
+  // Session may be missing if drust pruned the previous guest row or
+  // localStorage was cleared. Provision a fresh guest inline so the
+  // user's check-in just goes through without being bounced to /login.
+  // Falls back to /login only if guest registration itself fails (drust
+  // unreachable, anon-cap denial, etc.).
+  let u = $user.get();
   if (!u) {
-    navigate('/login');
-    return;
+    try {
+      const guest = await registerGuest();
+      setLoggedInUser(guest);
+      u = { id: guest.id, username: guest.username, displayName: guest.displayName };
+    } catch (err) {
+      console.error('[checkin/result] auto guest registration failed:', err);
+      navigate('/login');
+      return;
+    }
   }
   const d = $checkin.get();
   if (d.items.length === 0) {
