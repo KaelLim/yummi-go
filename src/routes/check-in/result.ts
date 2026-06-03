@@ -224,6 +224,13 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
       isFirstCheckIn,
       mealCompleteBonusXp,
     });
+    // Arm the phase-1 commitment modal as soon as we know it's the
+    // user's first check-in. success.ts also sets this as a safety net,
+    // but setting it here means it survives even if the user
+    // backs out of /check-in/success before that render completes.
+    if (isFirstCheckIn) {
+      try { localStorage.setItem('yummi:phase1_modal_pending', '1'); } catch { /* private mode */ }
+    }
     navigate('/check-in/success');
   } catch (err) {
     console.error('[check-in] submit failed:', err);
