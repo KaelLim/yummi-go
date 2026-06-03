@@ -11,12 +11,13 @@ import { $user, $profile } from '@/store/user';
 import { updateProfile, getUserFull } from '@/api/profile';
 import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
+import { t } from '@/lib/i18n';
 
 const OPTIONS = [
-  { value: 'vegan',        emoji: '🌱', label: 'Vegan 純素' },
-  { value: 'vegetarian',   emoji: '🥚', label: 'Vegetarian 蛋奶素' },
-  { value: 'flexitarian',  emoji: '🥗', label: 'Flexitarian 有時不吃肉' },
-  { value: 'omnivore',     emoji: '🍖', label: 'Omnivore 無肉不歡' },
+  { value: 'vegan',        emoji: '🌱', labelKey: 'onb.diet.vegan' },
+  { value: 'vegetarian',   emoji: '🥚', labelKey: 'onb.diet.vegetarian' },
+  { value: 'flexitarian',  emoji: '🥗', labelKey: 'onb.diet.flexitarian' },
+  { value: 'omnivore',     emoji: '🍖', labelKey: 'onb.diet.omnivore' },
 ];
 
 export default function dietSurvey(): HTMLElement {
@@ -28,13 +29,13 @@ export default function dietSurvey(): HTMLElement {
       ${createProgress({ current: 1, total: 5 }).outerHTML}
     </div>
     <div class="onb-body">
-      <h1 class="onb-title text-h2">你的飲食習慣是？</h1>
-      <p class="onb-sub text-mini">我們會根據你的飲食偏好推薦合適的挑戰</p>
+      <h1 class="onb-title text-h2">${t('onb.diet.title')}</h1>
+      <p class="onb-sub text-mini">${t('onb.diet.sub')}</p>
       <div class="onb-options">
         ${OPTIONS.map(o => `
           <button class="choice" data-value="${o.value}">
             <span class="ch-icon">${o.emoji}</span>
-            <span class="ch-text">${o.label}</span>
+            <span class="ch-text">${t(o.labelKey)}</span>
             <span class="ms ch-arrow">arrow_forward</span>
           </button>
         `).join('')}

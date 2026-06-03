@@ -11,6 +11,7 @@
 import { navigate } from '@/router';
 import { resetCheckin, $checkin } from '@/store/checkin';
 import { markMissionDone } from '@/store/today';
+import { t } from '@/lib/i18n';
 
 const MEAL_SLOT: Record<number, string> = {
   1: 'breakfast',
@@ -18,29 +19,28 @@ const MEAL_SLOT: Record<number, string> = {
   3: 'dinner',
 };
 
-const NEXT_MEAL_LABEL: Record<number, string> = {
-  1: '第二餐',
-  2: '第三餐',
-  3: '明天第一餐',
+const NEXT_MEAL_KEY: Record<number, string> = {
+  1: 'checkin.nextMeal2',
+  2: 'checkin.nextMeal3',
+  3: 'checkin.nextMealTmrw',
 };
 
 export default function fail(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'checkin-screen checkin-fail';
   const mealIdx = $checkin.get().mealIndex;
-  const nextMeal = NEXT_MEAL_LABEL[mealIdx] ?? '下一餐';
+  const nextMeal = NEXT_MEAL_KEY[mealIdx]
+    ? t(NEXT_MEAL_KEY[mealIdx])
+    : t('checkin.nextMealDefault');
 
   wrap.innerHTML = `
     <div class="fail-body">
       <div class="fail-emoji" aria-hidden="true">🌱✨</div>
-      <h1 class="fail-title">${nextMeal}一起加油！</h1>
-      <p class="fail-text">
-        這餐有肉沒關係，挑戰是慢慢累積的。<br/>
-        小綠相信你 ${nextMeal} 可以挑戰無肉打卡 💪
-      </p>
+      <h1 class="fail-title">${t('checkin.failHeading').replace('{next}', nextMeal)}</h1>
+      <p class="fail-text">${t('checkin.failExplain').replace(/\{next\}/g, nextMeal)}</p>
       <div class="fail-actions">
-        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="try-again">換個方式打卡</button>
-        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="go-home">下次再來</button>
+        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="try-again">${t('checkin.failTryAgain')}</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="go-home">${t('checkin.failHome')}</button>
       </div>
     </div>
   `;

@@ -12,6 +12,7 @@ import { updateProfile, type UserProfile } from '@/api/profile';
 import { listChallengePurposes, type ChallengePurpose } from '@/api/content';
 import { patchDraft, $onboardingDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
+import { t } from '@/lib/i18n';
 
 export default function purpose(): HTMLElement {
   const wrap = document.createElement('div');
@@ -22,12 +23,12 @@ export default function purpose(): HTMLElement {
       ${createProgress({ current: 3, total: 5 }).outerHTML}
     </div>
     <div class="onb-body">
-      <h1 class="onb-title text-h2">參加挑戰的目的</h1>
-      <p class="onb-sub text-mini">挑戰的方向會影響每日的提示文字</p>
+      <h1 class="onb-title text-h2">${t('onb.purpose.title')}</h1>
+      <p class="onb-sub text-mini">${t('onb.purpose.sub')}</p>
       <div class="onb-options" id="purpose-options">
         <div class="quiz-loading">
           <span class="ms">hourglass_top</span>
-          <span>載入中…</span>
+          <span>${t('onb.purpose.loading')}</span>
         </div>
       </div>
     </div>

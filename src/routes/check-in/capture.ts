@@ -11,36 +11,37 @@
  */
 import { navigate } from '@/router';
 import { resetCheckin, setCapture, setMealIndex, inferMealIndex } from '@/store/checkin';
+import { t } from '@/lib/i18n';
 
 export default function capture(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'checkin-screen checkin-capture';
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">拍照打卡</span>
+      <span class="checkin-title">${t('checkin.captureTitle')}</span>
       <span class="checkin-meal" id="meal-tag"></span>
     </header>
     <div class="checkin-body">
       <div class="capture-frame" id="frame">
         <div class="capture-placeholder">
           <span class="ms capture-icon">photo_camera</span>
-          <p class="capture-hint">拍下今天的這一餐<br/>食物精靈會幫你辨識</p>
+          <p class="capture-hint">${t('checkin.capturePlaceholder')}</p>
         </div>
-        <img class="capture-preview" id="preview" hidden alt="餐點預覽" />
+        <img class="capture-preview" id="preview" hidden alt="${t('checkin.capturePreviewAlt')}" />
       </div>
       <input id="file" type="file" accept="image/*" capture="environment" hidden />
       <div class="capture-actions" id="actions">
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="shutter">
           <span class="ms">photo_camera</span>
-          開始拍照
+          ${t('checkin.startShoot')}
         </button>
       </div>
       <div class="capture-actions" id="confirm-actions" hidden>
-        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="retake">重新拍</button>
-        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="analyze">進行分析</button>
+        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="retake">${t('checkin.retake')}</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="analyze">${t('checkin.analyze')}</button>
       </div>
     </div>
   `;
@@ -48,7 +49,7 @@ export default function capture(): HTMLElement {
   resetCheckin();
   const idx = inferMealIndex();
   setMealIndex(idx);
-  const mealLabel = idx === 1 ? '第一餐' : idx === 2 ? '第二餐' : '第三餐';
+  const mealLabel = idx === 1 ? t('checkin.meal1') : idx === 2 ? t('checkin.meal2') : t('checkin.meal3');
   (wrap.querySelector('#meal-tag') as HTMLElement).textContent = mealLabel;
 
   const fileInput = wrap.querySelector<HTMLInputElement>('#file')!;

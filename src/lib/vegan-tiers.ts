@@ -19,12 +19,32 @@ export interface VeganTier {
   description: string;
 }
 
-export const VEGAN_TIERS: VeganTier[] = [
-  { value: '全素',     label: '全素',     description: '完全植物性，不含動物製品' },
-  { value: '蛋奶素',   label: '蛋奶素',   description: '含蛋奶、不含肉類' },
-  { value: '五辛素',   label: '五辛素',   description: '含五辛（蔥蒜韭薤興），不含肉類' },
-  { value: '方便蔬食', label: '方便蔬食', description: '一般葷食店，但有蔬食選項' },
-];
+import { t as i18n } from './i18n';
+
+const TIER_DEFS = [
+  { value: '全素',     descKey: 'veganTier.vegan.desc' },
+  { value: '蛋奶素',   descKey: 'veganTier.lactoovo.desc' },
+  { value: '五辛素',   descKey: 'veganTier.fivePungent.desc' },
+  { value: '方便蔬食', descKey: 'veganTier.convenient.desc' },
+] as const;
+
+// VEGAN_TIERS is consumed at module-init in some callers as a snapshot.
+// We resolve descriptions lazily through getVeganTiers() when locale
+// matters; the legacy array keeps the same shape so existing imports
+// (filter chips, review form) just see the source tier labels.
+export const VEGAN_TIERS: VeganTier[] = TIER_DEFS.map((d) => ({
+  value: d.value,
+  label: d.value,
+  description: '',
+}));
+
+function getVeganTiers(): VeganTier[] {
+  return TIER_DEFS.map((d) => ({
+    value: d.value,
+    label: d.value,
+    description: i18n(d.descKey),
+  }));
+}
 
 /**
  * Open a centred modal that explains each 素別 tier. Reuses the
@@ -40,27 +60,28 @@ export function openVeganTierInfo(host: HTMLElement): void {
   overlay.className = 'vegan-info-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
+  const tiers = getVeganTiers();
   overlay.innerHTML = `
     <div class="vegan-info-card">
       <header class="vegan-info-header">
-        <h2 class="vegan-info-title">素別說明</h2>
-        <button class="vegan-info-close" type="button" aria-label="關閉">
+        <h2 class="vegan-info-title">${i18n('veganInfo.title')}</h2>
+        <button class="vegan-info-close" type="button" aria-label="${i18n('common.close')}">
           <span class="ms">close</span>
         </button>
       </header>
       <ul class="vegan-info-list">
-        ${VEGAN_TIERS.map(
-          (t) => `
+        ${tiers.map(
+          (tier) => `
           <li class="vegan-info-row">
-            <span class="vegan-info-name">${t.label}</span>
-            <span class="vegan-info-desc">${t.description}</span>
+            <span class="vegan-info-name">${tier.label}</span>
+            <span class="vegan-info-desc">${tier.description}</span>
           </li>
         `,
         ).join('')}
       </ul>
       <p class="vegan-info-footnote">
         <span class="ms">info</span>
-        素別為餐點類別，非餐廳類別。同一家店可能提供多種素別餐點。
+        ${i18n('veganInfo.footnote')}
       </p>
     </div>
   `;

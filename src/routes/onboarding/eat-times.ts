@@ -19,18 +19,19 @@ import { $user, $profile } from '@/store/user';
 import { updateProfile, getUserFull } from '@/api/profile';
 import { patchDraft } from '@/store/onboarding-draft';
 import { requestMealNotificationPermission } from '@/lib/meal-notifier';
+import { t } from '@/lib/i18n';
 
 interface MealDef {
   key: string;
   emoji: string;
-  label: string;
+  labelKey: string;
   defaultTime: string;
 }
 
 const MEALS: MealDef[] = [
-  { key: 'breakfast', emoji: '🌅', label: '第一餐', defaultTime: '08:00' },
-  { key: 'lunch',     emoji: '☀️', label: '第二餐', defaultTime: '12:30' },
-  { key: 'dinner',    emoji: '🌙', label: '第三餐', defaultTime: '19:00' },
+  { key: 'breakfast', emoji: '🌅', labelKey: 'eattimes.meal1', defaultTime: '08:00' },
+  { key: 'lunch',     emoji: '☀️', labelKey: 'eattimes.meal2', defaultTime: '12:30' },
+  { key: 'dinner',    emoji: '🌙', labelKey: 'eattimes.meal3', defaultTime: '19:00' },
 ];
 
 export default function eatTimes(): HTMLElement {
@@ -49,10 +50,10 @@ export default function eatTimes(): HTMLElement {
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
     </div>
     <div class="onb-body">
-      <h1 class="onb-title text-h2">用餐時間</h1>
-      <p class="onb-sub text-mini">設定後我們會在用餐前 10 分鐘提醒你打卡，不吃某餐可用 ✕ 移除</p>
+      <h1 class="onb-title text-h2">${t('eattimes.title')}</h1>
+      <p class="onb-sub text-mini">${t('eattimes.sub')}</p>
       <div class="meal-list" id="meal-list"></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">完成設定</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">${t('eattimes.complete')}</button>
     </div>
   `;
 
@@ -72,11 +73,11 @@ export default function eatTimes(): HTMLElement {
     // re-enabling without reusing the active-position 第N餐 label.
     const activeKeys = MEALS.filter((m) => !disabled.has(m.key)).map((m) => m.key);
     const activeCount = activeKeys.length;
-    const ORDINALS = ['第一餐', '第二餐', '第三餐'];
+    const ORDINAL_KEYS = ['eattimes.meal1', 'eattimes.meal2', 'eattimes.meal3'];
     function activeLabel(key: string): string {
-      if (activeCount === 1) return '一餐';
+      if (activeCount === 1) return t('eattimes.mealOnly');
       const idx = activeKeys.indexOf(key);
-      return ORDINALS[idx] ?? '';
+      return idx >= 0 ? t(ORDINAL_KEYS[idx] ?? '') : '';
     }
 
     list.innerHTML = MEALS.map((m) => {
@@ -85,12 +86,10 @@ export default function eatTimes(): HTMLElement {
         return `
           <div class="meal-row meal-row-off" data-key="${m.key}">
             <span class="meal-emoji" style="opacity:.35">${m.emoji}</span>
-            <button class="btn-skip" data-action="enable" data-key="${m.key}" type="button">+ 加回</button>
+            <button class="btn-skip" data-action="enable" data-key="${m.key}" type="button">${t('eattimes.addBack')}</button>
           </div>
         `;
       }
-      // Show ✕ only when there's another meal still active. Disabling the
-      // last meal would leave the notifier with nothing to fire on.
       const removable = activeCount > 1;
       const label = activeLabel(m.key);
       return `
@@ -100,7 +99,7 @@ export default function eatTimes(): HTMLElement {
           <input type="time" class="meal-input" data-key="${m.key}" value="${times[m.key]}" />
           ${
             removable
-              ? `<button class="meal-remove" data-action="disable" data-key="${m.key}" type="button" aria-label="移除${label}"><span class="ms">close</span></button>`
+              ? `<button class="meal-remove" data-action="disable" data-key="${m.key}" type="button" aria-label="${label}"><span class="ms">close</span></button>`
               : ''
           }
         </div>

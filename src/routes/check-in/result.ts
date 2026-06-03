@@ -29,8 +29,12 @@ import { mealXp, type MealIndex } from '@/lib/xp-calc';
 import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
 import { createCheckIn, listCheckIns } from '@/api/check-ins';
 import { awardXp } from '@/store/pet';
+import { t } from '@/lib/i18n';
 
-const MEAL_LABEL: Record<MealIndex, string> = { 1: '第一餐', 2: '第二餐', 3: '第三餐' };
+const MEAL_LABEL_KEY: Record<MealIndex, string> = { 1: 'checkin.meal1', 2: 'checkin.meal2', 3: 'checkin.meal3' };
+function mealLabel(idx: MealIndex): string {
+  return t(MEAL_LABEL_KEY[idx]);
+}
 
 export default function result(): HTMLElement {
   const wrap = document.createElement('div');
@@ -40,8 +44,8 @@ export default function result(): HTMLElement {
   if (!draft.scan) {
     wrap.innerHTML = `
       <div class="checkin-body checkin-fallback">
-        <p>沒有可確認的辨識結果。</p>
-        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回到拍照</button>
+        <p>${t('checkin.fallbackNoScan')}</p>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">${t('checkin.fallbackBack')}</button>
       </div>
     `;
     wrap.querySelector('#back')?.addEventListener('click', () => navigate('/check-in'));
@@ -55,13 +59,13 @@ export default function result(): HTMLElement {
     // No meat — straight to success, no choices to make.
     wrap.innerHTML = `
       <header class="checkin-header">
-        <span class="checkin-title">辨識結果</span>
-        <span class="checkin-meal">${MEAL_LABEL[draft.mealIndex]}</span>
+        <span class="checkin-title">${t('checkin.resultTitle')}</span>
+        <span class="checkin-meal">${mealLabel(draft.mealIndex)}</span>
       </header>
       <div class="checkin-body checkin-veg-pass">
         <span class="ms checkin-veg-icon">eco</span>
-        <h2 class="checkin-veg-title">無肉檢出</h2>
-        <p class="checkin-veg-text">食物精靈正在記錄打卡…</p>
+        <h2 class="checkin-veg-title">${t('checkin.noMeatTitle')}</h2>
+        <p class="checkin-veg-text">${t('checkin.noMeatText')}</p>
       </div>
     `;
     void submitCheckin(wrap);
@@ -70,19 +74,19 @@ export default function result(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">辨識結果</span>
-      <span class="checkin-meal">${MEAL_LABEL[draft.mealIndex]}</span>
+      <span class="checkin-title">${t('checkin.resultTitle')}</span>
+      <span class="checkin-meal">${mealLabel(draft.mealIndex)}</span>
     </header>
     <div class="checkin-body">
       <div class="checkin-meat-prompt" id="meat-banner">
-        <h2 class="meat-prompt-title">我們偵測到 <strong id="meat-list">${escapeHtml(meatNames.join('、'))}</strong></h2>
-        <p class="meat-prompt-question">這是肉嗎？</p>
+        <h2 class="meat-prompt-title">${t('checkin.detected').replace('{items}', `<strong id="meat-list">${escapeHtml(meatNames.join('、'))}</strong>`)}</h2>
+        <p class="meat-prompt-question">${t('checkin.isMeatQ')}</p>
         <div class="meat-prompt-actions">
-          <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="meat-yes">這是肉</button>
-          <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="meat-no">不，這是植物肉</button>
+          <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="meat-yes">${t('checkin.isMeatYes')}</button>
+          <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="meat-no">${t('checkin.isMeatNo')}</button>
         </div>
       </div>
     </div>

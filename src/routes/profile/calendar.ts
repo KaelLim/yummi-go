@@ -30,6 +30,7 @@ import { getGemBalance } from '@/api/wallet';
 import { buildCalendar, type CalendarCell, type DayStatus } from '@/lib/calendar';
 import { openItemsEditor } from '@/lib/items-editor';
 import type { MockFood } from '@/lib/mock-ai';
+import { t } from '@/lib/i18n';
 import {
   readMakeups,
   recordMakeup,
@@ -38,7 +39,11 @@ import {
 } from '@/lib/makeups-local';
 import { deriveStreak } from '@/lib/streak';
 
-const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
+const WEEKDAY_LABELS_ZH = ['日', '一', '二', '三', '四', '五', '六'];
+const WEEKDAY_LABELS_EN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+function weekdayLabels(): string[] {
+  return t('cal.weekdaysZh').startsWith('日') ? WEEKDAY_LABELS_ZH : WEEKDAY_LABELS_EN;
+}
 
 export default function calendarPage(): HTMLElement {
   const wrap = document.createElement('div');
@@ -46,30 +51,30 @@ export default function calendarPage(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">蔬食旅程</span>
+      <span class="checkin-title">${t('cal.title')}</span>
       <span></span>
     </header>
     <div class="calendar-body">
       <div class="calendar-month-row">
-        <button class="calendar-arrow" id="prev-month" type="button" aria-label="上個月">
+        <button class="calendar-arrow" id="prev-month" type="button" aria-label="${t('cal.prevMonth')}">
           <span class="ms">chevron_left</span>
         </button>
         <h2 class="calendar-month-title" id="month-title">—</h2>
-        <button class="calendar-arrow" id="next-month" type="button" aria-label="下個月">
+        <button class="calendar-arrow" id="next-month" type="button" aria-label="${t('cal.nextMonth')}">
           <span class="ms">chevron_right</span>
         </button>
       </div>
       <div class="calendar-weekdays">
-        ${WEEKDAY_LABELS.map((w) => `<div class="calendar-weekday">${w}</div>`).join('')}
+        ${weekdayLabels().map((w) => `<div class="calendar-weekday">${w}</div>`).join('')}
       </div>
       <div class="calendar-grid" id="grid"></div>
       <div class="calendar-legend">
-        <span class="legend-item"><span class="legend-dot legend-done">✓</span>已打卡 / 已補簽</span>
-        <span class="legend-item"><span class="legend-dot legend-makeable"></span>可補簽</span>
-        <span class="legend-item"><span class="legend-dot legend-lost"></span>已 lost</span>
+        <span class="legend-item"><span class="legend-dot legend-done">✓</span>${t('cal.legendDone')}</span>
+        <span class="legend-item"><span class="legend-dot legend-makeable"></span>${t('cal.legendMakeable')}</span>
+        <span class="legend-item"><span class="legend-dot legend-lost"></span>${t('cal.legendLost')}</span>
       </div>
     </div>
   `;
@@ -121,7 +126,9 @@ export default function calendarPage(): HTMLElement {
     });
 
     const title = wrap.querySelector('#month-title');
-    if (title) title.textContent = `${anchor.getFullYear()} 年 ${anchor.getMonth() + 1} 月`;
+    if (title) title.textContent = t('cal.monthFmt')
+      .replace('{y}', String(anchor.getFullYear()))
+      .replace('{m}', String(anchor.getMonth() + 1));
 
     const grid = wrap.querySelector<HTMLElement>('#grid');
     if (!grid) return;
@@ -265,22 +272,22 @@ function openMakeupModal({ host, iso, dayNumber, onDone }: OpenModalArgs): void 
   overlay.innerHTML = `
     <div class="makeup-modal" role="dialog" aria-label="補簽">
       <div class="makeup-pet" aria-hidden="true">🐣</div>
-      <p class="makeup-copy">主人，${dateLabel} 那天我等了你⋯</p>
+      <p class="makeup-copy">${t('makeup.copy').replace('{date}', dateLabel)}</p>
       <div class="makeup-streak-card">
-        <span class="makeup-streak-label">補完這天</span>
-        <span class="makeup-streak-delta">+1 天 streak</span>
+        <span class="makeup-streak-label">${t('makeup.streakLabel')}</span>
+        <span class="makeup-streak-delta">${t('makeup.streakDelta')}</span>
       </div>
       <div class="makeup-cost-row">
         <span class="ms">diamond</span>
         <span class="makeup-cost-num">${cost}</span>
-        <span class="makeup-cost-label">能量石</span>
+        <span class="makeup-cost-label">${t('makeup.costLabel')}</span>
       </div>
-      <p class="makeup-balance">目前餘額：💎 ${balance}</p>
+      <p class="makeup-balance">${t('makeup.balanceFmt').replace('{n}', String(balance))}</p>
       <div class="makeup-error" id="makeup-error" hidden></div>
       <div class="makeup-actions">
-        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="makeup-cancel" type="button">取消</button>
+        <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="makeup-cancel" type="button">${t('makeup.cancel')}</button>
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="makeup-confirm" type="button">
-          💛 救回那一天
+          ${t('makeup.confirm')}
         </button>
       </div>
     </div>
@@ -324,7 +331,7 @@ function openMakeupModal({ host, iso, dayNumber, onDone }: OpenModalArgs): void 
       errorEl.hidden = false;
       errorEl.textContent = (err as Error).message ?? '補簽失敗';
       confirm.disabled = false;
-      confirm.textContent = '💛 救回那一天';
+      confirm.textContent = t('makeup.confirm');
     }
   }
 
@@ -356,7 +363,12 @@ function aggregateDayTotals(rows: CheckInRow[]): NutritionTotals {
   return acc;
 }
 
-const MEAL_LABEL = ['', '第一餐', '第二餐', '第三餐'] as const;
+function mealLabel(idx: number): string {
+  if (idx === 1) return t('checkin.meal1');
+  if (idx === 2) return t('checkin.meal2');
+  if (idx === 3) return t('checkin.meal3');
+  return t('recap.mealFmt').replace('{n}', String(idx));
+}
 
 interface NutritionRecapArgs {
   host: HTMLElement;
@@ -401,14 +413,14 @@ function openNutritionModal({ host, iso, dayNumber, getRowsForDay, onChanged }: 
       <section class="nutrition-card is-revealed">
         <div class="nutrition-card-head">
           <span class="ms">restaurant_menu</span>
-          <strong>當日總攝取</strong>
+          <strong>${t('recap.totalsTitle')}</strong>
         </div>
         <div class="nutrition-grid">
-          <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(totals.cal)} kcal</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${totals.protein} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${totals.carb} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${totals.fat} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${totals.fiber} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.calorie')}</span><strong>${Math.round(totals.cal)} kcal</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.protein')}</span><strong>${totals.protein} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.carb')}</span><strong>${totals.carb} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.fat')}</span><strong>${totals.fat} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.fiber')}</span><strong>${totals.fiber} g</strong></div>
         </div>
       </section>
     `;
@@ -417,16 +429,16 @@ function openNutritionModal({ host, iso, dayNumber, getRowsForDay, onChanged }: 
       const items = safeParse<ScannedItem[]>(row.food_items) ?? [];
       const veg = row.vegan_type ? `<span class="recap-meal-veg">${escapeHtml(row.vegan_type)}</span>` : '';
       const itemsHtml = items.length
-        ? items.map((it) => `<li class="recap-item"><span>${escapeHtml(it.name ?? '未命名')}</span>${it.weightG ? `<span class="recap-item-w">${Math.round(it.weightG)} g</span>` : ''}</li>`).join('')
-        : '<li class="recap-item recap-item-empty">沒有食材紀錄</li>';
+        ? items.map((it) => `<li class="recap-item"><span>${escapeHtml(it.name ?? t('recap.itemsEmptyName'))}</span>${it.weightG ? `<span class="recap-item-w">${Math.round(it.weightG)} g</span>` : ''}</li>`).join('')
+        : `<li class="recap-item recap-item-empty">${t('recap.itemsEmpty')}</li>`;
       const isLatest = row.meal_index === maxMealIndex;
       const editAction = isLatest
-        ? `<button class="recap-meal-edit" type="button" data-check-in-id="${row.id}"><span class="ms">edit</span>修改內容</button>`
-        : `<span class="recap-meal-locked" title="已記錄下一餐，無法再修改"><span class="ms">lock</span>已鎖定</span>`;
+        ? `<button class="recap-meal-edit" type="button" data-check-in-id="${row.id}"><span class="ms">edit</span>${t('recap.edit')}</button>`
+        : `<span class="recap-meal-locked" title="${t('recap.lockedTitle')}"><span class="ms">lock</span>${t('recap.locked')}</span>`;
       return `
         <section class="recap-meal">
           <header class="recap-meal-head">
-            <strong>${MEAL_LABEL[row.meal_index] ?? `第 ${row.meal_index} 餐`}</strong>
+            <strong>${mealLabel(row.meal_index)}</strong>
             ${veg}
             ${editAction}
           </header>
@@ -435,19 +447,22 @@ function openNutritionModal({ host, iso, dayNumber, getRowsForDay, onChanged }: 
       `;
     }).join('');
 
+    const subText = challengeLevel
+      ? t('recap.subFmt').replace('{a}', String(rows.length)).replace('{b}', String(mealTarget)).replace('{lv}', String(challengeLevel))
+      : t('recap.subNoLv').replace('{a}', String(rows.length)).replace('{b}', String(mealTarget));
     overlay.innerHTML = `
       <div class="nutrition-recap-card">
         <header class="nutrition-recap-head">
           <div class="nutrition-recap-titles">
-            <h2 class="nutrition-recap-title">${dateLabel} · Day ${dayNumber}</h2>
-            <p class="nutrition-recap-sub">完成 ${rows.length} / ${mealTarget} 餐蔬食${challengeLevel ? `（等級 ${challengeLevel}）` : ''}</p>
-            <p class="nutrition-recap-rule"><span class="ms">info</span>下一餐記錄後，前面餐次不再可修改</p>
+            <h2 class="nutrition-recap-title">${t('recap.dayFmt').replace('{date}', dateLabel).replace('{n}', String(dayNumber))}</h2>
+            <p class="nutrition-recap-sub">${subText}</p>
+            <p class="nutrition-recap-rule"><span class="ms">info</span>${t('recap.rule')}</p>
           </div>
-          <button class="nutrition-recap-close" type="button" aria-label="關閉">
+          <button class="nutrition-recap-close" type="button" aria-label="${t('common.close')}">
             <span class="ms">close</span>
           </button>
         </header>
-        ${rows.length ? totalsCard : '<p class="nutrition-recap-empty">這天還沒有 AI 掃描紀錄。</p>'}
+        ${rows.length ? totalsCard : `<p class="nutrition-recap-empty">${t('recap.empty')}</p>`}
         ${mealCards}
       </div>
     `;
@@ -467,7 +482,7 @@ function openNutritionModal({ host, iso, dayNumber, getRowsForDay, onChanged }: 
               await updateCheckInItems(checkInId, next, nextNutrition);
             } catch (err) {
               console.error('[recap] updateCheckInItems failed:', err);
-              window.alert('儲存失敗，請稍後再試');
+              window.alert(t('recap.saveFail'));
               return;
             }
             await onChanged();

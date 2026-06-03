@@ -15,6 +15,7 @@
 import { navigate } from '@/router';
 import { mockScan } from '@/lib/mock-ai';
 import { $checkin, setScan } from '@/store/checkin';
+import { t } from '@/lib/i18n';
 
 export default function scanning(): HTMLElement {
   const wrap = document.createElement('div');
@@ -23,8 +24,8 @@ export default function scanning(): HTMLElement {
   if (!draft.imageDataUrl) {
     wrap.innerHTML = `
       <div class="checkin-body checkin-fallback">
-        <p>請先拍下一張餐點照片。</p>
-        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回到拍照</button>
+        <p>${t('checkin.scanFallback')}</p>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">${t('checkin.fallbackBack')}</button>
       </div>
     `;
     wrap.querySelector('#back')?.addEventListener('click', () => navigate('/check-in'));
@@ -34,28 +35,28 @@ export default function scanning(): HTMLElement {
   wrap.innerHTML = `
     <div class="checkin-body">
       <div class="scan-frame">
-        <img class="scan-image" src="${draft.imageDataUrl}" alt="掃描中" />
+        <img class="scan-image" src="${draft.imageDataUrl}" alt="${t('checkin.scanAlt')}" />
         <div class="scan-grid"></div>
         <div class="scan-line"></div>
         <div class="scan-status" id="scan-status">
           <span class="ms scan-status-icon">auto_awesome</span>
-          <span>食物精靈分析中…</span>
+          <span>${t('checkin.scanStatus')}</span>
         </div>
       </div>
       <div class="scan-dev" id="scan-dev">
         <div class="scan-dev-head">
           <span class="ms">science</span>
-          <span>Prototype — 演示兩種流程</span>
+          <span>${t('checkin.scanDevHead')}</span>
         </div>
         <div class="scan-dev-actions">
           <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="scan-veg">
-            🌱 無肉流程
+            ${t('checkin.scanDevVeg')}
           </button>
           <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="scan-meat">
-            🥩 有肉流程
+            ${t('checkin.scanDevMeat')}
           </button>
         </div>
-        <p class="scan-dev-hint">真實 AI 接上後，這個選擇器會自動拿掉。</p>
+        <p class="scan-dev-hint">${t('checkin.scanDevHint')}</p>
       </div>
     </div>
   `;

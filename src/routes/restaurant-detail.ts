@@ -18,35 +18,38 @@ import { requireRealName } from '@/lib/name-prompt';
 import { googleMapsPlaceUrl } from '@/lib/google-maps-link';
 import { openVeganTierInfo } from '@/lib/vegan-tiers';
 import { $user } from '@/store/user';
+import { t } from '@/lib/i18n';
 
-const PLACE_LABEL: Record<string, string> = {
-  chinese: '中式',
-  western: '西式',
-  cafe: '咖啡',
-  japanese: '日式',
-  thai: '泰式',
-  dessert: '甜點',
+const PLACE_LABEL_KEY: Record<string, string> = {
+  chinese: 'place.chinese',
+  western: 'place.western',
+  cafe: 'place.cafe',
+  japanese: 'place.japanese',
+  thai: 'place.thai',
+  dessert: 'place.dessert',
 };
+function placeLabel(key: string): string {
+  const k = PLACE_LABEL_KEY[key];
+  return k ? t(k) : key;
+}
 
-/** Reasons surfaced when the user reports the *restaurant* (top-right flag).
- *  Source: 蔬食地圖規格 v0.1 §4.7. 廣告 was intentionally dropped — that's a
- *  review-level concern, not a restaurant-level one. */
-const RESTAURANT_REPORT_REASONS = [
-  '店家不存在',
-  '已歇業',
-  '資料錯誤',
+const RESTAURANT_REPORT_REASON_KEYS = [
+  'detail.reasonNotExists',
+  'detail.reasonClosed',
+  'detail.reasonInfoErr',
 ];
 
-/** Reasons surfaced when the user reports a *single review* (per-row flag). */
-const REVIEW_REPORT_REASONS = [
-  '不當內容',
-  '廣告 / 垃圾訊息',
-  '不實評論',
-  '其他',
+const REVIEW_REPORT_REASON_KEYS = [
+  'detail.reviewReasonBad',
+  'detail.reviewReasonAd',
+  'detail.reviewReasonFake',
+  'detail.reviewReasonOther',
 ];
 
-/** Spec §4.6 — picker shown when the user deletes their own review. */
-const REVIEW_DELETE_REASONS = ['內容有誤', '想法改變'] as const;
+const REVIEW_DELETE_REASON_KEYS = [
+  'detail.deleteReasonContent',
+  'detail.deleteReasonMind',
+] as const;
 
 export default function detail(params: Record<string, string>): HTMLElement {
   const id = Number(params.id);
@@ -54,11 +57,11 @@ export default function detail(params: Record<string, string>): HTMLElement {
   wrap.className = 'restaurant-detail';
   wrap.innerHTML = `
     <header class="detail-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回地圖">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title" id="title">載入中…</span>
-      <button class="detail-flag-btn" id="report-btn" aria-label="檢舉店家（已歇業 / 位置錯誤等）" title="檢舉店家">
+      <span class="checkin-title" id="title">${t('common.loading')}</span>
+      <button class="detail-flag-btn" id="report-btn" aria-label="${t('detail.reportTitle')}" title="${t('detail.reportTitle')}">
         <span class="ms">flag</span>
       </button>
     </header>
@@ -67,17 +70,17 @@ export default function detail(params: Record<string, string>): HTMLElement {
       <section class="reviews">
         <div class="reviews-head">
           <h2 class="reviews-title">
-            評論
-            <button class="vegan-info-btn vegan-info-btn-inline" id="reviews-vegan-info-btn" type="button" aria-label="素別說明" title="素別說明">
+            ${t('detail.reviewsTitle')}
+            <button class="vegan-info-btn vegan-info-btn-inline" id="reviews-vegan-info-btn" type="button" aria-label="${t('review.veganInfo')}" title="${t('review.veganInfo')}">
               <span class="ms">info</span>
             </button>
           </h2>
           <button class="btn text-btn-m btn-primary btn-sm text-mini" id="add-review">
-            <span class="ms">edit</span>寫評論
+            <span class="ms">edit</span>${t('detail.writeReview')}
           </button>
         </div>
         <div class="reviews-list" id="reviews-list">
-          <p class="reviews-empty">載入中…</p>
+          <p class="reviews-empty">${t('common.loading')}</p>
         </div>
       </section>
     </div>
@@ -103,8 +106,8 @@ export default function detail(params: Record<string, string>): HTMLElement {
     if (btn) {
       const mine = uid !== null && allReviews.some((r) => r.user_id === uid);
       btn.innerHTML = mine
-        ? '<span class="ms">edit_note</span>更新評論'
-        : '<span class="ms">edit</span>寫評論';
+        ? `<span class="ms">edit_note</span>${t('detail.updateReview')}`
+        : `<span class="ms">edit</span>${t('detail.writeReview')}`;
     }
   };
 
@@ -120,10 +123,10 @@ export default function detail(params: Record<string, string>): HTMLElement {
   });
   wrap.querySelector('#report-btn')?.addEventListener('click', () => {
     openReportPicker(wrap, {
-      title: '檢舉店家',
-      hint: '請選擇最貼近的原因，我們會盡快人工確認。',
-      reasons: RESTAURANT_REPORT_REASONS,
-      onPick: (reason) => window.alert(`已記錄檢舉：${reason}`),
+      title: t('detail.reportTitle'),
+      hint: t('detail.reportSub'),
+      reasons: RESTAURANT_REPORT_REASON_KEYS.map((k) => t(k)),
+      onPick: (reason) => window.alert(t('detail.reportLogged').replace('{reason}', reason)),
     });
   });
 
@@ -151,11 +154,15 @@ export default function detail(params: Record<string, string>): HTMLElement {
     if (flag) {
       const reviewId = flag.dataset.reviewId;
       openReportPicker(wrap, {
-        title: '檢舉這則評論',
-        hint: '請選擇最貼近的原因，我們會盡快人工確認。',
-        reasons: REVIEW_REPORT_REASONS,
+        title: t('detail.reportReview'),
+        hint: t('detail.reportSub'),
+        reasons: REVIEW_REPORT_REASON_KEYS.map((k) => t(k)),
         onPick: (reason) =>
-          window.alert(`已記錄檢舉：${reason}${reviewId ? `（評論 #${reviewId}）` : ''}`),
+          window.alert(
+            reviewId
+              ? t('detail.reportLoggedRev').replace('{reason}', reason).replace('{id}', reviewId)
+              : t('detail.reportLogged').replace('{reason}', reason),
+          ),
       });
       return;
     }
@@ -179,7 +186,7 @@ export default function detail(params: Record<string, string>): HTMLElement {
           renderList();
         } catch (err) {
           console.error('[detail] deleteReview failed:', err);
-          window.alert('刪除失敗，請稍後再試');
+          window.alert(t('detail.deleteFail'));
         }
       });
     }
@@ -189,7 +196,7 @@ export default function detail(params: Record<string, string>): HTMLElement {
     try {
       const r = await getRestaurant(id);
       if (!r) {
-        titleEl.textContent = '店家不存在';
+        titleEl.textContent = t('detail.notFound');
         listEl.innerHTML = '';
         return;
       }
@@ -199,7 +206,7 @@ export default function detail(params: Record<string, string>): HTMLElement {
       renderList();
     } catch (err) {
       console.error('[detail] load failed:', err);
-      titleEl.textContent = '載入失敗';
+      titleEl.textContent = t('common.loadFailed');
     }
   })();
 
@@ -232,29 +239,32 @@ function openDeleteReviewModal(
   overlay.setAttribute('aria-modal', 'true');
   overlay.innerHTML = `
     <div class="delete-review-card">
-      <h2 class="delete-review-title">刪除評論？</h2>
+      <h2 class="delete-review-title">${t('detail.deleteTitle')}</h2>
       ${
         locked
-          ? `<p class="delete-review-lock">發布未滿 30 分鐘，僅可編輯。<br/>還剩約 ${minsLeft} 分鐘。</p>
+          ? `<p class="delete-review-lock">${t('detail.deleteLock').replace('{n}', String(minsLeft))}</p>
              <div class="delete-review-actions">
-               <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">取消</button>
-               <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" data-act="edit">改為編輯</button>
+               <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">${t('common.cancel')}</button>
+               <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" data-act="edit">${t('detail.deleteSwitch')}</button>
              </div>`
-          : `<p class="delete-review-nudge">你也可以「<a href="#" data-act="edit">編輯</a>」這則評論，而不是刪除。</p>
+          : `<p class="delete-review-nudge">${t('detail.deleteNudge')}</p>
              <fieldset class="delete-review-reasons">
-               <legend>刪除原因</legend>
-               ${REVIEW_DELETE_REASONS.map(
-                 (r, i) => `
+               <legend>${t('detail.deleteWhy')}</legend>
+               ${REVIEW_DELETE_REASON_KEYS.map(
+                 (k, i) => {
+                   const reason = t(k);
+                   return `
                  <label class="delete-review-reason">
-                   <input type="radio" name="delete-reason" value="${r}" ${i === 0 ? 'checked' : ''} />
-                   <span>${r}</span>
-                 </label>`,
+                   <input type="radio" name="delete-reason" value="${reason}" ${i === 0 ? 'checked' : ''} />
+                   <span>${reason}</span>
+                 </label>`;
+                 },
                ).join('')}
              </fieldset>
-             <p class="delete-review-warn">XP 與連續日不會被扣回，但這則評論會永久消失。</p>
+             <p class="delete-review-warn">${t('detail.deleteWarn')}</p>
              <div class="delete-review-actions">
-               <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">取消</button>
-               <button type="button" class="btn text-btn-m btn-danger btn-l text-btn-l" data-act="confirm">確認刪除</button>
+               <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">${t('common.cancel')}</button>
+               <button type="button" class="btn text-btn-m btn-danger btn-l text-btn-l" data-act="confirm">${t('detail.deleteConfirm')}</button>
              </div>`
       }
     </div>
@@ -263,9 +273,9 @@ function openDeleteReviewModal(
   function close(): void { overlay.remove(); }
 
   overlay.addEventListener('click', (e) => {
-    const t = e.target as HTMLElement;
-    if (t === overlay) { close(); return; }
-    const act = t.closest<HTMLElement>('[data-act]')?.dataset.act;
+    const target = e.target as HTMLElement;
+    if (target === overlay) { close(); return; }
+    const act = target.closest<HTMLElement>('[data-act]')?.dataset.act;
     if (!act) return;
     e.preventDefault();
     if (act === 'cancel') { close(); return; }
@@ -280,7 +290,7 @@ function openDeleteReviewModal(
       const picked = overlay.querySelector<HTMLInputElement>('input[name="delete-reason"]:checked');
       if (!picked) return;
       const btn = overlay.querySelector<HTMLButtonElement>('[data-act="confirm"]');
-      if (btn) { btn.disabled = true; btn.textContent = '刪除中…'; }
+      if (btn) { btn.disabled = true; btn.textContent = t('detail.deleting'); }
       void Promise.resolve(onConfirm(picked.value)).finally(close);
     }
     // Suppress unused-var warning for reviewId — the caller closes over it.
@@ -372,7 +382,7 @@ function renderMeta(el: HTMLElement, r: Restaurant): void {
     </a>
     <div class="detail-line">
       <span class="ms">restaurant</span>
-      <span>${PLACE_LABEL[r.place_type] ?? r.place_type}</span>
+      <span>${placeLabel(r.place_type)}</span>
       ${r.is_partner ? '<span class="map-partner-tag">合作</span>' : ''}
     </div>
     ${
@@ -395,21 +405,22 @@ function renderVeganTally(reviews: RestaurantReview[], selectedTier: string | nu
   const counts = new Map<string, number>();
   for (const rv of reviews) {
     if (!rv.vegan_type) continue;
-    for (const t of rv.vegan_type.split(',').map((s) => s.trim()).filter(Boolean)) {
-      counts.set(t, (counts.get(t) ?? 0) + 1);
+    for (const tier of rv.vegan_type.split(',').map((s) => s.trim()).filter(Boolean)) {
+      counts.set(tier, (counts.get(tier) ?? 0) + 1);
     }
   }
   if (counts.size === 0) return '';
   const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   return `
-    <div class="vegan-tally" role="group" aria-label="各素別選擇人數（可點選篩選評論）">
+    <div class="vegan-tally" role="group" aria-label="${t('tally.aria')}">
       ${sorted
-        .map(([t, n]) => {
-          const active = selectedTier === t;
-          return `<button class="vegan-tally-chip${active ? ' is-active' : ''}" data-tier="${escapeHtml(t)}" type="button" aria-pressed="${active}" title="只顯示 ${escapeHtml(t)} 的評論"><span class="vegan-tally-label">${escapeHtml(t)}</span><span class="vegan-tally-count">×${n}</span></button>`;
+        .map(([tier, n]) => {
+          const active = selectedTier === tier;
+          const title = t('tally.filterTitle').replace('{tier}', escapeHtml(tier));
+          return `<button class="vegan-tally-chip${active ? ' is-active' : ''}" data-tier="${escapeHtml(tier)}" type="button" aria-pressed="${active}" title="${title}"><span class="vegan-tally-label">${escapeHtml(tier)}</span><span class="vegan-tally-count">×${n}</span></button>`;
         })
         .join('')}
-      ${selectedTier ? `<button class="vegan-tally-clear" type="button" data-clear="1" title="清除篩選"><span class="ms">close</span>顯示全部</button>` : ''}
+      ${selectedTier ? `<button class="vegan-tally-clear" type="button" data-clear="1" title="${t('tally.clearTitle')}"><span class="ms">close</span>${t('tally.clear')}</button>` : ''}
     </div>
   `;
 }
@@ -434,8 +445,8 @@ function renderReviews(
     : reviews;
   if (visible.length === 0) {
     const empty = reviews.length === 0
-      ? '<p class="reviews-empty">還沒有評論，成為第一位吧！</p>'
-      : `<p class="reviews-empty">沒有「${escapeHtml(selectedTier ?? '')}」的評論</p>`;
+      ? `<p class="reviews-empty">${t('detail.emptyReviews')}</p>`
+      : `<p class="reviews-empty">${t('detail.empty.filtered').replace('{tier}', escapeHtml(selectedTier ?? ''))}</p>`;
     el.innerHTML = tally + empty;
     return;
   }
@@ -445,13 +456,13 @@ function renderReviews(
       // Own-review row drops the report flag (no point reporting yourself)
       // and gains the edit / delete action pair instead.
       const actions = isMine
-        ? `<button class="review-edit" type="button" aria-label="編輯這則評論" title="編輯">
+        ? `<button class="review-edit" type="button" aria-label="${t('detail.editReview')}" title="${t('detail.editReview')}">
              <span class="ms">edit</span>
            </button>
-           <button class="review-delete" data-review-id="${rv.id}" data-created-at="${escapeHtml(rv.created_at)}" type="button" aria-label="刪除這則評論" title="刪除">
+           <button class="review-delete" data-review-id="${rv.id}" data-created-at="${escapeHtml(rv.created_at)}" type="button" aria-label="${t('detail.deleteReview')}" title="${t('detail.deleteReview')}">
              <span class="ms">delete</span>
            </button>`
-        : `<button class="review-flag" data-review-id="${rv.id}" type="button" aria-label="檢舉這則評論" title="檢舉這則評論">
+        : `<button class="review-flag" data-review-id="${rv.id}" type="button" aria-label="${t('detail.reportReview')}" title="${t('detail.reportReview')}">
              <span class="ms">flag</span>
            </button>`;
       return `
@@ -459,7 +470,7 @@ function renderReviews(
         <div class="review-head">
           <span class="review-stars" aria-label="${rv.rating} 顆星">${'★'.repeat(rv.rating)}${'☆'.repeat(5 - rv.rating)}</span>
           ${rv.vegan_type ? `<span class="review-tag">${escapeHtml(rv.vegan_type)}</span>` : ''}
-          ${isMine ? '<span class="review-mine-tag">我的評論</span>' : ''}
+          ${isMine ? `<span class="review-mine-tag">${t('detail.myReview')}</span>` : ''}
           <span class="review-date">${formatDate(rv.created_at)}</span>
           ${actions}
         </div>

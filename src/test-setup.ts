@@ -48,3 +48,11 @@ if (typeof window !== 'undefined') {
     configurable: true,
   });
 }
+
+// Pin tests to zh — the prototype's source language. Component tests
+// that assert against on-screen copy were written before i18n shipped,
+// so they all read in zh. Tests that care about en behaviour can
+// override via $locale.set('en') in their own beforeEach.
+import { $locale } from './lib/i18n';
+import { beforeEach } from 'vitest';
+beforeEach(() => $locale.set('zh'));

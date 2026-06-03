@@ -32,8 +32,9 @@ import {
 } from '@/api/reviews';
 import { awardXp } from '@/store/pet';
 import { VEGAN_TIERS, openVeganTierInfo } from '@/lib/vegan-tiers';
+import { t } from '@/lib/i18n';
 
-const VEGAN_TYPES = VEGAN_TIERS.map((t) => t.value);
+const VEGAN_TYPES = VEGAN_TIERS.map((tier) => tier.value);
 
 export default function review(params: Record<string, string>): HTMLElement {
   const restaurantId = Number(params.id);
@@ -41,16 +42,16 @@ export default function review(params: Record<string, string>): HTMLElement {
   wrap.className = 'review-screen';
   wrap.innerHTML = `
     <header class="detail-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">寫評論</span>
+      <span class="checkin-title">${t('review.title')}</span>
       <span class="checkin-meal" id="rest-name">…</span>
     </header>
     <form class="review-form" id="form">
       <div class="review-section">
-        <span class="review-section-label">評分</span>
-        <div class="star-rating" id="stars" role="radiogroup" aria-label="評分">
+        <span class="review-section-label">${t('review.rating')}</span>
+        <div class="star-rating" id="stars" role="radiogroup" aria-label="${t('review.rating')}">
           ${[1, 2, 3, 4, 5]
             .map(
               (n) =>
@@ -62,8 +63,8 @@ export default function review(params: Record<string, string>): HTMLElement {
 
       <div class="review-section">
         <div class="review-section-label-row">
-          <span class="review-section-label">素別（可複選）</span>
-          <button class="vegan-info-btn" id="vegan-info-btn" type="button" aria-label="素別說明">
+          <span class="review-section-label">${t('review.veganLabel')}</span>
+          <button class="vegan-info-btn" id="vegan-info-btn" type="button" aria-label="${t('review.veganInfo')}">
             <span class="ms">info</span>
           </button>
         </div>
@@ -75,18 +76,18 @@ export default function review(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">想說些什麼？（選填）</span>
-        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="你的素食體驗、餐點推薦…"></textarea>
+        <span class="review-section-label">${t('review.text')}</span>
+        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="${t('review.textPh')}"></textarea>
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">餐點照片（選填）</span>
+        <span class="review-section-label">${t('review.photo')}</span>
         <input type="file" accept="image/*" id="photo" />
-        <img class="review-photo-preview" id="photo-preview" hidden alt="照片預覽" />
+        <img class="review-photo-preview" id="photo-preview" hidden alt="${t('review.photoAlt')}" />
       </div>
 
       <div class="review-error" id="error" hidden></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出評論 (+${REVIEW_XP_FIRST} XP)</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">${t('review.submit').replace('{xp}', String(REVIEW_XP_FIRST))}</button>
     </form>
   `;
 
@@ -112,12 +113,12 @@ export default function review(params: Record<string, string>): HTMLElement {
     const reviewed = await hasReviewedRestaurant(u.id, restaurantId);
     const previewXp = reviewed ? REVIEW_XP_REPEAT : REVIEW_XP_FIRST;
     const btn = wrap.querySelector<HTMLButtonElement>('#submit');
-    if (btn) btn.textContent = `送出評論 (+${previewXp} XP)`;
+    if (btn) btn.textContent = t('review.submit').replace('{xp}', String(previewXp));
   })();
 
   function enterEditMode(existing: RestaurantReview): void {
     const titleEl = wrap.querySelector<HTMLElement>('.checkin-title');
-    if (titleEl) titleEl.textContent = '編輯評論';
+    if (titleEl) titleEl.textContent = t('review.editTitle');
     // Prepend an explainer banner so the user sees this is a re-entry
     // into the same review, not a duplicate submission.
     const form = wrap.querySelector<HTMLFormElement>('#form')!;
@@ -125,7 +126,7 @@ export default function review(params: Record<string, string>): HTMLElement {
     banner.className = 'review-edit-banner';
     banner.innerHTML = `
       <span class="ms">edit_note</span>
-      <span>你已評論過這家店，目前在編輯這則評論。</span>
+      <span>${t('review.editBanner')}</span>
     `;
     form.prepend(banner);
     // Prefill: rating
@@ -143,7 +144,7 @@ export default function review(params: Record<string, string>): HTMLElement {
     }
     // Submit-button label reflects update intent (no XP for edits).
     const btn = wrap.querySelector<HTMLButtonElement>('#submit');
-    if (btn) btn.textContent = '更新評論';
+    if (btn) btn.textContent = t('review.update');
     // 「同時當作今日打卡」 is a create-only affordance — hide it on edits
     // so the user can't double-credit the same meal via the edit route.
     const checkinLabel = wrap.querySelector<HTMLElement>('.review-checkin');
@@ -216,12 +217,12 @@ export default function review(params: Record<string, string>): HTMLElement {
     }
     if (rating === 0) {
       errorEl.hidden = false;
-      errorEl.textContent = '請先選擇評分';
+      errorEl.textContent = t('review.errRating');
       return;
     }
     if (veganSet.size === 0) {
       errorEl.hidden = false;
-      errorEl.textContent = '請至少選擇一個素別';
+      errorEl.textContent = t('review.errVegan');
       return;
     }
     const veganType = Array.from(veganSet).join(',');
@@ -232,7 +233,7 @@ export default function review(params: Record<string, string>): HTMLElement {
     void photoDataUrl;
 
     submitBtn.disabled = true;
-    submitBtn.textContent = editingReview ? '更新中…' : '送出中…';
+    submitBtn.textContent = editingReview ? t('review.updating') : t('common.submitting');
 
     try {
       if (editingReview) {
@@ -247,9 +248,9 @@ export default function review(params: Record<string, string>): HTMLElement {
             (REVIEW_EDIT_COOLDOWN_MS - (Date.now() - lastEdit.getTime())) / (60 * 60 * 1000),
           );
           errorEl.hidden = false;
-          errorEl.textContent = `這則評論剛編輯過，請於 ${hoursLeft} 小時後再試。`;
+          errorEl.textContent = t('review.cooldown').replace('{h}', String(hoursLeft));
           submitBtn.disabled = false;
-          submitBtn.textContent = '更新評論';
+          submitBtn.textContent = t('review.update');
           return;
         }
         await updateReview(editingReview.id, {
@@ -289,9 +290,11 @@ export default function review(params: Record<string, string>): HTMLElement {
     } catch (err) {
       console.error('[review] submit failed:', err);
       errorEl.hidden = false;
-      errorEl.textContent = editingReview ? '更新失敗，請稍後再試' : '送出失敗，請稍後再試';
+      errorEl.textContent = editingReview ? t('review.failUpdate') : t('review.failSubmit');
       submitBtn.disabled = false;
-      submitBtn.textContent = editingReview ? '更新評論' : `送出評論 (+${REVIEW_XP_FIRST} XP)`;
+      submitBtn.textContent = editingReview
+        ? t('review.update')
+        : t('review.submit').replace('{xp}', String(REVIEW_XP_FIRST));
     }
   }
 
@@ -299,10 +302,10 @@ export default function review(params: Record<string, string>): HTMLElement {
     form.innerHTML = `
       <section class="review-success">
         <div class="review-success-icon" aria-hidden="true">✨</div>
-        <h2 class="review-success-title">評論已更新</h2>
-        <p class="review-success-sub">下次想再修改？每則評論每 24 小時可調整一次。</p>
+        <h2 class="review-success-title">${t('review.editSuccessTitle')}</h2>
+        <p class="review-success-sub">${t('review.editSuccessSub')}</p>
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back-to-detail" type="button">
-          回到店家
+          ${t('review.backToShop')}
         </button>
       </section>
     `;
@@ -334,12 +337,12 @@ export default function review(params: Record<string, string>): HTMLElement {
     form.innerHTML = `
       <section class="review-success">
         <div class="review-success-icon" aria-hidden="true">🎉</div>
-        <h2 class="review-success-title">感謝你的評論！</h2>
+        <h2 class="review-success-title">${t('review.successTitle')}</h2>
         <div class="review-success-stars">${stars}</div>
         ${xpPip}
         ${gemsPip}
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back-to-map" type="button">
-          回到地圖
+          ${t('review.backToMap')}
         </button>
       </section>
     `;

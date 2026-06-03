@@ -15,11 +15,12 @@ import { navigate } from '@/router';
 import { createProgress } from '@/components/Progress';
 import { $profile } from '@/store/user';
 import { $onboardingDraft } from '@/store/onboarding-draft';
+import { t } from '@/lib/i18n';
 
-const PURPOSE_LINES: Record<string, string> = {
-  body: '為了照顧自己的身體，從一餐開始。',
-  environment: '每替代一公斤肉，地球少燒 60 kg CO₂。',
-  vow: '每一餐都是寫給未來的承諾。',
+const PURPOSE_LINE_KEYS: Record<string, string> = {
+  body: 'onb.day1.purpose.body',
+  environment: 'onb.day1.purpose.env',
+  vow: 'onb.day1.purpose.vow',
 };
 
 const DIET_TINT: Record<string, string> = {
@@ -37,7 +38,8 @@ export default function day1Hook(): HTMLElement {
   const dietType = p?.diet_type ?? d.diet_type;
   const purpose = p?.purpose ?? d.purpose;
   const tint = (dietType && DIET_TINT[dietType]) ?? 'neutral';
-  const purposeLine = PURPOSE_LINES[purpose ?? ''] ?? '跟著精靈一起探索蔬食。';
+  const purposeKey = PURPOSE_LINE_KEYS[purpose ?? ''] ?? 'onb.day1.purpose.default';
+  const purposeLine = t(purposeKey);
 
   wrap.innerHTML = `
     <div class="onb-header">
@@ -48,17 +50,14 @@ export default function day1Hook(): HTMLElement {
       <div class="fog-overlay"></div>
       <div class="day1-egg" data-tint="${tint}">🥚</div>
       <div class="day1-content">
-        <h1 class="day1-title">你獲得了一顆守護者蛋</h1>
+        <h1 class="day1-title">${t('onb.day1.title')}</h1>
         <ul class="day1-rules">
-          <li>📅 30 天連續挑戰</li>
+          <li>${t('onb.day1.rule.days')}</li>
           <li>🎯 ${purposeLine}</li>
         </ul>
-        <p class="day1-text">
-          蛋殼裡的精靈正等待你<br/>
-          先完成接下來的設定，再為這顆蛋取個名字
-        </p>
+        <p class="day1-text">${t('onb.day1.text')}</p>
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="enter-btn">
-          繼續設定
+          ${t('onb.day1.cta')}
           <span class="ms">arrow_forward</span>
         </button>
       </div>

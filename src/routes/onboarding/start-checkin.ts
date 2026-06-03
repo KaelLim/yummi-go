@@ -13,6 +13,7 @@
 import { navigate } from '@/router';
 import { $user, $profile } from '@/store/user';
 import { $onboardingDraft } from '@/store/onboarding-draft';
+import { t } from '@/lib/i18n';
 
 const DIET_TINT: Record<string, string> = {
   vegan: 'vegan',
@@ -30,7 +31,8 @@ export default function startCheckin(): HTMLElement {
   const draft = $onboardingDraft.get();
   const dietType = p?.diet_type ?? draft.diet_type;
   const tint = (dietType && DIET_TINT[dietType]) ?? 'neutral';
-  const petName = u?.displayName ?? draft.pet_name ?? '你的守護者';
+  const petName = u?.displayName ?? draft.pet_name ?? t('onb.start.petFallback');
+  const safeName = escapeHtml(petName);
 
   wrap.innerHTML = `
     <div class="onb-header">
@@ -39,16 +41,13 @@ export default function startCheckin(): HTMLElement {
     <div class="day1-body">
       <div class="day1-egg" data-tint="${tint}">🥚</div>
       <div class="day1-content">
-        <h1 class="day1-title">${escapeHtml(petName)} 餓了！</h1>
-        <p class="day1-text">
-          完成第一次打卡，把今天的蔬食拍給 ${escapeHtml(petName)} 看 —<br/>
-          孵化的能量就在你的下一餐裡。
-        </p>
+        <h1 class="day1-title">${t('onb.start.hungry').replace('{name}', safeName)}</h1>
+        <p class="day1-text">${t('onb.start.text').replace(/\{name\}/g, safeName)}</p>
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="start-btn">
-          開始打卡
+          ${t('onb.start.cta')}
           <span class="ms">arrow_forward</span>
         </button>
-        <button class="btn-skip" id="skip-btn" type="button">稍後再打卡</button>
+        <button class="btn-skip" id="skip-btn" type="button">${t('onb.start.skip')}</button>
       </div>
     </div>
   `;

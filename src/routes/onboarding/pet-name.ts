@@ -23,6 +23,7 @@ import { $onboardingDraft, patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 import { listPetNameSuggestions } from '@/api/content';
 import { updateDisplayName } from '@/api/profile';
+import { t } from '@/lib/i18n';
 
 const STATIC_FALLBACK = '小綠';
 
@@ -48,21 +49,21 @@ export default function petName(): HTMLElement {
     </div>
     <div class="onb-body">
       <div class="day1-egg" data-tint="neutral" style="font-size:64px;margin:0 auto;">🥚</div>
-      <h1 class="onb-title text-h2">為你的守護者取名</h1>
-      <p class="onb-sub text-mini">這個名字會跟著你走完 30 天的挑戰</p>
+      <h1 class="onb-title text-h2">${t('onb.petname.title')}</h1>
+      <p class="onb-sub text-mini">${t('onb.petname.sub')}</p>
       <label class="field">
-        <span class="field-label text-mini">寵物名稱</span>
+        <span class="field-label text-mini">${t('onb.petname.field')}</span>
         <div class="field-row">
           <input class="input" id="pet-name-input" type="text" maxlength="20" value="${escapeHtml(
             draft.pet_name ?? STATIC_FALLBACK,
           )}" />
-          <button class="btn-icon" id="pet-name-refresh" type="button" aria-label="再抽一個名字" title="再抽一個">
+          <button class="btn-icon" id="pet-name-refresh" type="button" aria-label="${t('onb.petname.refresh')}" title="${t('onb.petname.refresh')}">
             <span class="ms">refresh</span>
           </button>
         </div>
       </label>
       <div class="auth-error" id="pet-name-error" hidden></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">下一步</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">${t('common.next')}</button>
     </div>
   `;
 
@@ -119,7 +120,7 @@ export default function petName(): HTMLElement {
     const name = input.value.trim();
     if (!name) {
       error.hidden = false;
-      error.textContent = '請為你的守護者取個名字';
+      error.textContent = t('onb.petname.error');
       return;
     }
     // Always patch the draft so the defensive /register branch still works

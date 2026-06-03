@@ -6,20 +6,21 @@ import { navigate } from '@/router';
 import { $user } from '@/store/user';
 import { listMyReviews, type RestaurantReview } from '@/api/reviews';
 import { getRestaurant } from '@/api/content';
+import { t } from '@/lib/i18n';
 
 export default function myReviews(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'reviews-screen';
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">我的評論</span>
+      <span class="checkin-title">${t('reviews.title')}</span>
       <span></span>
     </header>
     <div class="reviews-list" id="list">
-      <p class="reviews-empty">載入中…</p>
+      <p class="reviews-empty">${t('reviews.loading')}</p>
     </div>
   `;
 
@@ -42,13 +43,13 @@ async function hydrate(wrap: HTMLElement): Promise<void> {
   try {
     reviews = await listMyReviews(u.id);
   } catch (err) {
-    listEl.innerHTML = '<p class="reviews-empty">載入失敗</p>';
+    listEl.innerHTML = `<p class="reviews-empty">${t('reviews.loadFailed')}</p>`;
     console.warn('[my-reviews] load failed:', err);
     return;
   }
 
   if (reviews.length === 0) {
-    listEl.innerHTML = '<p class="reviews-empty">還沒寫過評論。打開地圖找一家去評論看看吧！</p>';
+    listEl.innerHTML = `<p class="reviews-empty">${t('reviews.empty')}</p>`;
     return;
   }
 
@@ -71,13 +72,13 @@ async function hydrate(wrap: HTMLElement): Promise<void> {
       (r) => `
       <article class="review-item review-item-mine" data-id="${r.id}">
         <div class="review-head">
-          <strong class="review-restaurant">${escapeHtml(idToName.get(r.restaurant_id) ?? `店家 #${r.restaurant_id}`)}</strong>
+          <strong class="review-restaurant">${escapeHtml(idToName.get(r.restaurant_id) ?? t('reviews.shopFallback').replace('{id}', String(r.restaurant_id)))}</strong>
           <span class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
           <span class="review-date">${formatDate(r.created_at)}</span>
         </div>
         ${r.text ? `<p class="review-text">${escapeHtml(r.text)}</p>` : ''}
         <div class="review-actions">
-          <button class="link-btn" data-go="/map/restaurant/${r.restaurant_id}">前往店家</button>
+          <button class="link-btn" data-go="/map/restaurant/${r.restaurant_id}">${t('reviews.goToShop')}</button>
         </div>
       </article>`,
     )

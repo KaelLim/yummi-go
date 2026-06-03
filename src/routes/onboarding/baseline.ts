@@ -14,16 +14,14 @@ import { $user } from '@/store/user';
 import { updateProfile } from '@/api/profile';
 import { patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
+import { t } from '@/lib/i18n';
 
 const TYPES = [
-  { key: 'beef',    emoji: '🐄', label: '牛肉' },
-  { key: 'pork',    emoji: '🐖', label: '豬肉' },
-  { key: 'lamb',    emoji: '🐑', label: '羊肉' },
-  { key: 'chicken', emoji: '🐓', label: '雞肉' },
-  // 蔬食 is the explicit plant share so flexitarians can see their
-  // non-meat ratio directly instead of inferring it from "100 - meats".
-  // Sum across all 5 must equal 100% to advance.
-  { key: 'plant',   emoji: '🌱', label: '蔬食' },
+  { key: 'beef',    emoji: '🐄', labelKey: 'onb.baseline.meatBeef' },
+  { key: 'pork',    emoji: '🐖', labelKey: 'onb.baseline.meatPork' },
+  { key: 'lamb',    emoji: '🐑', labelKey: 'onb.baseline.meatLamb' },
+  { key: 'chicken', emoji: '🐓', labelKey: 'onb.baseline.meatChicken' },
+  { key: 'plant',   emoji: '🌱', labelKey: 'onb.baseline.plant' },
 ];
 
 export default function baseline(): HTMLElement {
@@ -39,26 +37,26 @@ export default function baseline(): HTMLElement {
       ${createProgress({ current: 2, total: 5 }).outerHTML}
     </div>
     <div class="onb-body">
-      <h1 class="onb-title text-h2">原本的肉類飲食</h1>
-      <p class="onb-sub text-mini">這是用來計算你的減碳成果。可滑動調整每種肉的比例。</p>
+      <h1 class="onb-title text-h2">${t('onb.baseline.title')}</h1>
+      <p class="onb-sub text-mini">${t('onb.baseline.sub')}</p>
       <div class="baseline-list" id="baseline-list">
-        ${TYPES.map(t => `
-          <div class="baseline-row" data-key="${t.key}">
+        ${TYPES.map(tp => `
+          <div class="baseline-row" data-key="${tp.key}">
             <div class="baseline-label">
-              <span class="baseline-emoji">${t.emoji}</span>
-              <span class="baseline-name">${t.label}</span>
-              <span class="baseline-value">${Math.round(state[t.key] * 100)}%</span>
+              <span class="baseline-emoji">${tp.emoji}</span>
+              <span class="baseline-name">${t(tp.labelKey)}</span>
+              <span class="baseline-value">${Math.round(state[tp.key] * 100)}%</span>
             </div>
-            <input type="range" min="0" max="100" value="${Math.round(state[t.key] * 100)}" class="baseline-slider" data-key="${t.key}" />
+            <input type="range" min="0" max="100" value="${Math.round(state[tp.key] * 100)}" class="baseline-slider" data-key="${tp.key}" />
           </div>
         `).join('')}
       </div>
       <div class="baseline-total" id="total-row">
-        <span>總計</span>
+        <span>${t('onb.baseline.total')}</span>
         <span id="total-pct">${Math.round(totalPct() * 100)}%</span>
       </div>
-      <p class="baseline-hint" id="total-hint">合計需為 100% 才能繼續</p>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">繼續</button>
+      <p class="baseline-hint" id="total-hint">${t('onb.baseline.hint.gate')}</p>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="continue-btn">${t('common.continue')}</button>
     </div>
   `;
 
@@ -86,10 +84,10 @@ export default function baseline(): HTMLElement {
     const hint = wrap.querySelector('#total-hint');
     if (hint) {
       hint.textContent = total === 100
-        ? '✓ 合計 100%'
+        ? t('onb.baseline.hint.ok')
         : total > 100
-          ? `超出 ${total - 100}%，請調整滑桿`
-          : `還差 ${100 - total}%`;
+          ? t('onb.baseline.hint.over').replace('{n}', String(total - 100))
+          : t('onb.baseline.hint.short').replace('{n}', String(100 - total));
     }
     const btn = wrap.querySelector<HTMLButtonElement>('#continue-btn');
     if (btn) btn.disabled = total !== 100;

@@ -12,31 +12,29 @@ import { navigate } from '@/router';
 import { $user, $profile } from '@/store/user';
 import { updateProfile, getUserFull } from '@/api/profile';
 import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
+import { t } from '@/lib/i18n';
 
 interface DietOption {
   value: string;
   emoji: string;
-  label: string;
+  labelKey: string;
 }
 
 const DIET_OPTIONS: DietOption[] = [
-  { value: 'vegan',        emoji: '🌱', label: 'Vegan 純素' },
-  { value: 'vegetarian',   emoji: '🥚', label: 'Vegetarian 蛋奶素' },
-  { value: 'flexitarian',  emoji: '🥗', label: 'Flexitarian 有時不吃肉' },
-  { value: 'omnivore',     emoji: '🍖', label: 'Omnivore 無肉不歡' },
+  { value: 'vegan',        emoji: '🌱', labelKey: 'profile.diet.vegan' },
+  { value: 'vegetarian',   emoji: '🥚', labelKey: 'profile.diet.vegetarian' },
+  { value: 'flexitarian',  emoji: '🥗', labelKey: 'profile.diet.flexitarian' },
+  { value: 'omnivore',     emoji: '🍖', labelKey: 'profile.diet.omnivore' },
 ];
 
 const BASELINE_KEYS: Array<keyof Baseline> = ['beef', 'pork', 'lamb', 'chicken', 'plant'];
 
-const MEAT_TYPES: Array<{ key: keyof Baseline; emoji: string; label: string }> = [
-  { key: 'beef',    emoji: '🐄', label: '牛肉' },
-  { key: 'pork',    emoji: '🐖', label: '豬肉' },
-  { key: 'lamb',    emoji: '🐑', label: '羊肉' },
-  { key: 'chicken', emoji: '🐓', label: '雞肉' },
-  // 蔬食 is the explicit plant share — added to give flexitarians a
-  // way to record non-meat directly. Submit gate requires the 5 rows
-  // to sum to 100%.
-  { key: 'plant',   emoji: '🌱', label: '蔬食' },
+const MEAT_TYPES: Array<{ key: keyof Baseline; emoji: string; labelKey: string }> = [
+  { key: 'beef',    emoji: '🐄', labelKey: 'onb.baseline.meatBeef' },
+  { key: 'pork',    emoji: '🐖', labelKey: 'onb.baseline.meatPork' },
+  { key: 'lamb',    emoji: '🐑', labelKey: 'onb.baseline.meatLamb' },
+  { key: 'chicken', emoji: '🐓', labelKey: 'onb.baseline.meatChicken' },
+  { key: 'plant',   emoji: '🌱', labelKey: 'onb.baseline.plant' },
 ];
 
 const DEFAULT_BASELINE: Baseline = { beef: 0.15, pork: 0.25, lamb: 0.05, chicken: 0.35, plant: 0.2 };
@@ -51,21 +49,21 @@ export default function baselineEditor(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">基本飲食</span>
+      <span class="checkin-title">${t('profile.baseline.title')}</span>
       <span></span>
     </header>
     <div class="checkin-body">
       <section class="baseline-section">
-        <h2 class="baseline-section-title">你的飲食習慣</h2>
-        <p class="onb-sub text-mini">隨時可以重新選擇 — 每日提示與減碳估算會跟著調整。</p>
+        <h2 class="baseline-section-title">${t('profile.baseline.dietTitle')}</h2>
+        <p class="onb-sub text-mini">${t('profile.baseline.dietSub')}</p>
         <div class="onb-options" id="diet-options">
           ${DIET_OPTIONS.map((o) => `
             <button class="choice diet-choice${o.value === diet ? ' is-selected' : ''}" data-diet="${o.value}" type="button">
               <span class="ch-icon">${o.emoji}</span>
-              <span class="ch-text">${o.label}</span>
+              <span class="ch-text">${t(o.labelKey)}</span>
               <span class="ms ch-arrow">${o.value === diet ? 'check' : 'arrow_forward'}</span>
             </button>
           `).join('')}
@@ -73,36 +71,35 @@ export default function baselineEditor(): HTMLElement {
       </section>
 
       <section class="baseline-section" id="meat-section">
-        <h2 class="baseline-section-title">原本的肉類飲食</h2>
-        <p class="onb-sub text-mini">調整每種肉的比例，會影響減碳估算。</p>
+        <h2 class="baseline-section-title">${t('profile.baseline.meatTitle')}</h2>
+        <p class="onb-sub text-mini">${t('profile.baseline.meatSub')}</p>
         <div class="baseline-list" id="baseline-list">
-          ${MEAT_TYPES.map((t) => `
-            <div class="baseline-row" data-key="${t.key}">
+          ${MEAT_TYPES.map((m) => `
+            <div class="baseline-row" data-key="${m.key}">
               <div class="baseline-label">
-                <span class="baseline-emoji">${t.emoji}</span>
-                <span class="baseline-name">${t.label}</span>
-                <span class="baseline-value" data-value="${t.key}">${Math.round((baseline[t.key] ?? 0) * 100)}%</span>
+                <span class="baseline-emoji">${m.emoji}</span>
+                <span class="baseline-name">${t(m.labelKey)}</span>
+                <span class="baseline-value" data-value="${m.key}">${Math.round((baseline[m.key] ?? 0) * 100)}%</span>
               </div>
-              <input type="range" min="0" max="100" value="${Math.round((baseline[t.key] ?? 0) * 100)}" class="baseline-slider" data-slider="${t.key}" />
+              <input type="range" min="0" max="100" value="${Math.round((baseline[m.key] ?? 0) * 100)}" class="baseline-slider" data-slider="${m.key}" />
             </div>
           `).join('')}
         </div>
         <div class="baseline-total" id="total-row">
-          <span>總計</span>
+          <span>${t('onb.baseline.total')}</span>
           <span id="total-pct">0%</span>
-          <span class="muted">(其他為素食)</span>
         </div>
-        <p class="baseline-hint" id="total-hint">合計需為 100% 才能儲存</p>
+        <p class="baseline-hint" id="total-hint">${t('profile.baseline.gate')}</p>
         <div class="baseline-impact" id="impact-card">
           <span class="ms">eco</span>
-          <span>每 4kg 飲食量約可減碳 <strong id="impact-value">0.0</strong> kg CO₂e</span>
+          <span>${t('profile.baseline.impactPrefix')} <strong id="impact-value">0.0</strong> kg CO₂e</span>
         </div>
       </section>
 
       <div class="review-error" id="error" hidden></div>
     </div>
     <div class="checkin-footer">
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">儲存</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">${t('common.save')}</button>
     </div>
   `;
 
@@ -136,10 +133,10 @@ export default function baselineEditor(): HTMLElement {
     const hint = wrap.querySelector('#total-hint');
     if (hint) {
       hint.textContent = total === 100
-        ? '✓ 合計 100%'
+        ? t('onb.baseline.hint.ok')
         : total > 100
-          ? `超出 ${total - 100}%，請調整滑桿`
-          : `還差 ${100 - total}%`;
+          ? t('onb.baseline.hint.over').replace('{n}', String(total - 100))
+          : t('onb.baseline.hint.short').replace('{n}', String(100 - total));
     }
     // Disable save when sliders are showing and total isn't 100%. Diet-only
     // saves (vegan/vegetarian) skip this gate — no sliders to be wrong.
@@ -193,11 +190,11 @@ export default function baselineEditor(): HTMLElement {
     }
     if (showsMeatSliders() && totalIntPct() !== 100) {
       errorEl.hidden = false;
-      errorEl.textContent = '請將肉類比例合計調整為 100%';
+      errorEl.textContent = t('profile.baseline.errAmt');
       return;
     }
     saveBtn.disabled = true;
-    saveBtn.textContent = '儲存中…';
+    saveBtn.textContent = t('common.saving');
     try {
       const patch: { diet_type: string; baseline?: string } = { diet_type: diet };
       if (showsMeatSliders()) {
@@ -212,7 +209,7 @@ export default function baselineEditor(): HTMLElement {
       errorEl.textContent = (e as Error).message ?? '儲存失敗';
     } finally {
       saveBtn.disabled = false;
-      saveBtn.textContent = '儲存';
+      saveBtn.textContent = t('common.save');
     }
   }
 

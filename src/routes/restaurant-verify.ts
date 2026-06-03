@@ -30,8 +30,9 @@ import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
 import { mockScan, type MockFood } from '@/lib/mock-ai';
 import { openItemsEditor } from '@/lib/items-editor';
 import { VEGAN_TIERS, openVeganTierInfo } from '@/lib/vegan-tiers';
+import { t } from '@/lib/i18n';
 
-const VEGAN_TYPES = VEGAN_TIERS.map((t) => t.value);
+const VEGAN_TYPES = VEGAN_TIERS.map((tier) => tier.value);
 
 const VERIFY_XP = 20;
 
@@ -41,16 +42,16 @@ export default function verify(params: Record<string, string>): HTMLElement {
   wrap.className = 'review-screen verify-screen';
   wrap.innerHTML = `
     <header class="detail-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">認證餐廳</span>
+      <span class="checkin-title">${t('verify.title')}</span>
       <span class="checkin-meal" id="rest-name">+${VERIFY_XP + REVIEW_XP_FIRST} XP</span>
     </header>
     <form class="review-form" id="form">
       <div class="review-section">
-        <span class="review-section-label">評分</span>
-        <div class="star-rating" id="stars" role="radiogroup" aria-label="評分">
+        <span class="review-section-label">${t('review.rating')}</span>
+        <div class="star-rating" id="stars" role="radiogroup" aria-label="${t('review.rating')}">
           ${[1, 2, 3, 4, 5]
             .map(
               (n) =>
@@ -61,14 +62,14 @@ export default function verify(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">想說些什麼？</span>
-        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="你的素食體驗、餐點推薦…"></textarea>
+        <span class="review-section-label">${t('verify.text')}</span>
+        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="${t('review.textPh')}"></textarea>
       </div>
 
       <div class="review-section">
         <div class="review-section-label-row">
-          <span class="review-section-label">素別（可複選）</span>
-          <button class="vegan-info-btn" id="vegan-info-btn" type="button" aria-label="素別說明">
+          <span class="review-section-label">${t('review.veganLabel')}</span>
+          <button class="vegan-info-btn" id="vegan-info-btn" type="button" aria-label="${t('review.veganInfo')}">
             <span class="ms">info</span>
           </button>
         </div>
@@ -80,18 +81,18 @@ export default function verify(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">餐點照片 (選填)</span>
+        <span class="review-section-label">${t('verify.photo')}</span>
         <input type="file" accept="image/*" id="photo" />
-        <img class="review-photo-preview" id="photo-preview" hidden alt="照片預覽" />
+        <img class="review-photo-preview" id="photo-preview" hidden alt="${t('review.photoAlt')}" />
       </div>
 
       <label class="review-checkin">
         <input type="checkbox" id="as-checkin" />
-        <span>同時當作今日打卡照（+30 XP 打卡）</span>
+        <span>${t('verify.asCheckin')}</span>
       </label>
 
       <div class="review-error" id="error" hidden></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">送出認證 (+${VERIFY_XP + REVIEW_XP_FIRST} XP)</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">${t('verify.submit').replace('{xp}', String(VERIFY_XP + REVIEW_XP_FIRST))}</button>
     </form>
   `;
 
@@ -165,12 +166,12 @@ export default function verify(params: Record<string, string>): HTMLElement {
     }
     if (rating === 0) {
       errorEl.hidden = false;
-      errorEl.textContent = '請先選擇評分';
+      errorEl.textContent = t('review.errRating');
       return;
     }
     if (veganSet.size === 0) {
       errorEl.hidden = false;
-      errorEl.textContent = '請至少選擇一個素別';
+      errorEl.textContent = t('review.errVegan');
       return;
     }
     const veganType = Array.from(veganSet).join(',');
@@ -181,7 +182,7 @@ export default function verify(params: Record<string, string>): HTMLElement {
     void photoDataUrl;
 
     submitBtn.disabled = true;
-    submitBtn.textContent = '送出中…';
+    submitBtn.textContent = t('common.submitting');
 
     try {
       // Flip the restaurant to verified + write the user-picked tier.
@@ -264,10 +265,10 @@ export default function verify(params: Record<string, string>): HTMLElement {
       // [select, update]`.
       const detail = (err as Error)?.message ?? '';
       errorEl.textContent = detail
-        ? `送出失敗：${detail}`
-        : '送出失敗，請稍後再試';
+        ? `${t('verify.failPrefix')}${detail}`
+        : t('review.failSubmit');
       submitBtn.disabled = false;
-      submitBtn.textContent = `送出認證 (+${VERIFY_XP + REVIEW_XP_FIRST} XP)`;
+      submitBtn.textContent = t('verify.submit').replace('{xp}', String(VERIFY_XP + REVIEW_XP_FIRST));
     }
   }
 
@@ -294,15 +295,15 @@ export default function verify(params: Record<string, string>): HTMLElement {
     form.innerHTML = `
       <section class="review-success">
         <div class="review-success-icon" aria-hidden="true">🎉</div>
-        <h2 class="review-success-title">認證成功！</h2>
+        <h2 class="review-success-title">${t('verify.successTitle')}</h2>
         <div class="review-success-stars">${stars}</div>
         ${xpPip}
         ${gemsPip}
-        ${args.asCheckin ? '<div class="review-success-checkin-badge"><span class="ms">verified</span>完成打卡</div>' : ''}
+        ${args.asCheckin ? `<div class="review-success-checkin-badge"><span class="ms">verified</span>${t('verify.checkinBadge')}</div>` : ''}
         ${args.asCheckin && args.nutrition ? renderNutritionCard(args.nutrition) : ''}
-        ${args.asCheckin && args.nutrition ? '<button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="edit-items" type="button"><span class="ms">edit</span>修改內容</button>' : ''}
+        ${args.asCheckin && args.nutrition ? `<button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="edit-items" type="button"><span class="ms">edit</span>${t('verify.editItems')}</button>` : ''}
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back-to-map" type="button">
-          回到地圖
+          ${t('review.backToMap')}
         </button>
       </section>
     `;
@@ -336,16 +337,16 @@ export default function verify(params: Record<string, string>): HTMLElement {
       <section class="nutrition-card is-revealed">
         <div class="nutrition-card-head">
           <span class="ms">restaurant_menu</span>
-          <strong>本餐營養成分</strong>
+          <strong>${t('nutrition.heading')}</strong>
         </div>
         <div class="nutrition-grid">
-          <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(n.cal)} kcal</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${n.protein} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${n.carb} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${n.fat} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${n.fiber} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.calorie')}</span><strong>${Math.round(n.cal)} kcal</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.protein')}</span><strong>${n.protein} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.carb')}</span><strong>${n.carb} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.fat')}</span><strong>${n.fat} g</strong></div>
+          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.fiber')}</span><strong>${n.fiber} g</strong></div>
         </div>
-        <p class="nutrition-card-hint">由 AI 依本餐食材自動估算</p>
+        <p class="nutrition-card-hint">${t('nutrition.aiHint')}</p>
       </section>
     `;
   }

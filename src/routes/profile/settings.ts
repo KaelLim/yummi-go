@@ -16,9 +16,9 @@ import { requestMealNotificationPermission } from '@/lib/meal-notifier';
 import { $locale, setLocale, t } from '@/lib/i18n';
 
 const MEALS = [
-  { key: 'breakfast', label: '第一餐', defaultTime: '08:00' },
-  { key: 'lunch', label: '第二餐', defaultTime: '12:30' },
-  { key: 'dinner', label: '第三餐', defaultTime: '19:00' },
+  { key: 'breakfast', labelKey: 'eattimes.meal1', defaultTime: '08:00' },
+  { key: 'lunch',     labelKey: 'eattimes.meal2', defaultTime: '12:30' },
+  { key: 'dinner',    labelKey: 'eattimes.meal3', defaultTime: '19:00' },
 ];
 
 function formatBuildTime(): string {
@@ -36,25 +36,25 @@ export default function settings(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">設定</span>
+      <span class="checkin-title">${t('settings.title')}</span>
       <span></span>
     </header>
     <div class="settings-body">
       <section class="settings-section">
-        <span class="settings-label">寵物名稱</span>
+        <span class="settings-label">${t('settings.petName')}</span>
         <input class="input" id="display-name" type="text" />
       </section>
 
       <section class="settings-section">
-        <span class="settings-label">用餐提醒</span>
+        <span class="settings-label">${t('settings.mealReminders')}</span>
         <div class="meal-list" id="meals">
           ${MEALS.map(
             (m) => `
             <div class="meal-row">
-              <span class="meal-label">${m.label}</span>
+              <span class="meal-label">${t(m.labelKey)}</span>
               <input type="time" class="meal-input" data-key="${m.key}" value="${m.defaultTime}" />
             </div>`,
           ).join('')}
@@ -62,35 +62,35 @@ export default function settings(): HTMLElement {
       </section>
 
       <section class="settings-section">
-        <span class="settings-label">推播提醒</span>
-        <button class="btn text-btn-m btn-secondary btn-sm" id="ask-notif">允許用餐前 10 分鐘提醒</button>
+        <span class="settings-label">${t('settings.notif')}</span>
+        <button class="btn text-btn-m btn-secondary btn-sm" id="ask-notif">${t('settings.notifAsk')}</button>
         <span class="settings-hint" id="notif-status"></span>
       </section>
 
       <section class="settings-section">
-        <span class="settings-label">主題</span>
+        <span class="settings-label">${t('settings.theme')}</span>
         <div class="vegan-chips">
-          <button class="vegan-chip theme-chip" data-theme="light">淺色</button>
-          <button class="vegan-chip theme-chip" data-theme="dark">深色</button>
+          <button class="vegan-chip theme-chip" data-theme="light">${t('settings.themeLight')}</button>
+          <button class="vegan-chip theme-chip" data-theme="dark">${t('settings.themeDark')}</button>
         </div>
       </section>
 
       <section class="settings-section">
-        <span class="settings-label" data-i18n="settings.language">語言</span>
+        <span class="settings-label" data-i18n="settings.language">${t('settings.language')}</span>
         <div class="vegan-chips" id="locale-chips">
-          <button class="vegan-chip locale-chip" data-locale="zh" data-i18n="settings.zh">繁體中文</button>
-          <button class="vegan-chip locale-chip" data-locale="en" data-i18n="settings.en">English</button>
+          <button class="vegan-chip locale-chip" data-locale="zh" data-i18n="settings.zh">${t('settings.zh')}</button>
+          <button class="vegan-chip locale-chip" data-locale="en" data-i18n="settings.en">${t('settings.en')}</button>
         </div>
       </section>
 
-      <div class="settings-success" id="ok" hidden>已儲存</div>
+      <div class="settings-success" id="ok" hidden>${t('settings.saveOk')}</div>
       <div class="review-error" id="err" hidden></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">儲存變更</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">${t('settings.saveBtn')}</button>
       <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="logout">
-        <span class="ms">logout</span>登出
+        <span class="ms">logout</span>${t('settings.logout')}
       </button>
       <footer class="settings-footer">
-        Yummi Go v${__APP_VERSION__} · 建置於 ${formatBuildTime()}
+        ${t('settings.footer').replace('{ver}', __APP_VERSION__).replace('{time}', formatBuildTime())}
       </footer>
     </div>
   `;
@@ -171,7 +171,7 @@ export default function settings(): HTMLElement {
     const newName = (wrap.querySelector('#display-name') as HTMLInputElement).value.trim();
     if (!newName) {
       err.hidden = false;
-      err.textContent = '名稱不能空白';
+      err.textContent = t('settings.errName');
       return;
     }
     const eatTimes: Record<string, string> = {};
@@ -180,7 +180,7 @@ export default function settings(): HTMLElement {
     });
 
     save.disabled = true;
-    save.textContent = '儲存中…';
+    save.textContent = t('common.saving');
     try {
       if (newName !== u.displayName) {
         await drust.update('users', u.id, { display_name: newName });
@@ -193,12 +193,12 @@ export default function settings(): HTMLElement {
       err.textContent = (e as Error).message ?? '儲存失敗';
     } finally {
       save.disabled = false;
-      save.textContent = '儲存變更';
+      save.textContent = t('settings.saveBtn');
     }
   }
 
   wrap.querySelector('#logout')?.addEventListener('click', () => {
-    if (window.confirm('確定要登出嗎？')) {
+    if (window.confirm(t('settings.logoutConfirm'))) {
       clearUser();
       // Land on splash so the user can decide between "Get Started" (new
       // guest account) and footer-link login — same surface as a fresh
@@ -211,13 +211,13 @@ export default function settings(): HTMLElement {
   const statusEl = wrap.querySelector<HTMLElement>('#notif-status');
   function reflectPermission() {
     if (typeof Notification === 'undefined') {
-      if (statusEl) statusEl.textContent = '此瀏覽器不支援';
+      if (statusEl) statusEl.textContent = t('settings.notifUnsupported');
       if (askBtn) askBtn.disabled = true;
     } else if (statusEl) {
       statusEl.textContent =
-        Notification.permission === 'granted' ? '已開啟' :
-        Notification.permission === 'denied'  ? '已封鎖（請至瀏覽器設定開啟）' :
-        '尚未設定';
+        Notification.permission === 'granted' ? t('settings.notifGranted') :
+        Notification.permission === 'denied'  ? t('settings.notifDenied') :
+        t('settings.notifUnset');
     }
   }
   reflectPermission();

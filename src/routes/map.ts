@@ -36,15 +36,20 @@ import { onUnmount } from '@/lib/lifecycle';
 import { $user } from '@/store/user';
 import { googleMapsPlaceUrl } from '@/lib/google-maps-link';
 import { openVeganTierInfo } from '@/lib/vegan-tiers';
+import { t } from '@/lib/i18n';
 
-const PLACE_LABEL: Record<string, string> = {
-  chinese: '中式',
-  western: '西式',
-  cafe: '咖啡',
-  japanese: '日式',
-  thai: '泰式',
-  dessert: '甜點',
+const PLACE_LABEL_KEY: Record<string, string> = {
+  chinese: 'place.chinese',
+  western: 'place.western',
+  cafe: 'place.cafe',
+  japanese: 'place.japanese',
+  thai: 'place.thai',
+  dessert: 'place.dessert',
 };
+function placeLabel(key: string): string {
+  const i18nKey = PLACE_LABEL_KEY[key];
+  return i18nKey ? t(i18nKey) : key;
+}
 
 const PIN_COLOR: Record<Restaurant['pin_color'], string> = {
   green: '#1d5937',
@@ -96,14 +101,14 @@ interface FilterState {
 
 interface ActivityTagOption {
   value: string;
-  label: string;
+  labelKey: string;
   icon: string;
 }
 
 const ACTIVITY_TAG_OPTIONS: ActivityTagOption[] = [
-  { value: ACTIVITY_TAG_PARTNER, label: '合作店家',      icon: 'handshake' },
-  { value: ACTIVITY_TAG_600,     label: '蔬食 600 盤',   icon: 'restaurant' },
-  { value: ACTIVITY_TAG_OTHER,   label: '其他',          icon: 'storefront' },
+  { value: ACTIVITY_TAG_PARTNER, labelKey: 'map.activity.partner', icon: 'handshake' },
+  { value: ACTIVITY_TAG_600,     labelKey: 'map.activity.600',     icon: 'restaurant' },
+  { value: ACTIVITY_TAG_OTHER,   labelKey: 'map.activity.other',   icon: 'storefront' },
 ];
 
 export default function map(): HTMLElement {
@@ -112,12 +117,12 @@ export default function map(): HTMLElement {
   wrap.innerHTML = `
     <header class="map-header">
       <h1 class="map-title">
-        蔬食地圖
-        <button class="vegan-info-btn vegan-info-btn-inline" id="map-vegan-info-btn" type="button" aria-label="素別說明" title="素別說明">
+        ${t('map.title')}
+        <button class="vegan-info-btn vegan-info-btn-inline" id="map-vegan-info-btn" type="button" aria-label="${t('map.veganInfo')}" title="${t('map.veganInfo')}">
           <span class="ms">info</span>
         </button>
       </h1>
-      <span class="map-meta" id="result-count">載入中…</span>
+      <span class="map-meta" id="result-count">${t('common.loading')}</span>
     </header>
     <div class="map-search">
       <span class="ms map-search-icon" aria-hidden="true">search</span>
@@ -125,23 +130,23 @@ export default function map(): HTMLElement {
         type="search"
         id="map-search"
         class="map-search-input"
-        placeholder="搜尋店家名稱或料理類型（中式、咖啡…）"
+        placeholder="${t('map.searchPlaceholder')}"
         autocomplete="off"
-        aria-label="搜尋店家"
+        aria-label="${t('map.title')}"
       />
-      <button class="map-search-clear" id="map-search-clear" type="button" aria-label="清除搜尋" hidden>
+      <button class="map-search-clear" id="map-search-clear" type="button" aria-label="${t('map.searchClear')}" hidden>
         <span class="ms">close</span>
       </button>
     </div>
     <div class="map-filters" id="filters">
-      <button class="filter-chip selected" data-vegan="">全部</button>
+      <button class="filter-chip selected" data-vegan="">${t('map.filterAll')}</button>
       ${VEGAN_TYPES.map(
         (v) => `<button class="filter-chip" data-vegan="${v.value}">${v.label}</button>`,
       ).join('')}
     </div>
-    <div class="map-filters map-filters-activity" id="activity-filters" role="group" aria-label="活動標籤（可複選）">
+    <div class="map-filters map-filters-activity" id="activity-filters" role="group" aria-label="${t('map.activityHint')}">
       ${ACTIVITY_TAG_OPTIONS.map(
-        (a) => `<button class="filter-chip filter-activity selected" data-activity="${a.value}"><span class="ms">${a.icon}</span>${a.label}</button>`,
+        (a) => `<button class="filter-chip filter-activity selected" data-activity="${a.value}"><span class="ms">${a.icon}</span>${t(a.labelKey)}</button>`,
       ).join('')}
     </div>
     <div class="map-canvas" id="canvas"></div>
@@ -208,26 +213,26 @@ export default function map(): HTMLElement {
     // Partners overrule pin_color for the CTA decision too — even if a
     // partner is stored as 'gray', the card should not offer 認證餐廳.
     const isGray = r.pin_color === 'gray' && r.is_partner !== 1;
-    const ctaLabel = isGray ? '認證餐廳' : '看詳情';
+    const ctaLabel = isGray ? t('map.ctaVerify') : t('map.ctaDetails');
     card.innerHTML = `
       <div class="map-card-body">
         <div class="map-card-meta">
           <span class="map-pin-dot" style="background:${pinColorFor(r)}"></span>
-          <span class="map-card-type">${PLACE_LABEL[r.place_type] ?? r.place_type}</span>
-          ${r.is_partner ? '<span class="map-partner-tag">合作</span>' : ''}
-          ${isGray ? '<span class="map-unverified-tag">未驗證</span>' : ''}
+          <span class="map-card-type">${placeLabel(r.place_type)}</span>
+          ${r.is_partner ? `<span class="map-partner-tag">${t('map.tagPartner')}</span>` : ''}
+          ${isGray ? `<span class="map-unverified-tag">${t('map.tagUnverified')}</span>` : ''}
         </div>
         <div class="map-card-name">${escapeHtml(r.name)}</div>
         <div class="map-card-hours">
           <span class="ms">schedule</span>${r.business_hours
             ? escapeHtml(r.business_hours)
-            : '<span class="map-card-hours-placeholder">營業時間未提供</span>'
+            : `<span class="map-card-hours-placeholder">${t('map.hoursPlaceholder')}</span>`
           }
         </div>
         <a class="map-card-addr map-card-addr-link" href="${googleMapsPlaceUrl(r)}" target="_blank" rel="noopener noreferrer">
           <span class="ms">place</span>${escapeHtml(r.address)}
         </a>
-        ${r.partner_discount ? `<div class="map-card-disc">優惠：${escapeHtml(r.partner_discount)}</div>` : ''}
+        ${r.partner_discount ? `<div class="map-card-disc">${t('map.discountPrefix')}${escapeHtml(r.partner_discount)}</div>` : ''}
       </div>
       ${renderConsensusTiers(tiersForCard(r))}
       <button class="btn text-btn-m btn-primary btn-sm text-mini" id="card-detail">${ctaLabel}</button>
@@ -272,13 +277,13 @@ export default function map(): HTMLElement {
         // Match against name + dish type (both the enum key and its
         // localised label) + address, so "中式"/"chinese"/"忠孝東路"
         // all narrow the same way as a name query.
-        const dishLabel = (PLACE_LABEL[r.place_type] ?? '').toLowerCase();
+        const dishLabel = placeLabel(r.place_type).toLowerCase();
         const haystack = `${r.name} ${r.place_type} ${dishLabel} ${r.address}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
     });
-    countEl.textContent = `${filtered.length} 家店`;
+    countEl.textContent = t('map.resultCount').replace('{n}', String(filtered.length));
 
     for (const r of filtered) {
       const isSelected = selectedId === r.id;
@@ -379,7 +384,7 @@ export default function map(): HTMLElement {
       renderMarkers();
     } catch (err) {
       if (!alive) return;
-      countEl.textContent = '載入失敗';
+      countEl.textContent = t('common.loadFailed');
       console.error('[map] listRestaurants failed:', err);
     }
   })();

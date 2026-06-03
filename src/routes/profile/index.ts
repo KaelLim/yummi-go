@@ -29,16 +29,16 @@ function describeTolerance(level: number | null | undefined, fails: number): {
   const used = fails;
   const broken = used > total;
   const label = total > 0
-    ? `已用 ${Math.min(used, total)} / ${total}`
-    : (used > 0 ? '已失守' : '零容錯');
+    ? t('tolerance.usedFmt').replace('{used}', String(Math.min(used, total))).replace('{total}', String(total))
+    : (used > 0 ? t('tolerance.broken') : t('tolerance.zero'));
   return { show: true, total, used, broken, label };
 }
 
-const DIET_LABEL: Record<string, string> = {
-  vegan: 'Vegan 純素',
-  vegetarian: '蛋奶素',
-  flexitarian: '彈性素',
-  omnivore: '雜食',
+const DIET_LABEL_KEY: Record<string, string> = {
+  vegan: 'profile.diet.fallback.vegan',
+  vegetarian: 'profile.diet.fallback.vegetarian',
+  flexitarian: 'profile.diet.fallback.flexitarian',
+  omnivore: 'profile.diet.fallback.omnivore',
 };
 
 export default function profile(): HTMLElement {
@@ -84,7 +84,8 @@ export default function profile(): HTMLElement {
     const u = $user.get();
     const p = $profile.get();
     const ident = wrap.querySelector<HTMLElement>('#identity')!;
-    const dietLabel = p?.diet_type ? DIET_LABEL[p.diet_type] ?? p.diet_type : null;
+    const dietKey = p?.diet_type ? DIET_LABEL_KEY[p.diet_type] : null;
+    const dietLabel = dietKey ? t(dietKey) : (p?.diet_type ?? null);
     const stage = (p?.stage ?? 'egg') as PetStage;
     // Effective mood honours the food-poisoning override; if no $pet state
     // is loaded yet we fall back to whatever profile.mood says.
@@ -153,7 +154,7 @@ export default function profile(): HTMLElement {
     el.innerHTML = `
       <div class="tolerance-row">
         <span class="ms">shield</span>
-        <strong>等級 ${p?.challenge_level} 容錯次數</strong>
+        <strong>${t('tolerance.titleFmt').replace('{lv}', String(p?.challenge_level ?? ''))}</strong>
         <span class="tolerance-label">${tol.label}</span>
       </div>
     `;

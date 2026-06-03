@@ -12,18 +12,19 @@
 import { navigate } from '@/router';
 import { $user, $profile } from '@/store/user';
 import { updateProfile, getUserFull } from '@/api/profile';
+import { t } from '@/lib/i18n';
 
 interface MealDef {
   key: string;
   emoji: string;
-  label: string;
+  labelKey: string;
   defaultTime: string;
 }
 
 const MEALS: MealDef[] = [
-  { key: 'breakfast', emoji: '🌅', label: '第一餐', defaultTime: '08:00' },
-  { key: 'lunch',     emoji: '☀️', label: '第二餐', defaultTime: '12:30' },
-  { key: 'dinner',    emoji: '🌙', label: '第三餐', defaultTime: '19:00' },
+  { key: 'breakfast', emoji: '🌅', labelKey: 'eattimes.meal1', defaultTime: '08:00' },
+  { key: 'lunch',     emoji: '☀️', labelKey: 'eattimes.meal2', defaultTime: '12:30' },
+  { key: 'dinner',    emoji: '🌙', labelKey: 'eattimes.meal3', defaultTime: '19:00' },
 ];
 
 function parseStored(raw: string | null | undefined): Record<string, string> | null {
@@ -53,21 +54,21 @@ export default function eatTimesEditor(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">用餐時間</span>
+      <span class="checkin-title">${t('eattimes.title')}</span>
       <span></span>
     </header>
     <div class="checkin-body">
       <section class="baseline-section">
-        <p class="onb-sub text-mini">設定後我們會在用餐前 10 分鐘提醒你打卡，不吃某餐可用 ✕ 移除，之後也能再加回來。</p>
+        <p class="onb-sub text-mini">${t('eattimes.subProfile')}</p>
         <div class="meal-list" id="meal-list"></div>
       </section>
       <div class="review-error" id="error" hidden></div>
     </div>
     <div class="checkin-footer">
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">儲存</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">${t('common.save')}</button>
     </div>
   `;
 
@@ -76,11 +77,11 @@ export default function eatTimesEditor(): HTMLElement {
     if (!list) return;
     const activeKeys = MEALS.filter((m) => !disabled.has(m.key)).map((m) => m.key);
     const activeCount = activeKeys.length;
-    const ORDINALS = ['第一餐', '第二餐', '第三餐'];
+    const ORDINAL_KEYS = ['eattimes.meal1', 'eattimes.meal2', 'eattimes.meal3'];
     function activeLabel(key: string): string {
-      if (activeCount === 1) return '一餐';
+      if (activeCount === 1) return t('eattimes.mealOnly');
       const idx = activeKeys.indexOf(key);
-      return ORDINALS[idx] ?? '';
+      return idx >= 0 ? t(ORDINAL_KEYS[idx] ?? '') : '';
     }
     list.innerHTML = MEALS.map((m) => {
       const isOff = disabled.has(m.key);
@@ -88,7 +89,7 @@ export default function eatTimesEditor(): HTMLElement {
         return `
           <div class="meal-row meal-row-off" data-key="${m.key}">
             <span class="meal-emoji" style="opacity:.35">${m.emoji}</span>
-            <button class="btn-skip" data-action="enable" data-key="${m.key}" type="button">+ 加回</button>
+            <button class="btn-skip" data-action="enable" data-key="${m.key}" type="button">${t('eattimes.addBack')}</button>
           </div>
         `;
       }
@@ -101,7 +102,7 @@ export default function eatTimesEditor(): HTMLElement {
           <input type="time" class="meal-input" data-key="${m.key}" value="${times[m.key]}" />
           ${
             removable
-              ? `<button class="meal-remove" data-action="disable" data-key="${m.key}" type="button" aria-label="移除${label}"><span class="ms">close</span></button>`
+              ? `<button class="meal-remove" data-action="disable" data-key="${m.key}" type="button" aria-label="${label}"><span class="ms">close</span></button>`
               : ''
           }
         </div>
@@ -141,7 +142,7 @@ export default function eatTimesEditor(): HTMLElement {
       if (!disabled.has(m.key)) activeTimes[m.key] = times[m.key];
     }
     saveBtn.disabled = true;
-    saveBtn.textContent = '儲存中…';
+    saveBtn.textContent = t('common.saving');
     try {
       await updateProfile(u.id, { eat_times: JSON.stringify(activeTimes) });
       const full = await getUserFull(u.id);
@@ -152,7 +153,7 @@ export default function eatTimesEditor(): HTMLElement {
       errorEl.textContent = (e as Error).message ?? '儲存失敗';
     } finally {
       saveBtn.disabled = false;
-      saveBtn.textContent = '儲存';
+      saveBtn.textContent = t('common.save');
     }
   }
 

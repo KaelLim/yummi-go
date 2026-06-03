@@ -83,7 +83,7 @@ export default function home(): HTMLElement {
       </div>
       <span class="ms lucky-card-arrow">arrow_forward</span>
     </section>
-    <section class="home-bubble pet-bubble" data-bind="pet-bubble" id="pet-bubble">守護者氣息微弱…</section>
+    <section class="home-bubble pet-bubble" data-bind="pet-bubble" id="pet-bubble">${t('home.petBubbleFallback')}</section>
     <section class="home-hero" data-slot="pet"></section>
     <section class="level-bar">
       <div class="level-bar-label">
@@ -96,9 +96,9 @@ export default function home(): HTMLElement {
     </section>
     <section class="missions-card" id="missions-card">
       <header class="missions-header">
-        <h2 class="missions-title">今日任務</h2>
+        <h2 class="missions-title">${t('home.missionsTitle')}</h2>
         <button class="missions-expand" id="missions-expand" type="button" aria-expanded="false">
-          <span class="missions-expand-label">查看全部</span>
+          <span class="missions-expand-label">${t('home.missionsExpand')}</span>
           <span class="ms missions-expand-arrow">expand_more</span>
         </button>
       </header>
@@ -107,18 +107,18 @@ export default function home(): HTMLElement {
     <div class="phase1-modal" id="phase1-modal" hidden role="dialog" aria-modal="true" aria-labelledby="phase1-title">
       <div class="phase1-modal-card">
         <div class="phase1-icon" aria-hidden="true">🌱</div>
-        <h2 class="phase1-title" id="phase1-title">第一階段旅程開始</h2>
-        <p class="phase1-body">請選擇您想參加的蔬食旅程天數</p>
-        <div class="phase1-options" id="phase1-options" role="radiogroup" aria-label="旅程天數">
+        <h2 class="phase1-title" id="phase1-title">${t('home.phase1Title')}</h2>
+        <p class="phase1-body">${t('home.phase1Body')}</p>
+        <div class="phase1-options" id="phase1-options" role="radiogroup" aria-label="${t('home.phase1AriaDays')}">
           ${PHASE_1_OPTIONS.map((o) => `
             <button class="phase1-option" data-days="${o.days}" type="button" role="radio" aria-checked="false">
-              <span class="phase1-option-days">${o.days} 天</span>
+              <span class="phase1-option-days">${t('home.phase1Days').replace('{n}', String(o.days))}</span>
               <span class="phase1-option-gems">+${o.gems} 💎</span>
             </button>
           `).join('')}
         </div>
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="phase1-continue" type="button" disabled>
-          開始旅程
+          ${t('home.phase1Cta')}
         </button>
       </div>
     </div>

@@ -19,6 +19,7 @@ import { navigate } from '@/router';
 import { $checkin, resetCheckin } from '@/store/checkin';
 import { $today } from '@/store/today';
 import { $profile } from '@/store/user';
+import { t } from '@/lib/i18n';
 
 const MEAL_LABEL: Record<number, string> = { 1: '第一餐', 2: '第二餐', 3: '第三餐' };
 
@@ -29,8 +30,8 @@ export default function success(): HTMLElement {
   if (!r) {
     wrap.innerHTML = `
       <div class="checkin-body checkin-fallback">
-        <p>沒有可顯示的打卡結果。</p>
-        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">回首頁</button>
+        <p>${t('success.fallbackNone')}</p>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">${t('success.fallbackHome')}</button>
       </div>
     `;
     wrap.querySelector('#back')?.addEventListener('click', () => navigate('/home'));
@@ -46,18 +47,18 @@ export default function success(): HTMLElement {
   const nutritionGrid = n
     ? `
       <div class="nutrition-grid">
-        <div class="nutrition-cell"><span class="nutrition-cell-label">熱量</span><strong>${Math.round(n.cal)} kcal</strong></div>
-        <div class="nutrition-cell"><span class="nutrition-cell-label">蛋白質</span><strong>${n.protein} g</strong></div>
-        <div class="nutrition-cell"><span class="nutrition-cell-label">碳水</span><strong>${n.carb} g</strong></div>
-        <div class="nutrition-cell"><span class="nutrition-cell-label">脂肪</span><strong>${n.fat} g</strong></div>
-        <div class="nutrition-cell"><span class="nutrition-cell-label">膳食纖維</span><strong>${n.fiber} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.calorie')}</span><strong>${Math.round(n.cal)} kcal</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.protein')}</span><strong>${n.protein} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.carb')}</span><strong>${n.carb} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.fat')}</span><strong>${n.fat} g</strong></div>
+        <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.fiber')}</span><strong>${n.fiber} g</strong></div>
       </div>`
-    : '<p class="nutrition-empty">本餐沒有營養素資料</p>';
+    : '<p class="nutrition-empty">—</p>';
 
   const fedRow = r.xpFedToPet > 0
     ? `<div class="dist-row dist-feed">
          <span class="ms dist-icon">pets</span>
-         <span class="dist-text">餵給小綠 <strong>+${r.xpFedToPet} XP</strong></span>
+         <span class="dist-text">${t('success.distFeed').replace('{xp}', String(r.xpFedToPet))}</span>
        </div>`
     : '';
   // Three cases for the gem half of the distribution row:
@@ -72,13 +73,13 @@ export default function success(): HTMLElement {
   const gemRow = !crossedThisCall && r.gemsFromXp > 0
     ? `<div class="dist-row dist-gems">
          <span class="ms dist-icon">diamond</span>
-         <span class="dist-text">+<strong data-gem-count="${r.gemsFromXp}">0</strong> 能量石</span>
+         <span class="dist-text">${t('success.distGems').replace('{n}', String(r.gemsFromXp))}</span>
          <span class="gem-sparkle" aria-hidden="true"><span></span><span></span><span></span></span>
        </div>`
     : '';
   const emptyRow = r.xpFedToPet === 0 && r.gemsFromXp === 0
     ? `<div class="dist-row dist-empty">
-         <span class="dist-text">XP 已記入今日進度</span>
+         <span class="dist-text">${t('success.distEmpty')}</span>
        </div>`
     : '';
   // Meal-complete bonus (UX_UPDATE_SPEC v0.3 §3): only set on the 3rd
@@ -87,7 +88,7 @@ export default function success(): HTMLElement {
   const bonusRow = r.mealCompleteBonusXp > 0
     ? `<div class="dist-row dist-feed">
          <span class="ms dist-icon">workspace_premium</span>
-         <span class="dist-text">完成全日三餐 <strong>+${r.mealCompleteBonusXp} XP</strong></span>
+         <span class="dist-text">${t('success.distBonus').replace('{xp}', String(r.mealCompleteBonusXp))}</span>
        </div>`
     : '';
 
@@ -98,14 +99,14 @@ export default function success(): HTMLElement {
     ? `<div class="first-banner" id="first-banner">
          <span class="first-banner-emoji" aria-hidden="true">🎉</span>
          <div class="first-banner-body">
-           <strong class="first-banner-title">第一次打卡完成！</strong>
-           <span class="first-banner-sub">小綠剛剛吃到第一口 XP，跟你的 30 天挑戰一起開始 🌱</span>
+           <strong class="first-banner-title">${t('success.firstBannerTitle')}</strong>
+           <span class="first-banner-sub">${t('success.firstBannerSub')}</span>
          </div>
        </div>`
     : '';
-  const title = r.isFirstCheckIn ? '歡迎踏出第一步！' : '打卡成功！';
+  const title = r.isFirstCheckIn ? t('success.welcome') : t('success.titleDone');
   const firstBubble = r.isFirstCheckIn
-    ? '<span class="xp-bubble xp-first">🎉 首次打卡 +XP 解鎖</span>'
+    ? `<span class="xp-bubble xp-first">${t('success.firstBubbleUnlock')}</span>`
     : '';
 
   wrap.innerHTML = `
@@ -114,8 +115,8 @@ export default function success(): HTMLElement {
       <div class="xp-burst" aria-hidden="true">
         <span class="xp-bubble xp-1">+${r.xpEarned} XP</span>
         ${firstBubble}
-        ${r.luckyColorMatched ? '<span class="xp-bubble xp-2">幸運色 +15 XP</span>' : ''}
-        ${replaced ? '<span class="xp-bubble xp-3">替代為植物肉</span>' : ''}
+        ${r.luckyColorMatched ? `<span class="xp-bubble xp-2">${t('success.luckyBubble')}</span>` : ''}
+        ${replaced ? `<span class="xp-bubble xp-3">${t('success.replacedBubble')}</span>` : ''}
         ${r.gemsFromXp > 0 ? `<span class="xp-bubble gem-bubble"><span class="ms">diamond</span>+${r.gemsFromXp}</span>` : ''}
       </div>
       <div class="success-progress" aria-label="30-day progress">${segments}</div>
@@ -127,28 +128,28 @@ export default function success(): HTMLElement {
       <div class="nutrition-details" id="nutrition-details">
         <button type="button" class="nutrition-toggle" id="nutrition-toggle" aria-expanded="false">
           <span class="ms">restaurant_menu</span>
-          <span>查看營養成分</span>
+          <span>${t('success.viewNutrition')}</span>
           <span class="ms nutrition-chevron">expand_more</span>
         </button>
         <div class="nutrition-content" id="nutrition-content">
           ${nutritionGrid}
           <button class="btn text-btn-m btn-secondary btn-sm text-mini ai-edit-btn" id="edit-items" type="button">
-            <span class="ms">edit</span>修改內容
+            <span class="ms">edit</span>${t('success.editItems')}
           </button>
-          <p class="nutrition-card-hint">由 AI 依本餐食材自動估算</p>
+          <p class="nutrition-card-hint">${t('nutrition.aiHint')}</p>
         </div>
       </div>
       <div class="success-secondary">
         <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="review">
-          <span class="ms">rate_review</span>為餐廳留評論
+          <span class="ms">rate_review</span>${t('success.review')}
         </button>
         <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="share">
-          <span class="ms">share</span>分享成果
+          <span class="ms">share</span>${t('success.share')}
         </button>
       </div>
-      <p class="success-edit-hint">想再回頭調整？到「蔬食旅程」點當天的 ✓ 開啟營養抽屜。<br/>提醒：下一餐記錄後就鎖定了。</p>
+      <p class="success-edit-hint">${t('success.editHint')}</p>
       <div class="success-actions">
-        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="next">繼續守護</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="next">${t('success.next')}</button>
       </div>
     </div>
   `;
