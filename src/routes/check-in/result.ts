@@ -154,7 +154,9 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
     try {
       const prior = await listCheckIns(u.id);
       isFirstCheckIn = prior.length === 0;
-    } catch {
+      console.log('[phase1] result.ts: listCheckIns count=', prior.length, 'isFirstCheckIn=', isFirstCheckIn);
+    } catch (err) {
+      console.warn('[phase1] result.ts: listCheckIns failed', err);
       /* soft fail — fall back to non-first treatment */
     }
 
@@ -229,7 +231,12 @@ async function submitCheckin(wrap: HTMLElement): Promise<void> {
     // but setting it here means it survives even if the user
     // backs out of /check-in/success before that render completes.
     if (isFirstCheckIn) {
-      try { localStorage.setItem('yummi:phase1_modal_pending', '1'); } catch { /* private mode */ }
+      try {
+        localStorage.setItem('yummi:phase1_modal_pending', '1');
+        console.log('[phase1] result.ts: flag set, current value=', localStorage.getItem('yummi:phase1_modal_pending'));
+      } catch (err) {
+        console.warn('[phase1] result.ts: flag set failed', err);
+      }
     }
     navigate('/check-in/success');
   } catch (err) {
