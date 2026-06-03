@@ -19,16 +19,10 @@
  */
 import { navigate } from '@/router';
 import { $user } from '@/store/user';
-import { $today, $challenge, markMissionDone } from '@/store/today';
-import { inferMealIndex } from '@/store/checkin';
+import { markMissionDone } from '@/store/today';
 import { createReview, hasReviewedRestaurant, REVIEW_XP_FIRST, REVIEW_XP_REPEAT } from '@/api/reviews';
-import { createCheckIn } from '@/api/check-ins';
 import { drust } from '@/api/drust';
 import { awardXp } from '@/store/pet';
-import { mealXp } from '@/lib/xp-calc';
-import { matchesLucky, normalizeLuckyColor } from '@/lib/lucky-color';
-import { mockScan, type MockFood } from '@/lib/mock-ai';
-import { openItemsEditor } from '@/lib/items-editor';
 import { VEGAN_TIERS, openVeganTierInfo } from '@/lib/vegan-tiers';
 import { t } from '@/lib/i18n';
 
@@ -62,11 +56,6 @@ export default function verify(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">${t('verify.text')}</span>
-        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="${t('review.textPh')}"></textarea>
-      </div>
-
-      <div class="review-section">
         <div class="review-section-label-row">
           <span class="review-section-label">${t('review.veganLabel')}</span>
           <button class="vegan-info-btn" id="vegan-info-btn" type="button" aria-label="${t('review.veganInfo')}">
@@ -81,15 +70,15 @@ export default function verify(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">${t('verify.photo')}</span>
+        <span class="review-section-label">${t('review.text')}</span>
+        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="${t('review.textPh')}"></textarea>
+      </div>
+
+      <div class="review-section">
+        <span class="review-section-label">${t('review.photo')}</span>
         <input type="file" accept="image/*" id="photo" />
         <img class="review-photo-preview" id="photo-preview" hidden alt="${t('review.photoAlt')}" />
       </div>
-
-      <label class="review-checkin">
-        <input type="checkbox" id="as-checkin" />
-        <span>${t('verify.asCheckin')}</span>
-      </label>
 
       <div class="review-error" id="error" hidden></div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">${t('verify.submit').replace('{xp}', String(VERIFY_XP + REVIEW_XP_FIRST))}</button>
@@ -176,7 +165,6 @@ export default function verify(params: Record<string, string>): HTMLElement {
     }
     const veganType = Array.from(veganSet).join(',');
     const text = String((wrap.querySelector<HTMLTextAreaElement>('#text')!).value || '').trim();
-    const asCheckin = (wrap.querySelector<HTMLInputElement>('#as-checkin')!).checked;
     // photo is stubbed — no upload pipeline yet. Kept available for future
     // wiring.
     void photoDataUrl;
@@ -186,9 +174,6 @@ export default function verify(params: Record<string, string>): HTMLElement {
 
     try {
       // Flip the restaurant to verified + write the user-picked tier.
-      // Stored as the single selected value to match the review form's
-      // semantics (per-act vegan_type). If multi-tier verification is
-      // needed later, we can promote this to a comma-joined list.
       await drust.update('restaurants', restaurantId, {
         pin_color: 'green',
         vegan_type: veganType,
@@ -204,45 +189,9 @@ export default function verify(params: Record<string, string>): HTMLElement {
         veganType,
       });
 
-      // v0.3 §4: review portion is 20 first / 15 subsequent per restaurant.
-      // VERIFY_XP stays at 20 (verification is once-per-restaurant by nature).
       const reviewed = await hasReviewedRestaurant(u.id, restaurantId);
       const reviewXp = reviewed ? REVIEW_XP_REPEAT : REVIEW_XP_FIRST;
-      let totalXp = VERIFY_XP + reviewXp;
-      let scanItems: MockFood[] = [];
-      let nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null = null;
-
-      if (asCheckin) {
-        const scan = mockScan();
-        scanItems = scan.items;
-        nutrition = aggregateNutrition(scan.items);
-
-        const day = $today.get().dayNumber;
-        const cur = $challenge.get().currentDay;
-        const luckyEn = normalizeLuckyColor(cur?.lucky_color ?? '');
-        const palette = scan.items.flatMap((it) => it.colors);
-        const luckyMatch = luckyEn ? matchesLucky(palette, luckyEn) : false;
-        const mealIndex = inferMealIndex();
-        const baseXp = mealXp(mealIndex, 3);
-        const xpForCheckin = baseXp + (luckyMatch ? 15 : 0);
-        await createCheckIn({
-          userId: u.id,
-          dayNumber: day,
-          mealIndex,
-          foodItems: scan.items,
-          nutrition,
-          veganType,
-          wasMeatReplaced: false,
-          luckyColorMatched: luckyMatch,
-          xpEarned: xpForCheckin,
-          gemsEarned: 0,
-        });
-        markMissionDone(
-          `meal:${mealIndex === 1 ? 'breakfast' : mealIndex === 2 ? 'lunch' : 'dinner'}`,
-          xpForCheckin,
-        );
-        totalXp += xpForCheckin;
-      }
+      const totalXp = VERIFY_XP + reviewXp;
 
       let xpFedToPet = 0;
       let gemsFromXp = 0;
@@ -254,7 +203,7 @@ export default function verify(params: Record<string, string>): HTMLElement {
       markMissionDone(`map_verify:${restaurantId}`, VERIFY_XP);
       markMissionDone(`review:${restaurantId}`, reviewXp);
 
-      renderSuccess({ rating, totalXp, asCheckin, nutrition, items: scanItems, xpFedToPet, gemsFromXp });
+      renderSuccess({ rating, totalXp, xpFedToPet, gemsFromXp });
     } catch (err) {
       console.error('[verify] submit failed:', err);
       errorEl.hidden = false;
@@ -275,16 +224,10 @@ export default function verify(params: Record<string, string>): HTMLElement {
   function renderSuccess(args: {
     rating: number;
     totalXp: number;
-    asCheckin: boolean;
-    nutrition: { cal: number; protein: number; carb: number; fat: number; fiber: number } | null;
-    items: MockFood[];
     xpFedToPet: number;
     gemsFromXp: number;
   }): void {
     const stars = '★'.repeat(args.rating) + '☆'.repeat(5 - args.rating);
-    // Three display states — same rule as the review form. Post-cap
-    // meals fully convert to gems, so the XP badge would just repeat
-    // the gem total in a different unit; show only the gem badge.
     const postCap = args.xpFedToPet === 0 && args.gemsFromXp > 0;
     const xpPip = postCap
       ? ''
@@ -299,9 +242,6 @@ export default function verify(params: Record<string, string>): HTMLElement {
         <div class="review-success-stars">${stars}</div>
         ${xpPip}
         ${gemsPip}
-        ${args.asCheckin ? `<div class="review-success-checkin-badge"><span class="ms">verified</span>${t('verify.checkinBadge')}</div>` : ''}
-        ${args.asCheckin && args.nutrition ? renderNutritionCard(args.nutrition) : ''}
-        ${args.asCheckin && args.nutrition ? `<button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="edit-items" type="button"><span class="ms">edit</span>${t('verify.editItems')}</button>` : ''}
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back-to-map" type="button">
           ${t('review.backToMap')}
         </button>
@@ -310,70 +250,9 @@ export default function verify(params: Record<string, string>): HTMLElement {
     form.querySelector('#back-to-map')?.addEventListener('click', () => {
       navigate('/map');
     });
-    if (args.asCheckin && args.nutrition) {
-      let liveItems = args.items.slice();
-      let liveNutrition = args.nutrition;
-      form.querySelector('#edit-items')?.addEventListener('click', () => {
-        openItemsEditor({
-          host: wrap,
-          initial: liveItems,
-          onSave: (next, nextN) => {
-            liveItems = next;
-            liveNutrition = nextN;
-            const card = form.querySelector('.nutrition-card');
-            if (card) card.outerHTML = renderNutritionCard(liveNutrition);
-          },
-        });
-      });
-    }
-  }
-
-  /** Same nutrition card markup as `/check-in/success` — see review form for
-   *  why this is duplicated rather than imported. */
-  function renderNutritionCard(n: {
-    cal: number; protein: number; carb: number; fat: number; fiber: number;
-  }): string {
-    return `
-      <section class="nutrition-card is-revealed">
-        <div class="nutrition-card-head">
-          <span class="ms">restaurant_menu</span>
-          <strong>${t('nutrition.heading')}</strong>
-        </div>
-        <div class="nutrition-grid">
-          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.calorie')}</span><strong>${Math.round(n.cal)} kcal</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.protein')}</span><strong>${n.protein} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.carb')}</span><strong>${n.carb} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.fat')}</span><strong>${n.fat} g</strong></div>
-          <div class="nutrition-cell"><span class="nutrition-cell-label">${t('nutrition.fiber')}</span><strong>${n.fiber} g</strong></div>
-        </div>
-        <p class="nutrition-card-hint">${t('nutrition.aiHint')}</p>
-      </section>
-    `;
   }
 
   return wrap;
-}
-
-function aggregateNutrition(items: MockFood[]): {
-  cal: number;
-  protein: number;
-  carb: number;
-  fat: number;
-  fiber: number;
-} {
-  const acc = { cal: 0, protein: 0, carb: 0, fat: 0, fiber: 0 };
-  for (const it of items) {
-    const m = it.weightG / 100;
-    acc.cal += it.cal * m;
-    acc.protein += it.protein * m;
-    acc.carb += it.carb * m;
-    acc.fat += it.fat * m;
-    acc.fiber += it.fiber * m;
-  }
-  for (const k of Object.keys(acc) as Array<keyof typeof acc>) {
-    acc[k] = Math.round(acc[k] * 10) / 10;
-  }
-  return acc;
 }
 
 function escapeHtml(s: string): string {
