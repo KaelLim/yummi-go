@@ -54,7 +54,7 @@ describe('pet', () => {
     it('routes through pet_for_user RPC', async () => {
       mockPetRpcReturns(basePet);
       const out = await getPet(5);
-      expect(mockedDrust.rpc).toHaveBeenCalledWith('pet_for_user', { user_id: 5 });
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('pet_for_user', { uid: 5 });
       expect(out).toEqual(basePet);
     });
 

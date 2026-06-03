@@ -113,7 +113,7 @@ describe('check-ins', () => {
       ]);
       const out = await listCheckIns(5);
       expect(mockedDrust.rpc).toHaveBeenCalledWith('check_ins_for_user', {
-        user_id: 5,
+        uid: 5,
       });
       expect(out.map((c) => c.id)).toEqual([1, 2]);
     });
@@ -125,7 +125,7 @@ describe('check-ins', () => {
       ]);
       const out = await listCheckIns(5, 3);
       expect(mockedDrust.rpc).toHaveBeenCalledWith('check_ins_for_user_day', {
-        user_id: 5,
+        uid: 5,
         day_number: 3,
       });
       expect(out.map((c) => c.id)).toEqual([2, 3]);

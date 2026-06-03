@@ -192,14 +192,8 @@ export default function success(): HTMLElement {
   // check-in. We set it as a side-effect of mounting the success page
   // rather than waiting for the 繼續守護 tap, so the flag survives even
   // if the user navigates around before reaching home.
-  console.log('[phase1] success.ts mounted; r.isFirstCheckIn=', r.isFirstCheckIn, ' current flag=', (() => { try { return localStorage.getItem('yummi:phase1_modal_pending'); } catch { return 'err'; } })());
   if (r.isFirstCheckIn) {
-    try {
-      localStorage.setItem('yummi:phase1_modal_pending', '1');
-      console.log('[phase1] success.ts: flag set');
-    } catch (err) {
-      console.warn('[phase1] success.ts: flag set failed', err);
-    }
+    try { localStorage.setItem('yummi:phase1_modal_pending', '1'); } catch { /* private mode */ }
   }
 
   wrap.querySelector('#next')?.addEventListener('click', () => {

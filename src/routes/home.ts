@@ -279,15 +279,11 @@ export default function home(): HTMLElement {
   // journey length (30 / 45 / 60 days) which we persist for future
   // challenge-tracker code.
   try {
-    const flagVal = localStorage.getItem(PHASE_1_FLAG_KEY);
-    console.log('[phase1] home.ts mount: flag=', flagVal);
-    if (flagVal === '1') {
+    if (localStorage.getItem(PHASE_1_FLAG_KEY) === '1') {
       const modal = $$('#phase1-modal');
       const continueBtn = modal?.querySelector<HTMLButtonElement>('#phase1-continue');
-      console.log('[phase1] home.ts: modal=', !!modal, ' continueBtn=', !!continueBtn);
       if (modal && continueBtn) {
         modal.hidden = false;
-        console.log('[phase1] home.ts: modal.hidden set to false');
         let chosenDays: number | null = null;
         modal.querySelectorAll<HTMLButtonElement>('.phase1-option').forEach((btn) => {
           btn.addEventListener('click', () => {

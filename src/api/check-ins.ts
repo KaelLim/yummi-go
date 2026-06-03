@@ -79,7 +79,7 @@ export async function listCheckIns(
 ): Promise<CheckInRow[]> {
   const rpcName =
     dayNumber === undefined ? 'check_ins_for_user' : 'check_ins_for_user_day';
-  const params: Record<string, unknown> = { user_id: userId };
+  const params: Record<string, unknown> = { uid: userId };
   if (dayNumber !== undefined) params.day_number = dayNumber;
   const result = await drust.rpc(rpcName, params);
   return drust.rpcRows<CheckInRow>(result);

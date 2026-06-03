@@ -32,7 +32,7 @@ export interface PetState {
 }
 
 export async function getPet(userId: number): Promise<PetState | null> {
-  const result = await drust.rpc('pet_for_user', { user_id: userId });
+  const result = await drust.rpc('pet_for_user', { uid: userId });
   const rows = drust.rpcRows<PetState>(result);
   return rows[0] ?? null;
 }

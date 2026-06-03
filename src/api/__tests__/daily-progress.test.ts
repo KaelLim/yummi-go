@@ -56,7 +56,7 @@ describe('daily-progress', () => {
       ]);
       const out = await getDailyProgress(5, 7);
       expect(mockedDrust.rpc).toHaveBeenCalledWith('daily_progress_for_day', {
-        user_id: 5,
+        uid: 5,
         day_number: 7,
       });
       expect(out?.total_xp).toBe(15);

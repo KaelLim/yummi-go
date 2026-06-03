@@ -46,7 +46,7 @@ export interface UserFull {
 }
 
 export async function getUserFull(userId: number): Promise<UserFull | null> {
-  const result = await drust.rpc('get_user_full', { user_id: userId });
+  const result = await drust.rpc('get_user_full', { uid: userId });
   const rows = drust.rpcRows<UserFull>(result);
   return rows[0] ?? null;
 }
@@ -54,7 +54,7 @@ export async function getUserFull(userId: number): Promise<UserFull | null> {
 export async function getProfile(
   userId: number,
 ): Promise<(UserProfile & { id: number }) | null> {
-  const result = await drust.rpc('profile_for_user', { user_id: userId });
+  const result = await drust.rpc('profile_for_user', { uid: userId });
   const rows = drust.rpcRows<UserProfile & { id: number }>(result);
   return rows[0] ?? null;
 }
@@ -99,7 +99,7 @@ export async function setChallengeStartedAt(
 
 export async function mealFailCount(userId: number): Promise<number> {
   try {
-    const result = await drust.rpc('meal_fail_count', { user_id: userId });
+    const result = await drust.rpc('meal_fail_count', { uid: userId });
     const rows = drust.rpcRows<{ fails: number }>(result);
     return rows[0]?.fails ?? 0;
   } catch (err) {

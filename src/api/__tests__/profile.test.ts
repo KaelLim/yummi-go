@@ -76,7 +76,7 @@ describe('profile', () => {
       const out = await getUserFull(5);
 
       expect(mockedDrust.rpc).toHaveBeenCalledWith('get_user_full', {
-        user_id: 5,
+        uid: 5,
       });
       expect(out?.id).toBe(5);
       expect(out?.stage).toBe('egg');
@@ -95,7 +95,7 @@ describe('profile', () => {
       ]);
       const out = await getProfile(5);
       expect(mockedDrust.rpc).toHaveBeenCalledWith('profile_for_user', {
-        user_id: 5,
+        uid: 5,
       });
       expect(out?.diet_type).toBe('vegan');
       expect(out?.id).toBe(7);
@@ -162,7 +162,7 @@ describe('profile', () => {
       });
       mockedDrust.rpcRows.mockReturnValueOnce([{ fails: 3 }]);
       expect(await mealFailCount(7)).toBe(3);
-      expect(mockedDrust.rpc).toHaveBeenCalledWith('meal_fail_count', { user_id: 7 });
+      expect(mockedDrust.rpc).toHaveBeenCalledWith('meal_fail_count', { uid: 7 });
     });
 
     it('returns 0 (and does not throw) on drust error', async () => {

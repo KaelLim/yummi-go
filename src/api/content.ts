@@ -301,7 +301,7 @@ export async function hasQuizAttemptForDay(
 ): Promise<boolean> {
   try {
     const result = await drust.rpc('has_quiz_attempt_for_day', {
-      user_id: userId,
+      uid: userId,
       day_number: dayNumber,
     });
     return result.row_count > 0;

@@ -34,7 +34,7 @@ export async function getDailyProgress(
   dayNumber: number,
 ): Promise<DailyProgressRow | null> {
   const result = await drust.rpc('daily_progress_for_day', {
-    user_id: userId,
+    uid: userId,
     day_number: dayNumber,
   });
   const rows = drust.rpcRows<DailyProgressRow>(result);

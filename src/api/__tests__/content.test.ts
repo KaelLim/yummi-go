@@ -183,7 +183,7 @@ describe('content', () => {
       });
       expect(await hasQuizAttemptForDay(5, 7)).toBe(true);
       expect(mockedDrust.rpc).toHaveBeenCalledWith('has_quiz_attempt_for_day', {
-        user_id: 5,
+        uid: 5,
         day_number: 7,
       });
     });
