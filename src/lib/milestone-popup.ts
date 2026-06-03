@@ -13,6 +13,7 @@
  */
 import { MILESTONE_PENDING_KEY } from '@/store/pet';
 import { $route } from '@/router';
+import { t } from '@/lib/i18n';
 
 interface MilestonePayload {
   bonus: number;
@@ -59,20 +60,20 @@ export function showMilestonePopup(payload: MilestonePayload): void {
   overlay.innerHTML = `
     <div class="milestone-modal-card">
       <div class="milestone-icon" aria-hidden="true">🎉</div>
-      <h2 class="milestone-title">完成今日目標！</h2>
-      <p class="milestone-body">守護者今天吃飽飽了，接下來的 XP 都會自動換成能量石 💎。</p>
+      <h2 class="milestone-title">${t('milestone.titleDone')}</h2>
+      <p class="milestone-body">${t('milestone.body')}</p>
       <div class="milestone-breakdown">
         <div class="milestone-row">
-          <span class="milestone-row-label">里程碑加碼</span>
+          <span class="milestone-row-label">${t('milestone.rowBonus')}</span>
           <strong class="milestone-row-value">+${payload.bonus} 💎</strong>
         </div>
         <div class="milestone-row">
-          <span class="milestone-row-label">超出 XP 換算</span>
+          <span class="milestone-row-label">${t('milestone.rowOverflow')}</span>
           <strong class="milestone-row-value">+${payload.overflow} 💎</strong>
         </div>
       </div>
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="milestone-continue" type="button">
-        收到
+        ${t('milestone.gotIt')}
       </button>
     </div>
   `;

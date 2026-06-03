@@ -11,12 +11,13 @@ import { $user, $profile } from '@/store/user';
 import { updateProfile, getUserFull } from '@/api/profile';
 import { awardXp } from '@/store/pet';
 import { markMissionDone } from '@/store/today';
+import { t } from '@/lib/i18n';
 
 const OPTIONS = [
-  { value: 'facebook',  emoji: '📘', label: 'Facebook' },
-  { value: 'instagram', emoji: '📷', label: 'Instagram' },
-  { value: 'threads',   emoji: '🧵', label: 'Threads' },
-  { value: 'friend',    emoji: '🤝', label: '親友分享' },
+  { value: 'facebook',  emoji: '📘', labelKey: 'tasks.known.fb' },
+  { value: 'instagram', emoji: '📷', labelKey: 'tasks.known.ig' },
+  { value: 'threads',   emoji: '🧵', labelKey: 'tasks.known.threads' },
+  { value: 'friend',    emoji: '🤝', labelKey: 'tasks.known.friendShare' },
 ];
 
 const REWARD_XP = 15;
@@ -30,18 +31,18 @@ export default function knownFromTask(): HTMLElement {
       <div class="onb-back" id="back-btn"><span class="ms">arrow_back</span></div>
     </div>
     <div class="onb-body">
-      <h1 class="onb-title text-h2">如何得知這個 App？</h1>
-      <p class="onb-sub text-mini">幫我們知道你從哪裡來 — 完成可得 +${REWARD_XP} XP</p>
+      <h1 class="onb-title text-h2">${t('tasks.known.titleFmt')}</h1>
+      <p class="onb-sub text-mini">${t('tasks.known.subFmt').replace('{xp}', String(REWARD_XP))}</p>
       <div class="onb-options">
         ${OPTIONS.map((o) => `
           <button class="choice" data-value="${o.value}">
             <span class="ch-icon">${o.emoji}</span>
-            <span class="ch-text">${o.label}</span>
+            <span class="ch-text">${t(o.labelKey)}</span>
             <span class="ms ch-arrow">arrow_forward</span>
           </button>
         `).join('')}
       </div>
-      <button class="btn-skip" id="skip-btn">Skip</button>
+      <button class="btn-skip" id="skip-btn">${t('tasks.known.skip')}</button>
     </div>
   `;
 

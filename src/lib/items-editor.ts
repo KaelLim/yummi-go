@@ -15,6 +15,7 @@
  * here is a future refactor.
  */
 import type { MockFood } from './mock-ai';
+import { t } from './i18n';
 
 export interface NutritionTotals {
   cal: number; protein: number; carb: number; fat: number; fiber: number;
@@ -50,16 +51,16 @@ export function openItemsEditor({ host, initial, onSave }: ItemsEditorArgs): voi
   sheet.setAttribute('aria-modal', 'true');
   sheet.innerHTML = `
     <div class="edit-sheet-card">
-      <h2 class="edit-sheet-title text-h3">修改本餐內容</h2>
-      <p class="edit-sheet-sub text-mini">調整 AI 辨識的食材與份量（不會影響已發放的 XP）</p>
+      <h2 class="edit-sheet-title text-h3">${t('items.title')}</h2>
+      <p class="edit-sheet-sub text-mini">${t('items.sub')}</p>
       <div class="edit-sheet-list" id="ie-list"></div>
       <button type="button" class="edit-sheet-add" id="ie-add">
-        <span class="ms">add</span>新增食材
+        <span class="ms">add</span>${t('items.add')}
       </button>
       <p class="edit-sheet-error" id="ie-error" hidden></p>
       <div class="edit-sheet-actions">
-        <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" id="ie-cancel">取消</button>
-        <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" id="ie-save">儲存</button>
+        <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" id="ie-cancel">${t('items.cancel')}</button>
+        <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" id="ie-save">${t('items.save')}</button>
       </div>
     </div>
   `;
@@ -77,10 +78,10 @@ export function openItemsEditor({ host, initial, onSave }: ItemsEditorArgs): voi
       .map(
         (it, i) => `
         <div class="edit-row" data-index="${i}">
-          <input class="input edit-row-name" type="text" maxlength="24" value="${escapeHtml(it.name)}" placeholder="食材名稱" />
+          <input class="input edit-row-name" type="text" maxlength="24" value="${escapeHtml(it.name)}" placeholder="${t('items.placeholder.name')}" />
           <input class="input edit-row-weight" type="number" min="0" step="10" value="${it.weightG}" inputmode="numeric" />
-          <span class="edit-row-unit text-mini">g</span>
-          <button type="button" class="edit-row-remove" aria-label="移除"><span class="ms">close</span></button>
+          <span class="edit-row-unit text-mini">${t('items.unitG')}</span>
+          <button type="button" class="edit-row-remove" aria-label="${t('items.removeAria')}"><span class="ms">close</span></button>
         </div>
       `,
       )
@@ -136,20 +137,20 @@ export function openItemsEditor({ host, initial, onSave }: ItemsEditorArgs): voi
       .map((it) => ({ ...it, name: it.name.trim() }))
       .filter((it) => it.name.length > 0);
     if (cleaned.length === 0) {
-      showError('至少保留一項食材');
+      showError(t('items.errEmpty'));
       return;
     }
     saveBtn.disabled = true;
-    saveBtn.textContent = '儲存中…';
+    saveBtn.textContent = t('common.saving');
     try {
       const nutrition = aggregateNutrition(cleaned);
       await onSave(cleaned, nutrition);
       close();
     } catch (err) {
       console.error('[items-editor] save failed:', err);
-      showError((err as Error).message ?? '儲存失敗');
+      showError((err as Error).message ?? t('items.errSave'));
       saveBtn.disabled = false;
-      saveBtn.textContent = '儲存';
+      saveBtn.textContent = t('items.save');
     }
   }
 

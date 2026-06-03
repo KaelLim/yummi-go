@@ -5,9 +5,16 @@ vi.mock('@/api/profile', () => ({
   getUserFull: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('@/api/auth', () => ({
+  registerGuest: vi.fn().mockResolvedValue({
+    id: 99, username: 'guest_x', displayName: '訪客 x', isGuest: true,
+  }),
+}));
+
 vi.mock('@/store/user', () => ({
   $user: { get: vi.fn() },
   $profile: { set: vi.fn() },
+  setLoggedInUser: vi.fn(),
 }));
 
 vi.mock('@/router', () => ({
@@ -70,8 +77,9 @@ describe('onboarding/eat-times', () => {
     expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
   });
 
-  it('guest continue stamps the draft and advances to /register', async () => {
+  it('missing-session continue auto-creates a guest and lands on /home', async () => {
     mockedUser.$user.get.mockReturnValue(null);
+    mockedProfile.updateProfile.mockResolvedValueOnce(undefined);
     const { $onboardingDraft } = await import('@/store/onboarding-draft');
     $onboardingDraft.set({
       diet_type: null, baseline: null, purpose: null, challenge_level: null,
@@ -81,9 +89,10 @@ describe('onboarding/eat-times', () => {
     document.body.appendChild(el);
     (el.querySelector('#continue-btn') as HTMLButtonElement).click();
     await flush();
-    expect(mockedProfile.updateProfile).not.toHaveBeenCalled();
-    expect($onboardingDraft.get().eat_times).toContain('breakfast');
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/register');
+    // Guest was provisioned inline → updateProfile called for user 99,
+    // navigation went to /home (no /register detour).
+    expect(mockedProfile.updateProfile).toHaveBeenCalledTimes(1);
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/home');
     document.body.removeChild(el);
   });
 

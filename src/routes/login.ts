@@ -7,6 +7,7 @@
 import { login as authLogin } from '@/api/auth';
 import { setLoggedInUser } from '@/store/user';
 import { navigate } from '@/router';
+import { t } from '@/lib/i18n';
 
 export default function login(): HTMLElement {
   const wrap = document.createElement('div');
@@ -20,19 +21,19 @@ export default function login(): HTMLElement {
     <div class="auth-body">
       <form class="auth-form" id="login-form">
         <label class="field">
-          <span class="field-label text-mini">使用者名稱</span>
+          <span class="field-label text-mini">${t('login.username')}</span>
           <input class="input" type="text" name="username" autocomplete="username" required />
         </label>
         <label class="field">
-          <span class="field-label text-mini">密碼</span>
+          <span class="field-label text-mini">${t('login.password')}</span>
           <input class="input" type="password" name="password" autocomplete="current-password" required />
         </label>
         <div class="auth-error" id="error-msg" hidden></div>
-        <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit-btn">登入</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit-btn">${t('login.cta')}</button>
       </form>
 
       <p class="auth-foot">
-        第一次來？<a href="#/" class="link">回首頁開始挑戰</a>
+        ${t('login.firstTime')}<a href="#/" class="link">${t('login.firstTimeCta')}</a>
       </p>
     </div>
   `;
@@ -52,16 +53,16 @@ export default function login(): HTMLElement {
     if (!username || !password) return;
 
     submitBtn.disabled = true;
-    submitBtn.textContent = '登入中…';
+    submitBtn.textContent = t('login.loading');
     try {
       const user = await authLogin(username, password);
       setLoggedInUser(user);
       navigate('/home');
     } catch {
       errorBox.hidden = false;
-      errorBox.textContent = '登入失敗：使用者名稱或密碼錯誤';
+      errorBox.textContent = t('login.fail');
       submitBtn.disabled = false;
-      submitBtn.textContent = '登入';
+      submitBtn.textContent = t('login.cta');
     }
   });
 

@@ -15,8 +15,9 @@
  * skips the disabled meals.
  */
 import { navigate } from '@/router';
-import { $user, $profile } from '@/store/user';
+import { $user, $profile, setLoggedInUser } from '@/store/user';
 import { updateProfile, getUserFull } from '@/api/profile';
+import { registerGuest } from '@/api/auth';
 import { patchDraft } from '@/store/onboarding-draft';
 import { requestMealNotificationPermission } from '@/lib/meal-notifier';
 import { t } from '@/lib/i18n';
@@ -125,12 +126,25 @@ export default function eatTimes(): HTMLElement {
   renderList();
 
   wrap.querySelector('#continue-btn')?.addEventListener('click', async () => {
-    const u = $user.get();
     const activeTimes: Record<string, string> = {};
     for (const m of MEALS) {
       if (!disabled.has(m.key)) activeTimes[m.key] = times[m.key];
     }
     const eatTimesJson = JSON.stringify(activeTimes);
+    // Session may be missing if drust pruned the guest row mid-flight.
+    // Provision a fresh guest inline rather than bouncing the user out
+    // to a login/register page — there is no "final step" in this
+    // flow, the user expects to land on /home after picking times.
+    let u = $user.get();
+    if (!u) {
+      try {
+        const guest = await registerGuest();
+        setLoggedInUser(guest);
+        u = { id: guest.id, username: guest.username, displayName: guest.displayName };
+      } catch {
+        patchDraft({ eat_times: eatTimesJson });
+      }
+    }
     if (u) {
       try {
         await updateProfile(u.id, { eat_times: eatTimesJson });
@@ -144,11 +158,10 @@ export default function eatTimes(): HTMLElement {
       patchDraft({ eat_times: eatTimesJson });
     }
     void requestMealNotificationPermission();
-    // Post-check-in step: the user is already logged in (this screen only
-    // shows after a real check-in). The `/register` fallback stays as a
-    // defensive path in case someone reaches here without $user — that
-    // path then drains the draft on register.
-    navigate(u ? '/home' : '/register');
+    // 用餐時間 is the final onboarding setup step — always land on /home
+    // afterwards. No /register fallback; if anything failed above the
+    // user still gets the main app.
+    navigate('/home');
   });
 
   return wrap;

@@ -17,13 +17,14 @@ import {
   type Baseline,
 } from '@/lib/baseline-impact';
 import { spriteFor } from '@/lib/pet-sprites';
+import { t } from '@/lib/i18n';
 
 const ACHIEVEMENTS = [
-  { key: 'starter', label: '🌱 喚醒者', test: (d: Stats) => d.totalDays >= 1 },
-  { key: 'streak3', label: '🔥 三日連擊', test: (d: Stats) => d.streak >= 3 },
-  { key: 'lucky', label: '🍀 幸運捕手', test: (d: Stats) => d.luckyHits >= 5 },
-  { key: 'half', label: '🌿 半月達成', test: (d: Stats) => d.totalDays >= 15 },
-  { key: 'full', label: '🌳 30 天滿勤', test: (d: Stats) => d.totalDays >= 30 },
+  { key: 'starter', labelKey: 'd30.badgeStarter', test: (d: Stats) => d.totalDays >= 1 },
+  { key: 'streak3', labelKey: 'd30.badgeStreak3', test: (d: Stats) => d.streak >= 3 },
+  { key: 'lucky',   labelKey: 'd30.badgeLucky',   test: (d: Stats) => d.luckyHits >= 5 },
+  { key: 'half',    labelKey: 'd30.badgeHalf',    test: (d: Stats) => d.totalDays >= 15 },
+  { key: 'full',    labelKey: 'd30.badgeFull',    test: (d: Stats) => d.totalDays >= 30 },
 ];
 
 interface Stats {
@@ -46,10 +47,10 @@ export default function day30(): HTMLElement {
   wrap.className = 'day30-screen';
   wrap.innerHTML = `
     <header class="checkin-header day30-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">30 天終曲</span>
+      <span class="checkin-title">${t('d30.title')}</span>
       <span></span>
     </header>
     <div class="day30-body">
@@ -58,19 +59,19 @@ export default function day30(): HTMLElement {
       </div>
       <div class="day30-pet">
         <div class="pet-view">
-          <img class="pet-frog" src="${spriteFor('adult', 'happy')}" alt="守護者" draggable="false" />
+          <img class="pet-frog" src="${spriteFor('adult', 'happy')}" alt="" draggable="false" />
         </div>
       </div>
-      <h1 class="day30-title">守護者的旅途</h1>
-      <p class="day30-text">30 天前，你只是一顆剛孵化的蛋。<br/>今天，你已經陪伴守護者走完一段旅程。</p>
+      <h1 class="day30-title">${t('d30.heroTitle')}</h1>
+      <p class="day30-text">${t('d30.heroText')}</p>
       <section class="day30-card" id="impact"></section>
       <section class="day30-badges" id="badges"></section>
       <div class="day30-actions">
         <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="share">
-          <span class="ms">share</span>分享成果
+          <span class="ms">share</span>${t('d30.share')}
         </button>
         <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="restart">
-          <span class="ms">replay</span>回首頁
+          <span class="ms">replay</span>${t('d30.restart')}
         </button>
       </div>
     </div>
@@ -92,7 +93,7 @@ async function hydrate(wrap: HTMLElement): Promise<void> {
   const badgesEl = wrap.querySelector<HTMLElement>('#badges')!;
   const u = $user.get();
   if (!u) {
-    impactEl.innerHTML = '<p class="reviews-empty">請先登入。</p>';
+    impactEl.innerHTML = `<p class="reviews-empty">${t('d30.needLogin')}</p>`;
     return;
   }
 
@@ -100,7 +101,7 @@ async function hydrate(wrap: HTMLElement): Promise<void> {
   try {
     checkIns = await listCheckIns(u.id);
   } catch {
-    impactEl.innerHTML = '<p class="reviews-empty">無法載入打卡紀錄。</p>';
+    impactEl.innerHTML = `<p class="reviews-empty">${t('d30.loadFail')}</p>`;
     return;
   }
 
@@ -134,56 +135,62 @@ async function hydrate(wrap: HTMLElement): Promise<void> {
   };
 
   impactEl.innerHTML = `
-    <h2 class="day30-card-title">影響力報告</h2>
+    <h2 class="day30-card-title">${t('d30.cardTitle')}</h2>
     <div class="impact-hero-grid">
       <div class="impact-cell impact-highlight">
         <span class="impact-value">${co2Saved.toFixed(1)}</span>
         <span class="impact-unit">kg</span>
-        <span class="impact-label">減碳 CO₂e</span>
+        <span class="impact-label">${t('d30.unitCO2')}</span>
       </div>
       <div class="impact-cell impact-highlight impact-blue">
         <span class="impact-value">${fmtInt(waterSavedL)}</span>
         <span class="impact-unit">L</span>
-        <span class="impact-label">省水量</span>
+        <span class="impact-label">${t('d30.unitWater')}</span>
       </div>
       <div class="impact-cell impact-highlight impact-brown">
         <span class="impact-value">${fmtInt(landSavedM2)}</span>
         <span class="impact-unit">m²</span>
-        <span class="impact-label">省地</span>
+        <span class="impact-label">${t('d30.unitLand')}</span>
       </div>
     </div>
     <div class="impact-grid">
       <div class="impact-cell">
         <span class="impact-value">${totalDays}</span>
-        <span class="impact-label">完成天數 / 30</span>
+        <span class="impact-label">${t('d30.statDays')}</span>
       </div>
       <div class="impact-cell">
         <span class="impact-value">${totalMeals}</span>
-        <span class="impact-label">蔬食餐次</span>
+        <span class="impact-label">${t('d30.statMeals')}</span>
       </div>
       <div class="impact-cell">
         <span class="impact-value">${streak}</span>
-        <span class="impact-label">最長連擊</span>
+        <span class="impact-label">${t('d30.statStreak')}</span>
       </div>
       <div class="impact-cell">
         <span class="impact-value">${luckyHits}</span>
-        <span class="impact-label">幸運色命中</span>
+        <span class="impact-label">${t('d30.statLucky')}</span>
       </div>
       <div class="impact-cell">
         <span class="impact-value">LV.${profile?.level ?? 1}</span>
-        <span class="impact-label">守護者等級</span>
+        <span class="impact-label">${t('d30.statLevel')}</span>
       </div>
     </div>
   `;
 
   const earned = ACHIEVEMENTS.filter((a) => a.test(stats));
   badgesEl.innerHTML = earned.length
-    ? `<h2 class="day30-card-title">徽章</h2><div class="badges-grid">${earned
-        .map((a) => `<span class="badge">${a.label}</span>`)
+    ? `<h2 class="day30-card-title">${t('d30.badgesTitle')}</h2><div class="badges-grid">${earned
+        .map((a) => `<span class="badge">${t(a.labelKey)}</span>`)
         .join('')}</div>`
     : '';
 
-  wrap.dataset.summary = `Yummi Go 30 天挑戰：${totalDays} 天 / ${totalMeals} 餐 / 減碳 ${co2Saved.toFixed(1)} kg CO₂e / 省水 ${fmtInt(waterSavedL)} L / 省地 ${fmtInt(landSavedM2)} m² / 連擊 ${streak} 天。`;
+  wrap.dataset.summary = t('d30.summary')
+    .replace('{days}', String(totalDays))
+    .replace('{meals}', String(totalMeals))
+    .replace('{co2}', co2Saved.toFixed(1))
+    .replace('{water}', fmtInt(waterSavedL))
+    .replace('{land}', fmtInt(landSavedM2))
+    .replace('{streak}', String(streak));
 }
 
 function longestConsecutive(sorted: number[]): number {
@@ -202,7 +209,7 @@ function longestConsecutive(sorted: number[]): number {
 }
 
 async function shareSummary(wrap: HTMLElement): Promise<void> {
-  const text = wrap.dataset.summary ?? 'Yummi Go 30 天挑戰完成！';
+  const text = wrap.dataset.summary ?? t('d30.fallback');
   if (navigator.share) {
     try {
       await navigator.share({ title: 'Yummi Go', text });
@@ -214,7 +221,7 @@ async function shareSummary(wrap: HTMLElement): Promise<void> {
   if (navigator.clipboard) {
     try {
       await navigator.clipboard.writeText(text);
-      window.alert('已複製到剪貼簿');
+      window.alert(t('d30.copied'));
       return;
     } catch {
       /* fall through */

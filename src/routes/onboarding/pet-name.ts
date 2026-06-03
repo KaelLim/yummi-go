@@ -23,6 +23,7 @@ import { $onboardingDraft, patchDraft } from '@/store/onboarding-draft';
 import { createProgress } from '@/components/Progress';
 import { listPetNameSuggestions } from '@/api/content';
 import { updateDisplayName } from '@/api/profile';
+import { registerGuest } from '@/api/auth';
 import { t } from '@/lib/i18n';
 
 const STATIC_FALLBACK = '小綠';
@@ -123,22 +124,24 @@ export default function petName(): HTMLElement {
       error.textContent = t('onb.petname.error');
       return;
     }
-    // Always patch the draft so the defensive /register branch still works
-    // if we somehow get here without a logged-in user.
     patchDraft({ pet_name: name });
-    const u = $user.get();
-    if (u) {
-      // The pet's name is the user's display_name — persist it and refresh
-      // the in-memory session so PetView / TabBar pick up the new name
-      // immediately. Then drop the user straight into their first check-in
-      // (was /home — the first check-in is the intended next step after
-      // the egg is named).
-      try { await updateDisplayName(u.id, name); } catch { /* soft fail */ }
-      setLoggedInUser({ id: u.id, username: u.username, displayName: name });
-      navigate('/onboarding/start-checkin');
-    } else {
-      navigate('/register');
+    // Auto-create a guest if the session is missing — no /register
+    // detour. The user just expects to land in the first check-in.
+    let u = $user.get();
+    if (!u) {
+      try {
+        const guest = await registerGuest();
+        setLoggedInUser(guest);
+        u = { id: guest.id, username: guest.username, displayName: guest.displayName };
+      } catch {
+        // Soft fail — let /home handle the missing-session edge.
+        navigate('/onboarding/start-checkin');
+        return;
+      }
     }
+    try { await updateDisplayName(u.id, name); } catch { /* soft fail */ }
+    setLoggedInUser({ id: u.id, username: u.username, displayName: name });
+    navigate('/onboarding/start-checkin');
   });
 
   return wrap;

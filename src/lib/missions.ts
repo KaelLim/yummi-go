@@ -13,6 +13,7 @@
  */
 import type { TodayStoreShape } from '@/store/today';
 import { MEAL_COMPLETE_BONUS_KEY, MEAL_COMPLETE_BONUS_XP } from './xp-calc';
+import { t } from './i18n';
 
 export interface Mission {
   /** Stable id for de-dup / mission-done lookups. */
@@ -36,11 +37,11 @@ export interface BuildMissionsArgs {
 }
 
 const SUSTAINABLE = [
-  { key: '5r:refuse', emoji: '🚫', label: '拒絕一次性用品' },
-  { key: '5r:reduce', emoji: '📉', label: '減少不必要消費' },
-  { key: '5r:reuse', emoji: '♻️', label: '重複使用容器' },
-  { key: '5r:recycle', emoji: '♻️', label: '回收一次塑膠' },
-  { key: '5r:rot', emoji: '🌱', label: '廚餘堆肥/分類' },
+  { key: '5r:refuse', emoji: '🚫', labelKey: 'mission.r.refuse' },
+  { key: '5r:reduce', emoji: '📉', labelKey: 'mission.r.reduce' },
+  { key: '5r:reuse', emoji: '♻️', labelKey: 'mission.r.reuse' },
+  { key: '5r:recycle', emoji: '♻️', labelKey: 'mission.r.recycle' },
+  { key: '5r:rot', emoji: '🌱', labelKey: 'mission.r.rot' },
 ];
 
 /**
@@ -58,13 +59,13 @@ export function buildMissions({
   // Meal check-ins — one row per enabled meal slot. The label uses positional
   // ordinals (第一餐 / 第二餐 / …) so users who skip a meal still see a
   // coherent count.
-  const ordinals = ['第一餐', '第二餐', '第三餐'];
+  const ordinalKeys = ['checkin.meal1', 'checkin.meal2', 'checkin.meal3'];
   for (let i = 0; i < Math.min(mealCount, 3); i++) {
     const key = `meal:${MEAL_KEY[i]}`;
     missions.push({
       key,
       emoji: '🍽️',
-      label: `${ordinals[i]}打卡`,
+      label: t('mission.mealCheckinFmt').replace('{meal}', t(ordinalKeys[i] ?? 'checkin.meal1')),
       xp: 20,
       href: '/check-in',
       done: done.has(key) || done.has(MEAL_KEY[i]),
@@ -80,7 +81,7 @@ export function buildMissions({
   missions.push({
     key: MEAL_COMPLETE_BONUS_KEY,
     emoji: '🏅',
-    label: '完成全日三餐',
+    label: t('mission.mealComplete'),
     xp: MEAL_COMPLETE_BONUS_XP,
     done: allMealsDone && done.has(MEAL_COMPLETE_BONUS_KEY),
   });
@@ -88,7 +89,7 @@ export function buildMissions({
   missions.push({
     key: 'quiz',
     emoji: '🧪',
-    label: '每日小測驗',
+    label: t('mission.quiz'),
     xp: 15,
     href: '/tasks/quiz',
     done: done.has('quiz'),
@@ -97,7 +98,7 @@ export function buildMissions({
   missions.push({
     key: 'lucky',
     emoji: '🍀',
-    label: '今日幸運色',
+    label: t('mission.lucky'),
     xp: 15,
     href: '/check-in',
     done: done.has('lucky:hit'),
@@ -112,7 +113,7 @@ export function buildMissions({
   missions.push({
     key: r.key,
     emoji: r.emoji,
-    label: r.label,
+    label: t(r.labelKey),
     xp: 0,
     done: done.has(r.key),
     selfCheck: true,

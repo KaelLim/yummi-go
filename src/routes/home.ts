@@ -46,14 +46,14 @@ const PHASE_1_FLAG_KEY = 'yummi:phase1_modal_pending';
 const PHASE_1_CHOICE_KEY = 'yummi:phase1_chosen_days';
 
 const LUCKY_LABEL: Record<string, string> = {
-  red: '紅色',
-  orange: '橙色',
-  yellow: '黃色',
-  green: '綠色',
-  blue: '藍色',
-  purple: '紫色',
-  black: '黑色',
-  white: '白色',
+  red: 'color.red',
+  orange: 'color.orange',
+  yellow: 'color.yellow',
+  green: 'color.green',
+  blue: 'color.blue',
+  purple: 'color.purple',
+  black: 'color.black',
+  white: 'color.white',
 };
 
 export default function home(): HTMLElement {
@@ -155,13 +155,14 @@ export default function home(): HTMLElement {
     if (fill) fill.style.width = pct + '%';
   }
 
-  function renderToday(t: TodayStoreShape) {
-    const lucky = t.luckyColor;
+  function renderToday(today: TodayStoreShape) {
+    const lucky = today.luckyColor;
     const palette = normalizeLuckyColor(lucky);
     const labelEl = $$('[data-bind="lucky-label"]');
     if (labelEl) {
+      const palKey = palette ? LUCKY_LABEL[palette] : null;
       labelEl.textContent =
-        lucky || (palette ? LUCKY_LABEL[palette] : '未設定') || '未設定';
+        lucky || (palKey ? t(palKey) : t('home.luckyUnset')) || t('home.luckyUnset');
     }
     const emojiEl = $$('[data-bind="lucky-emoji"]');
     if (emojiEl) {
@@ -174,13 +175,13 @@ export default function home(): HTMLElement {
       }
     }
 
-    const luckyHit = t.missionsDone.includes('lucky:hit');
+    const luckyHit = today.missionsDone.includes('lucky:hit');
     const luckyCard = $$('#lucky-card');
     if (luckyCard) luckyCard.classList.toggle('hit', luckyHit);
     const luckyStatusEl = $$('[data-bind="lucky-status"]');
-    if (luckyStatusEl) luckyStatusEl.textContent = luckyHit ? '✓ 已命中 +15 XP' : '';
+    if (luckyStatusEl) luckyStatusEl.textContent = luckyHit ? t('home.luckyHit') : '';
 
-    renderMissions(t);
+    renderMissions(today);
   }
 
   // Missions accordion state — collapsed by default, expands in-place when
@@ -190,17 +191,17 @@ export default function home(): HTMLElement {
   // non-meal mission (quiz/lucky/5R/...) so the user sees both their
   // primary daily action and a secondary nudge without scrolling.
   let missionsExpanded = false;
-  function renderMissions(t: TodayStoreShape) {
+  function renderMissions(today: TodayStoreShape) {
     const list = $$('#missions-list');
     if (!list) return;
-    const all = buildMissions({ today: t });
+    const all = buildMissions({ today });
     const visible = missionsExpanded ? all : homeVisibleMissions(all);
     list.innerHTML = '';
     if (visible.length === 0) {
       list.innerHTML = `
         <li class="mission-row mission-row-empty">
           <span class="ms">celebration</span>
-          <span class="mission-label">今日任務全部完成！</span>
+          <span class="mission-label">${t('home.missionsAllDone')}</span>
         </li>
       `;
       return;
@@ -215,7 +216,7 @@ export default function home(): HTMLElement {
     if (btn) {
       btn.setAttribute('aria-expanded', String(missionsExpanded));
       const label = btn.querySelector('.missions-expand-label');
-      if (label) label.textContent = missionsExpanded ? '收合' : '查看全部';
+      if (label) label.textContent = missionsExpanded ? t('home.missionsCollapse') : t('home.missionsExpand');
       const arrow = btn.querySelector<HTMLElement>('.missions-expand-arrow');
       if (arrow) arrow.textContent = missionsExpanded ? 'expand_less' : 'expand_more';
     }
@@ -319,7 +320,7 @@ function renderMissionRow(m: Mission): HTMLElement {
     : `<span class="ms mission-arrow">arrow_forward</span>`;
   const xpTag = m.xp > 0
     ? `<span class="mission-xp">+${m.xp} XP</span>`
-    : `<span class="mission-xp mission-xp-zero">永續</span>`;
+    : `<span class="mission-xp mission-xp-zero">${t('home.missionsSustainable')}</span>`;
   li.innerHTML = `
     <span class="mission-emoji" aria-hidden="true">${m.emoji}</span>
     <span class="mission-label">${m.label}</span>

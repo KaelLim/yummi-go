@@ -9,6 +9,11 @@ vi.mock('@/api/content', () => ({
 vi.mock('@/api/profile', () => ({
   updateDisplayName: vi.fn(() => Promise.resolve()),
 }));
+vi.mock('@/api/auth', () => ({
+  registerGuest: vi.fn().mockResolvedValue({
+    id: 42, username: 'guest_y', displayName: '訪客 y', isGuest: true,
+  }),
+}));
 
 import petName from '../onboarding/pet-name';
 import * as router from '@/router';
@@ -135,13 +140,15 @@ describe('onboarding/pet-name', () => {
     expect(input.value).toBe('小綠');
   });
 
-  it('on continue, guests stamp the draft and advance to /register (no $user)', () => {
+  it('on continue with no session, auto-creates a guest and advances to /onboarding/start-checkin', async () => {
     const el = petName();
     const input = el.querySelector('#pet-name-input') as HTMLInputElement;
     input.value = '阿綠';
     (el.querySelector('#continue-btn') as HTMLButtonElement).click();
     expect($onboardingDraft.get().pet_name).toBe('阿綠');
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/register');
+    await flush();
+    // No /register detour — guest provisioned inline.
+    expect(mockedRouter.navigate).toHaveBeenCalledWith('/onboarding/start-checkin');
   });
 
   it('shows an error and does not navigate when the name is blank', () => {

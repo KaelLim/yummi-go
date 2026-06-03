@@ -10,6 +10,7 @@
  */
 import { $route } from '@/router';
 import { storage } from '@/lib/storage';
+import { t } from '@/lib/i18n';
 
 const DISMISS_KEY = 'yummi.installDismissed';
 
@@ -55,11 +56,11 @@ export function setupInstallPrompt(): void {
     el.innerHTML = `
       <span class="install-toast-icon ms">install_mobile</span>
       <div class="install-toast-body">
-        <strong>把 Yummi Go 加到主畫面</strong>
-        <span>離線也能照顧守護者</span>
+        <strong>${t('install.title')}</strong>
+        <span>${t('install.sub')}</span>
       </div>
-      <button class="install-toast-cta" id="install-go">安裝</button>
-      <button class="install-toast-x" id="install-x" aria-label="關閉">
+      <button class="install-toast-cta" id="install-go">${t('install.cta')}</button>
+      <button class="install-toast-x" id="install-x" aria-label="${t('install.dismiss')}">
         <span class="ms">close</span>
       </button>
     `;

@@ -15,6 +15,7 @@ import { $user } from '@/store/user';
 import { randomQuiz, recordQuizAttempt, type QuizQuestion } from '@/api/content';
 import { markMissionDone, $today } from '@/store/today';
 import { awardXp } from '@/store/pet';
+import { t } from '@/lib/i18n';
 
 const QUIZ_XP_CORRECT = 15;
 const QUIZ_XP_WRONG = 5;
@@ -34,16 +35,16 @@ export default function quiz(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="返回">
+      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">每日小測驗</span>
-      <span class="checkin-meal">答對 +${QUIZ_XP_CORRECT} · 答錯 +${QUIZ_XP_WRONG}</span>
+      <span class="checkin-title">${t('tasks.quiz.title')}</span>
+      <span class="checkin-meal">${t('quiz.metaFmt').replace('{a}', String(QUIZ_XP_CORRECT)).replace('{b}', String(QUIZ_XP_WRONG))}</span>
     </header>
     <div class="quiz-body" id="body">
       <div class="quiz-loading">
         <span class="ms">hourglass_top</span>
-        <span>抽題中…</span>
+        <span>${t('quiz.drawing')}</span>
       </div>
     </div>
   `;
@@ -62,8 +63,8 @@ export default function quiz(): HTMLElement {
     if (!q) {
       body.innerHTML = `
         <div class="checkin-fallback">
-          <p>暫時拿不到題目。</p>
-          <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="retry">重試</button>
+          <p>${t('quiz.unavailable')}</p>
+          <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="retry">${t('quiz.retry')}</button>
         </div>
       `;
       body.querySelector('#retry')?.addEventListener('click', () => navigate('/tasks/quiz'));
@@ -143,18 +144,18 @@ async function onPick(
   resultEl.innerHTML = `
     <div class="quiz-verdict ${correct ? 'right' : 'wrong'}">
       <span class="ms">${correct ? 'verified' : 'cancel'}</span>
-      <strong>${correct ? '答對了！' : '沒關係'}</strong>
+      <strong>${correct ? t('quiz.right') : t('quiz.wrong')}</strong>
       <span class="quiz-xp">+${xpEarned} XP</span>
     </div>
     ${!correct ? `
       <div class="quiz-pet-bubble">
         <span class="quiz-pet-emoji" aria-hidden="true">🐣</span>
-        <span class="quiz-pet-text">沒關係，看講解學一下！</span>
+        <span class="quiz-pet-text">${t('quiz.petNudge')}</span>
       </div>
     ` : ''}
     ${q.explanation ? `<p class="quiz-explanation">${escapeHtml(q.explanation)}</p>` : ''}
     <div class="quiz-actions">
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">繼續</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="back">${t('quiz.continue')}</button>
     </div>
   `;
 

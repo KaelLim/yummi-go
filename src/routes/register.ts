@@ -13,6 +13,7 @@ import { register as authRegister } from '@/api/auth';
 import { setLoggedInUser } from '@/store/user';
 import { $onboardingDraft, flushDraftToDrust } from '@/store/onboarding-draft';
 import { navigate } from '@/router';
+import { t } from '@/lib/i18n';
 
 export default function register(): HTMLElement {
   const wrap = document.createElement('div');
@@ -25,20 +26,20 @@ export default function register(): HTMLElement {
       <div class="auth-back" id="back-btn"><span class="ms">arrow_back</span></div>
     </div>
     <div class="auth-body">
-      <h1 class="auth-title text-h1">最後一步</h1>
-      <p class="auth-sub text-body">${petName ? `為「${escapeHtml(petName)}」建立帳號` : '建立帳號以儲存你的進度'}</p>
+      <h1 class="auth-title text-h1">${t('register.last')}</h1>
+      <p class="auth-sub text-body">${petName ? t('register.subFor').replace('{name}', escapeHtml(petName)) : t('register.subGeneric')}</p>
 
       <form class="auth-form" id="reg-form">
         <label class="field">
-          <span class="field-label text-mini">使用者名稱</span>
+          <span class="field-label text-mini">${t('register.username')}</span>
           <input class="input" type="text" name="username" autocomplete="username" required minlength="3" />
         </label>
         <label class="field">
-          <span class="field-label text-mini">密碼</span>
+          <span class="field-label text-mini">${t('register.password')}</span>
           <input class="input" type="password" name="password" autocomplete="new-password" required minlength="6" />
         </label>
         <div class="auth-error" id="reg-error" hidden></div>
-        <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="reg-submit">建立帳號</button>
+        <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="reg-submit">${t('register.confirm')}</button>
       </form>
 
     </div>
@@ -64,7 +65,7 @@ export default function register(): HTMLElement {
     const displayName = ($onboardingDraft.get().pet_name ?? '').trim() || username;
 
     submitBtn.disabled = true;
-    submitBtn.textContent = '建立中…';
+    submitBtn.textContent = t('register.creating');
     try {
       const user = await authRegister(username, password, displayName);
       setLoggedInUser(user);
@@ -77,12 +78,14 @@ export default function register(): HTMLElement {
       const msg = String(e?.message ?? '');
       const status = e?.status;
       if (msg.includes('UNIQUE')) {
-        errorBox.textContent = '使用者名稱已被使用';
+        errorBox.textContent = t('register.uniqueErr');
       } else {
-        errorBox.textContent = `註冊失敗 (${status ?? '?'}): ${msg.slice(0, 200) || '未知錯誤'}`;
+        errorBox.textContent = t('register.fail')
+          .replace('{status}', String(status ?? '?'))
+          .replace('{msg}', msg.slice(0, 200) || t('register.unknown'));
       }
       submitBtn.disabled = false;
-      submitBtn.textContent = '建立帳號';
+      submitBtn.textContent = t('register.confirm');
     }
   });
 
