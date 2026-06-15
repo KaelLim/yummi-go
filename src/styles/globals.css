@@ -2245,6 +2245,12 @@ body {
 }
 .vegan-info-name { font-size: var(--text-body-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); }
 .vegan-info-desc { font-size: var(--text-mini-size); color: var(--color-foreground-alt); line-height: 1.5; }
+/* Missions-info row variant — emoji on the left, description on the
+   right. Same card chrome as vegan-info-row, but a horizontal layout. */
+.mission-info-row {
+  flex-direction: row; align-items: flex-start; gap: var(--space-3);
+}
+.mission-info-emoji { font-size: 22px; line-height: 1.4; flex: 0 0 auto; }
 /* Footnote inside the 素別 info modal — emphasises that 素別 describes
    the dish, not the restaurant. Soft yellow so it reads as a heads-up,
    not an error. */

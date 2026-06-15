@@ -22,6 +22,7 @@ import { XP_PER_LEVEL } from '@/lib/pet-evolution';
 import { normalizeLuckyColor } from '@/lib/lucky-color';
 import { bind } from '@/lib/lifecycle';
 import { $locale, t } from '@/lib/i18n';
+import { openMissionsInfo } from '@/lib/missions-info';
 import { createPetView } from '@/components/PetView';
 import { listCheckIns } from '@/api/check-ins';
 import { deriveStreak } from '@/lib/streak';
@@ -96,7 +97,12 @@ export default function home(): HTMLElement {
     </section>
     <section class="missions-card" id="missions-card">
       <header class="missions-header">
-        <h2 class="missions-title">${t('home.missionsTitle')}</h2>
+        <h2 class="missions-title">
+          ${t('home.missionsTitle')}
+          <button class="vegan-info-btn vegan-info-btn-inline" id="missions-info-btn" type="button" aria-label="${t('home.missionsInfo')}" title="${t('home.missionsInfo')}">
+            <span class="ms">info</span>
+          </button>
+        </h2>
         <button class="missions-expand" id="missions-expand" type="button" aria-expanded="false">
           <span class="missions-expand-label">${t('home.missionsExpand')}</span>
           <span class="ms missions-expand-arrow">expand_more</span>
@@ -271,6 +277,7 @@ export default function home(): HTMLElement {
   $$('#lucky-card')?.addEventListener('click', () => navigate('/check-in'));
   $$('#streak-chip')?.addEventListener('click', () => navigate('/profile/calendar'));
   $$('#missions-expand')?.addEventListener('click', toggleMissions);
+  $$('#missions-info-btn')?.addEventListener('click', () => openMissionsInfo(wrap));
 
   // Phase-1 modal — shows once on the user's first home visit after
   // onboarding + first check-in. /check-in/success drops a localStorage
