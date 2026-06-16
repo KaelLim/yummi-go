@@ -21,11 +21,15 @@ describe('profile hub', () => {
     $locale.set('zh');
   });
 
-  it('renders header card + 4 stat cards (inline calendar removed)', () => {
+  it('renders identity card with anon id + 3 stat cards (pet name moved to pet page; lucky-colour stat removed)', () => {
     const el = profile();
     expect(el.classList.contains('profile-screen')).toBe(true);
-    expect(el.querySelector('.profile-name')?.textContent).toBe('阿凱');
-    expect(el.querySelectorAll('.stat-card').length).toBe(4);
+    // Profile identity card now surfaces the username (anon id), not the
+    // pet name; the pet sprite + LV moved to the pet page.
+    expect(el.querySelector('.profile-anon-id')?.textContent).toBe('kael');
+    expect(el.querySelector('.profile-avatar img')).toBeNull();
+    expect(el.querySelector('.profile-tag-level')).toBeNull();
+    expect(el.querySelectorAll('.stat-card').length).toBe(3);
     // Inline mini-calendar removed in the 2026-05-19 pivot — full view now
     // lives at /profile/calendar.
     expect(el.querySelectorAll('.cal-cell').length).toBe(0);

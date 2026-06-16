@@ -78,16 +78,35 @@ const DICT: Record<string, Entry> = {
   'home.luckyUnset':        { zh: '未設定', en: 'Not set' },
 
   // Profile hub
-  'profile.guestName':      { zh: '訪客', en: 'Guest' },
+  'profile.anonIdLabel':    { zh: '匿名 ID', en: 'Anonymous ID' },
   'profile.statsDays':      { zh: '挑戰天數', en: 'Challenge days' },
   'profile.statsMeals':     { zh: '打卡餐次', en: 'Meal check-ins' },
   'profile.statsCo2':       { zh: '減碳 kg CO₂e', en: 'kg CO₂e saved' },
-  'profile.statsLucky':     { zh: '幸運色命中', en: 'Lucky-colour hits' },
   'profile.linkJourney':    { zh: '蔬食旅程', en: 'Vegan Journey' },
   'profile.linkReviews':    { zh: '我的評論', en: 'My reviews' },
   'profile.linkBaseline':   { zh: '編輯基本飲食', en: 'Edit base diet' },
-  'profile.linkEatTimes':   { zh: '用餐時間', en: 'Meal times' },
   'profile.linkSettings':   { zh: '設定', en: 'Settings' },
+  'profile.linkCollection': { zh: '守護者典藏冊', en: 'Pet collection book' },
+
+  // Pet collection (典藏冊) — one card per completed guardian. A
+  // guardian is "completed" when it reaches LV30; at that moment it
+  // moves into this book in its final form, with its individual name
+  // preserved. Two frogs the user raised sit side-by-side as separate
+  // entries because each carries its own name. Phase 2 (merging two
+  // same-species cards into a stronger card) is intentionally out of
+  // scope here.
+  'collection.title':       { zh: '守護者典藏冊', en: 'Guardian collection' },
+  'collection.subFmt':      { zh: '已收集 {n} 隻守護者', en: 'Collected {n} guardian{s}' },
+  'collection.howHint':     { zh: '當一隻守護者升到 LV30，就會以最終型態加入這本典藏冊。', en: 'When a guardian reaches LV30 it joins this book in its final form.' },
+  'collection.emptyTitle':  { zh: '還沒有收藏的守護者', en: 'No guardians collected yet' },
+  'collection.emptyBody':   { zh: '把你現在養的這隻拉到 LV30，牠就會成為這本典藏冊的第一頁。', en: 'Raise your current guardian to LV30 — it will become the first page of this book.' },
+  'collection.dateFmt':     { zh: '{y}/{m}/{d} 完成', en: 'Completed {y}/{m}/{d}' },
+  'collection.species.frog':     { zh: '青蛙', en: 'Frog' },
+  'collection.species.koala':    { zh: '無尾熊', en: 'Koala' },
+  'collection.species.elephant': { zh: '大象', en: 'Elephant' },
+  'collection.species.panda':    { zh: '熊貓', en: 'Panda' },
+  'collection.species.owl':      { zh: '貓頭鷹', en: 'Owl' },
+  'collection.species.hedgehog': { zh: '刺蝟', en: 'Hedgehog' },
 
   // Settings (Phase A surface)
   'settings.title':         { zh: '設定', en: 'Settings' },
@@ -142,7 +161,7 @@ const DICT: Record<string, Entry> = {
   'onb.start.cta':          { zh: '開始打卡', en: 'Start check-in' },
   'onb.start.skip':         { zh: '稍後再打卡', en: 'Check in later' },
   'onb.start.petFallback':  { zh: '你的守護者', en: 'your guardian' },
-  // Onboarding — eat times (also used by /profile/eat-times)
+  // Onboarding — eat times (subProfile copy is reused by the meal-reminders section in /profile/settings)
   'eattimes.title':         { zh: '用餐時間', en: 'Meal times' },
   'eattimes.sub':           { zh: '設定後我們會在用餐前 10 分鐘提醒你打卡，不吃某餐可用 ✕ 移除', en: "We'll remind you 10 min before each meal. Use ✕ to skip a meal." },
   'eattimes.subProfile':    { zh: '設定後我們會在用餐前 10 分鐘提醒你打卡，不吃某餐可用 ✕ 移除，之後也能再加回來。', en: "We'll remind you 10 min before each meal. Use ✕ to skip; you can add it back any time." },
@@ -402,7 +421,6 @@ const DICT: Record<string, Entry> = {
   'profile.diet.omnivore':    { zh: 'Omnivore 無肉不歡', en: 'Omnivore' },
 
   // Settings (rest of)
-  'settings.petName':         { zh: '寵物名稱', en: 'Pet name' },
   'settings.mealReminders':   { zh: '用餐提醒', en: 'Meal reminders' },
   'settings.notif':           { zh: '推播提醒', en: 'Push notifications' },
   'settings.notifAsk':        { zh: '允許用餐前 10 分鐘提醒', en: 'Allow 10-min pre-meal reminders' },
@@ -416,7 +434,6 @@ const DICT: Record<string, Entry> = {
   'settings.saveOk':          { zh: '已儲存', en: 'Saved' },
   'settings.saveBtn':         { zh: '儲存變更', en: 'Save changes' },
   'settings.logout':          { zh: '登出', en: 'Log out' },
-  'settings.errName':         { zh: '名稱不能空白', en: 'Name cannot be empty' },
   'settings.logoutConfirm':   { zh: '確定要登出嗎？', en: 'Log out?' },
   'settings.footer':          { zh: 'Yummi Go v{ver} · 建置於 {time}', en: 'Yummi Go v{ver} · built {time}' },
 

@@ -29,4 +29,5 @@ export const KEYS = {
   MANUAL_DAY: 'yummi.manualDay',
   LOCALE: 'yummi.locale',
   FONT_SCALE: 'yummi.fontScale',
+  PET_COLLECTION: 'yummi.petCollection',
 } as const;

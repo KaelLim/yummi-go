@@ -1,14 +1,13 @@
 /**
- * Settings — display name + meal-times + theme + logout.
+ * Settings — meal-times + font size + locale + logout.
  *
- * display_name lives on users (not user_profiles), so we PATCH users by
- * the user id. eat_times is JSON in user_profiles. Theme persists via
- * store/ui (already wired). Logout clears the local session and routes
- * back to /login.
+ * The display-name (pet name) editor was removed in the 2026-06-16
+ * tidy: that name is set during onboarding and intentionally not
+ * editable afterwards. eat_times is JSON in user_profiles and is now
+ * the only profile field this screen writes.
  */
 import { navigate } from '@/router';
-import { $user, $profile, clearUser, setLoggedInUser } from '@/store/user';
-import { drust } from '@/api/drust';
+import { $user, $profile, clearUser } from '@/store/user';
 import { updateProfile } from '@/api/profile';
 import { $ui, setFontScale } from '@/store/ui';
 import { bind } from '@/lib/lifecycle';
@@ -45,11 +44,6 @@ export default function settings(): HTMLElement {
       <span></span>
     </header>
     <div class="settings-body">
-      <section class="settings-section">
-        <span class="settings-label" data-i18n="settings.petName">${t('settings.petName')}</span>
-        <input class="input" id="display-name" type="text" />
-      </section>
-
       <section class="settings-section">
         <span class="settings-label" data-i18n="settings.mealReminders">${t('settings.mealReminders')}</span>
         <p class="onb-sub text-mini" data-i18n="eattimes.subProfile">${t('eattimes.subProfile')}</p>
@@ -142,9 +136,7 @@ export default function settings(): HTMLElement {
   }
 
   function hydrate() {
-    const u = $user.get();
     const p = $profile.get();
-    (wrap.querySelector('#display-name') as HTMLInputElement).value = u?.displayName ?? '';
 
     // Re-derive local meal state from the stored eat_times JSON so the
     // section paints with the user's actual schedule on mount.
@@ -171,7 +163,6 @@ export default function settings(): HTMLElement {
     });
   }
 
-  bind(wrap, $user, hydrate);
   bind(wrap, $profile, hydrate);
   bind(wrap, $ui, hydrate);
 
@@ -239,12 +230,6 @@ export default function settings(): HTMLElement {
       navigate('/login');
       return;
     }
-    const newName = (wrap.querySelector('#display-name') as HTMLInputElement).value.trim();
-    if (!newName) {
-      err.hidden = false;
-      err.textContent = t('settings.errName');
-      return;
-    }
     // Persist only the active (non-disabled) meals so a user who's
     // disabled e.g. breakfast doesn't have it reinstated on save.
     const eatTimes: Record<string, string> = {};
@@ -255,10 +240,6 @@ export default function settings(): HTMLElement {
     save.disabled = true;
     save.textContent = t('common.saving');
     try {
-      if (newName !== u.displayName) {
-        await drust.update('users', u.id, { display_name: newName });
-        setLoggedInUser({ ...u, displayName: newName });
-      }
       await updateProfile(u.id, { eat_times: JSON.stringify(eatTimes) });
       ok.hidden = false;
     } catch (e) {

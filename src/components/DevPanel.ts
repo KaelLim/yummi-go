@@ -38,6 +38,25 @@ import { setPetFromRow } from '@/store/pet';
 import { navigate } from '@/router';
 import { bind } from '@/lib/lifecycle';
 import { showGemGain } from '@/lib/gem-toast';
+import {
+  addCompletedPet,
+  clearCompletedPets,
+  listCompletedPets,
+  type PetSpecies,
+} from '@/lib/pet-collection';
+
+// Sample (species, name) pairs cycled by the dev "+1 樣本" button so
+// repeated presses populate the 典藏冊 with visibly different cards.
+const DEMO_PETS: Array<{ species: PetSpecies; name: string }> = [
+  { species: 'frog', name: '小綠' },
+  { species: 'koala', name: '尤加利' },
+  { species: 'elephant', name: '大灰' },
+  { species: 'frog', name: '阿綠' },
+  { species: 'panda', name: '麻吉' },
+  { species: 'owl', name: '夜爵' },
+  { species: 'hedgehog', name: '小刺' },
+  { species: 'elephant', name: '長鼻' },
+];
 
 const ROUTES: Array<{ label: string; path: string }> = [
   { label: '首頁', path: '/home' },
@@ -134,6 +153,18 @@ export function createDevPanel(): HTMLElement {
       <div class="dev-status" id="dev-status" hidden></div>
 
       <section class="dev-section">
+        <div class="dev-label-row">
+          <span class="dev-label">典藏冊樣本</span>
+          <span class="dev-readout" data-bind="collection">0 隻</span>
+        </div>
+        <div class="dev-chips" id="collection-chips">
+          <button class="dev-chip" data-collection="seed">+1 樣本守護者</button>
+          <button class="dev-chip" data-collection="clear">清空典藏冊</button>
+          <button class="dev-chip" data-collection="open">開啟典藏冊</button>
+        </div>
+      </section>
+
+      <section class="dev-section">
         <span class="dev-label">重置</span>
         <div class="dev-chips" id="reset-chips">
           <button class="dev-chip" data-reset="today">今日進度</button>
@@ -217,6 +248,39 @@ export function createDevPanel(): HTMLElement {
       void doReset(which);
     });
   });
+
+  // Collection sample seed — populates 守護者典藏冊 with cycling
+  // (species, name) pairs so a single click already lands one
+  // guardian in the book and repeated clicks build up variety.
+  function refreshCollectionReadout(): void {
+    const n = listCompletedPets().length;
+    setText('[data-bind="collection"]', `${n} 隻`);
+  }
+  wrap.querySelectorAll<HTMLButtonElement>('#collection-chips .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      const action = c.dataset.collection!;
+      if (action === 'seed') {
+        const existing = listCompletedPets().length;
+        const sample = DEMO_PETS[existing % DEMO_PETS.length];
+        addCompletedPet({
+          name: sample.name,
+          species: sample.species,
+          completedAt: Date.now(),
+        });
+        refreshCollectionReadout();
+        flash(`已加入 ${sample.name}`, false);
+      } else if (action === 'clear') {
+        clearCompletedPets();
+        refreshCollectionReadout();
+        flash('已清空典藏冊', false);
+      } else if (action === 'open') {
+        sheet.hidden = true;
+        fab.classList.remove('open');
+        navigate('/profile/pet-collection');
+      }
+    });
+  });
+  refreshCollectionReadout();
 
   // Strike chips — drives the 寵物食物中毒 demo
   wrap.querySelectorAll<HTMLButtonElement>('#strike-chips .dev-chip').forEach((c) => {

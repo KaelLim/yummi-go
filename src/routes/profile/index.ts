@@ -16,9 +16,6 @@ import { listCheckIns, type CheckInRow } from '@/api/check-ins';
 import { mealFailCount } from '@/api/profile';
 import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
 import { bind } from '@/lib/lifecycle';
-import { spriteFor } from '@/lib/pet-sprites';
-import type { PetStage } from '@/lib/pet-evolution';
-import { $pet, effectiveMood } from '@/store/pet';
 import { $locale, t } from '@/lib/i18n';
 
 function describeTolerance(level: number | null | undefined, fails: number): {
@@ -54,6 +51,11 @@ export default function profile(): HTMLElement {
         <span data-i18n="profile.linkJourney">蔬食旅程</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
+      <button class="profile-link" data-route="/profile/pet-collection">
+        <span class="ms">collections_bookmark</span>
+        <span data-i18n="profile.linkCollection">守護者圖鑑</span>
+        <span class="ms profile-link-arrow">arrow_forward_ios</span>
+      </button>
       <button class="profile-link" data-route="/profile/reviews">
         <span class="ms">rate_review</span>
         <span data-i18n="profile.linkReviews">我的評論</span>
@@ -62,11 +64,6 @@ export default function profile(): HTMLElement {
       <button class="profile-link" data-route="/profile/baseline">
         <span class="ms">tune</span>
         <span data-i18n="profile.linkBaseline">編輯基本飲食</span>
-        <span class="ms profile-link-arrow">arrow_forward_ios</span>
-      </button>
-      <button class="profile-link" data-route="/profile/eat-times">
-        <span class="ms">schedule</span>
-        <span data-i18n="profile.linkEatTimes">用餐時間</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
       <button class="profile-link" data-route="/profile/settings">
@@ -81,26 +78,24 @@ export default function profile(): HTMLElement {
   let serverFails = 0;
 
   function renderIdentity() {
+    // Identity card now represents the human, not the guardian. The pet
+    // sprite + name + level moved to the pet page; the only stable
+    // identifier we have for the human is their username (a guest_xxx
+    // anonymous id until/unless they bind a Google account).
     const u = $user.get();
     const p = $profile.get();
     const ident = wrap.querySelector<HTMLElement>('#identity')!;
     const dietKey = p?.diet_type ? DIET_LABEL_KEY[p.diet_type] : null;
     const dietLabel = dietKey ? t(dietKey) : (p?.diet_type ?? null);
-    const stage = (p?.stage ?? 'egg') as PetStage;
-    // Effective mood honours the food-poisoning override; if no $pet state
-    // is loaded yet we fall back to whatever profile.mood says.
-    const petState = $pet.get();
-    const mood = petState ? effectiveMood(petState) : ((p?.mood ?? 'normal') as ReturnType<typeof effectiveMood>);
+    const anonId = u?.username ?? '—';
     ident.innerHTML = `
-      <div class="profile-avatar">
-        <img class="pet-frog" src="${spriteFor(stage, mood)}" alt="守護者" draggable="false" />
+      <div class="profile-avatar profile-avatar-anon">
+        <span class="ms" aria-hidden="true">account_circle</span>
       </div>
       <div class="profile-meta">
-        <div class="profile-name">${escapeHtml(u?.displayName ?? t('profile.guestName'))}</div>
-        <div class="profile-tags">
-          <span class="profile-tag profile-tag-level">LV.${p?.level ?? 1}</span>
-          ${dietLabel ? `<span class="profile-tag">${escapeHtml(dietLabel)}</span>` : ''}
-        </div>
+        <div class="profile-anon-label" data-i18n="profile.anonIdLabel">${t('profile.anonIdLabel')}</div>
+        <div class="profile-anon-id">${escapeHtml(anonId)}</div>
+        ${dietLabel ? `<div class="profile-tags"><span class="profile-tag">${escapeHtml(dietLabel)}</span></div>` : ''}
       </div>
     `;
   }
@@ -109,7 +104,6 @@ export default function profile(): HTMLElement {
     const p = $profile.get();
     const totalCheckIns = serverCheckIns.length;
     const daysWithCheckIn = new Set(serverCheckIns.map((c) => c.day_number)).size;
-    const luckyHits = serverCheckIns.filter((c) => c.lucky_color_matched === 1).length;
 
     let baseline: Baseline | null = null;
     if (p?.baseline) {
@@ -136,10 +130,6 @@ export default function profile(): HTMLElement {
       <div class="stat-card stat-highlight">
         <span class="stat-value">${co2Saved.toFixed(1)}</span>
         <span class="stat-label">${t('profile.statsCo2')}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">${luckyHits}</span>
-        <span class="stat-label">${t('profile.statsLucky')}</span>
       </div>
     `;
   }
@@ -168,7 +158,6 @@ export default function profile(): HTMLElement {
 
   bind(wrap, $user, renderAll);
   bind(wrap, $profile, renderAll);
-  bind(wrap, $pet, () => renderIdentity());
   // i18n: swap link labels + stats labels on locale toggle.
   bind(wrap, $locale, () => {
     wrap.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {

@@ -85,6 +85,7 @@ export default function home(): HTMLElement {
       <span class="ms lucky-card-arrow">arrow_forward</span>
     </section>
     <section class="home-bubble pet-bubble" data-bind="pet-bubble" id="pet-bubble">${t('home.petBubbleFallback')}</section>
+    <section class="pet-name-line"><span class="pet-name-tag" data-bind="pet-name"></span></section>
     <section class="home-hero" data-slot="pet"></section>
     <section class="level-bar">
       <div class="level-bar-label">
@@ -268,6 +269,10 @@ export default function home(): HTMLElement {
     if (luckyTitle) luckyTitle.textContent = t('home.luckyTitle');
   });
   bind(wrap, $pet, renderPet);
+  bind(wrap, $user, (u) => {
+    const nameEl = $$('[data-bind="pet-name"]');
+    if (nameEl) nameEl.textContent = u?.displayName ?? '';
+  });
   bind(wrap, $today, (today) => {
     renderToday(today);
     void refreshStreak();
