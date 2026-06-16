@@ -32,14 +32,12 @@ function portraitHtml(species: PetSpecies, name: string): string {
 }
 
 function renderCard(pet: CompletedPet): string {
-  const speciesLabel = t(`collection.species.${pet.species}`);
   const mealsLabel = t('collection.mealsFmt').replace('{n}', String(pet.mealsLogged));
   return `
     <article class="collection-card" data-pet-id="${escapeAttr(pet.id)}">
       <div class="collection-portrait">${portraitHtml(pet.species, pet.name)}</div>
       <div class="collection-card-body">
         <h2 class="collection-pet-name">${escapeHtml(pet.name)}</h2>
-        <span class="collection-species-tag">${escapeHtml(speciesLabel)}</span>
         <span class="collection-meals">${escapeHtml(mealsLabel)}</span>
       </div>
     </article>
