@@ -28,4 +28,5 @@ export const KEYS = {
   TIME_MODE: 'yummi.timeMode',
   MANUAL_DAY: 'yummi.manualDay',
   LOCALE: 'yummi.locale',
+  FONT_SCALE: 'yummi.fontScale',
 } as const;

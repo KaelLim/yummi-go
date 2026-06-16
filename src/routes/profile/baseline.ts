@@ -1,17 +1,23 @@
 /**
- * 基本飲食 editor — combines a diet-type picker (vegan / vegetarian /
- * flexitarian / omnivore) with the meat-ratio sliders.
+ * 基本飲食 editor — diet-type picker + a single 肉食/蔬食 pair of
+ * sliders that auto-balance to 100%.
  *
- * Diet picker is always visible. The meat sliders only render when the
- * currently-picked diet is omnivore or flexitarian — vegan and
- * vegetarian users don't have a meat baseline to tune, so showing the
- * sliders would be misleading. Save persists `diet_type` always and
- * `baseline` only when the sliders are showing.
+ * The pair is only shown when the diet picker is `omnivore` or
+ * `flexitarian` (vegan / vegetarian users have no meat baseline to
+ * tune). Save persists `diet_type` always and `baseline` only when
+ * the sliders are showing. Internally we expand the meat ratio
+ * via baselineFromMeatPct() so the carbon-impact math keeps its
+ * per-meat-kind resolution even though the UI is just two bars.
  */
 import { navigate } from '@/router';
 import { $user, $profile } from '@/store/user';
 import { updateProfile, getUserFull } from '@/api/profile';
-import { impactSavedKg, type Baseline } from '@/lib/baseline-impact';
+import {
+  impactSavedKg,
+  baselineFromMeatPct,
+  meatPctFromBaseline,
+  type Baseline,
+} from '@/lib/baseline-impact';
 import { t } from '@/lib/i18n';
 
 interface DietOption {
@@ -27,17 +33,7 @@ const DIET_OPTIONS: DietOption[] = [
   { value: 'omnivore',     emoji: '🍖', labelKey: 'profile.diet.omnivore' },
 ];
 
-const BASELINE_KEYS: Array<keyof Baseline> = ['beef', 'pork', 'lamb', 'chicken', 'plant'];
-
-const MEAT_TYPES: Array<{ key: keyof Baseline; emoji: string; labelKey: string }> = [
-  { key: 'beef',    emoji: '🐄', labelKey: 'onb.baseline.meatBeef' },
-  { key: 'pork',    emoji: '🐖', labelKey: 'onb.baseline.meatPork' },
-  { key: 'lamb',    emoji: '🐑', labelKey: 'onb.baseline.meatLamb' },
-  { key: 'chicken', emoji: '🐓', labelKey: 'onb.baseline.meatChicken' },
-  { key: 'plant',   emoji: '🌱', labelKey: 'onb.baseline.plant' },
-];
-
-const DEFAULT_BASELINE: Baseline = { beef: 0.15, pork: 0.25, lamb: 0.05, chicken: 0.35, plant: 0.2 };
+const DEFAULT_MEAT_PCT = 70;
 
 export default function baselineEditor(): HTMLElement {
   const wrap = document.createElement('div');
@@ -45,7 +41,10 @@ export default function baselineEditor(): HTMLElement {
 
   const profile = $profile.get();
   let diet: string = profile?.diet_type ?? 'omnivore';
-  const baseline: Baseline = parseBaseline(profile?.baseline) ?? { ...DEFAULT_BASELINE };
+  const initialBaseline = parseBaseline(profile?.baseline);
+  let meatPct: number = initialBaseline
+    ? meatPctFromBaseline(initialBaseline)
+    : DEFAULT_MEAT_PCT;
 
   wrap.innerHTML = `
     <header class="checkin-header">
@@ -74,22 +73,23 @@ export default function baselineEditor(): HTMLElement {
         <h2 class="baseline-section-title">${t('profile.baseline.meatTitle')}</h2>
         <p class="onb-sub text-mini">${t('profile.baseline.meatSub')}</p>
         <div class="baseline-list" id="baseline-list">
-          ${MEAT_TYPES.map((m) => `
-            <div class="baseline-row" data-key="${m.key}">
-              <div class="baseline-label">
-                <span class="baseline-emoji">${m.emoji}</span>
-                <span class="baseline-name">${t(m.labelKey)}</span>
-                <span class="baseline-value" data-value="${m.key}">${Math.round((baseline[m.key] ?? 0) * 100)}%</span>
-              </div>
-              <input type="range" min="0" max="100" value="${Math.round((baseline[m.key] ?? 0) * 100)}" class="baseline-slider" data-slider="${m.key}" />
+          <div class="baseline-row" data-key="meat">
+            <div class="baseline-label">
+              <span class="baseline-emoji">🍖</span>
+              <span class="baseline-name">${t('onb.baseline.meat')}</span>
+              <span class="baseline-value" data-bind="meat-pct">${meatPct}%</span>
             </div>
-          `).join('')}
+            <input type="range" min="0" max="100" value="${meatPct}" class="baseline-slider" data-key="meat" />
+          </div>
+          <div class="baseline-row" data-key="plant">
+            <div class="baseline-label">
+              <span class="baseline-emoji">🌱</span>
+              <span class="baseline-name">${t('onb.baseline.plant')}</span>
+              <span class="baseline-value" data-bind="plant-pct">${100 - meatPct}%</span>
+            </div>
+            <input type="range" min="0" max="100" value="${100 - meatPct}" class="baseline-slider" data-key="plant" />
+          </div>
         </div>
-        <div class="baseline-total" id="total-row">
-          <span>${t('onb.baseline.total')}</span>
-          <span id="total-pct">0%</span>
-        </div>
-        <p class="baseline-hint" id="total-hint">${t('profile.baseline.gate')}</p>
         <div class="baseline-impact" id="impact-card">
           <span class="ms">eco</span>
           <span>${t('profile.baseline.impactPrefix')} <strong id="impact-value">0.0</strong> kg CO₂e</span>
@@ -104,49 +104,33 @@ export default function baselineEditor(): HTMLElement {
   `;
 
   const meatSection = wrap.querySelector<HTMLElement>('#meat-section')!;
+  const meatSlider = wrap.querySelector<HTMLInputElement>('.baseline-slider[data-key="meat"]')!;
+  const plantSlider = wrap.querySelector<HTMLInputElement>('.baseline-slider[data-key="plant"]')!;
+  const meatPctEl = wrap.querySelector<HTMLElement>('[data-bind="meat-pct"]')!;
+  const plantPctEl = wrap.querySelector<HTMLElement>('[data-bind="plant-pct"]')!;
 
   function showsMeatSliders(): boolean {
     return diet === 'omnivore' || diet === 'flexitarian';
   }
-
   function refreshMeatVisibility(): void {
     meatSection.hidden = !showsMeatSliders();
   }
-
   function refreshImpact(): void {
-    const v = impactSavedKg(4, baseline).toFixed(1);
+    const v = impactSavedKg(4, baselineFromMeatPct(meatPct)).toFixed(1);
     const el = wrap.querySelector<HTMLElement>('#impact-value');
     if (el) el.textContent = v;
   }
-
-  function totalIntPct(): number {
-    return BASELINE_KEYS.reduce((a, k) => a + Math.round((baseline[k] ?? 0) * 100), 0);
-  }
-
-  function refreshTotal(): void {
-    const total = totalIntPct();
-    const totalEl = wrap.querySelector<HTMLElement>('#total-pct');
-    if (totalEl) totalEl.textContent = total + '%';
-    const totalRow = wrap.querySelector('#total-row');
-    totalRow?.classList.toggle('is-ok',   total === 100);
-    totalRow?.classList.toggle('is-over', total > 100);
-    const hint = wrap.querySelector('#total-hint');
-    if (hint) {
-      hint.textContent = total === 100
-        ? t('onb.baseline.hint.ok')
-        : total > 100
-          ? t('onb.baseline.hint.over').replace('{n}', String(total - 100))
-          : t('onb.baseline.hint.short').replace('{n}', String(100 - total));
-    }
-    // Disable save when sliders are showing and total isn't 100%. Diet-only
-    // saves (vegan/vegetarian) skip this gate — no sliders to be wrong.
-    const btn = wrap.querySelector<HTMLButtonElement>('#save');
-    if (btn) btn.disabled = showsMeatSliders() && total !== 100;
+  function setMeat(next: number): void {
+    meatPct = Math.max(0, Math.min(100, Math.round(next)));
+    meatSlider.value = String(meatPct);
+    plantSlider.value = String(100 - meatPct);
+    meatPctEl.textContent = meatPct + '%';
+    plantPctEl.textContent = (100 - meatPct) + '%';
+    refreshImpact();
   }
 
   refreshMeatVisibility();
   refreshImpact();
-  refreshTotal();
 
   wrap.querySelectorAll<HTMLButtonElement>('.diet-choice').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -158,28 +142,17 @@ export default function baselineEditor(): HTMLElement {
         if (arrow) arrow.textContent = selected ? 'check' : 'arrow_forward';
       });
       refreshMeatVisibility();
-      refreshTotal(); // re-evaluate save-button enabled state after diet change
     });
   });
 
-  wrap.querySelectorAll<HTMLInputElement>('.baseline-slider').forEach((slider) => {
-    slider.addEventListener('input', () => {
-      const key = slider.dataset.slider as keyof Baseline;
-      baseline[key] = Number(slider.value) / 100;
-      const valueEl = wrap.querySelector<HTMLElement>(`[data-value="${key}"]`);
-      if (valueEl) valueEl.textContent = Math.round(baseline[key] * 100) + '%';
-      refreshImpact();
-      refreshTotal();
-    });
-  });
+  meatSlider.addEventListener('input', () => setMeat(Number(meatSlider.value)));
+  plantSlider.addEventListener('input', () => setMeat(100 - Number(plantSlider.value)));
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/profile'));
 
   const errorEl = wrap.querySelector<HTMLElement>('#error')!;
   const saveBtn = wrap.querySelector<HTMLButtonElement>('#save')!;
-  saveBtn.addEventListener('click', () => {
-    void doSave();
-  });
+  saveBtn.addEventListener('click', () => { void doSave(); });
 
   async function doSave(): Promise<void> {
     errorEl.hidden = true;
@@ -188,17 +161,12 @@ export default function baselineEditor(): HTMLElement {
       navigate('/login');
       return;
     }
-    if (showsMeatSliders() && totalIntPct() !== 100) {
-      errorEl.hidden = false;
-      errorEl.textContent = t('profile.baseline.errAmt');
-      return;
-    }
     saveBtn.disabled = true;
     saveBtn.textContent = t('common.saving');
     try {
       const patch: { diet_type: string; baseline?: string } = { diet_type: diet };
       if (showsMeatSliders()) {
-        patch.baseline = JSON.stringify(baseline);
+        patch.baseline = JSON.stringify(baselineFromMeatPct(meatPct));
       }
       await updateProfile(u.id, patch);
       const refreshed = await getUserFull(u.id);
@@ -224,9 +192,6 @@ function parseBaseline(raw: string | null | undefined): Baseline | null {
     const pork    = clamp01(Number(obj.pork    ?? 0));
     const lamb    = clamp01(Number(obj.lamb    ?? 0));
     const chicken = clamp01(Number(obj.chicken ?? 0));
-    // Back-compat: older baselines pre-date the 蔬食 slider. Derive the
-    // plant ratio from "remainder of 100%" when absent so the new 5th
-    // row pre-fills sensibly on first edit.
     const plant = obj.plant !== undefined
       ? clamp01(Number(obj.plant))
       : Math.max(0, 1 - (beef + pork + lamb + chicken));

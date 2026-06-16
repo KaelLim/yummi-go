@@ -16,6 +16,7 @@ describe('ui store', () => {
       devMode: false,
       timeMode: 'real',
       manualDay: 1,
+      fontScale: 'default',
       challengeStartedAt: 0,
       currentTab: 'home',
     });

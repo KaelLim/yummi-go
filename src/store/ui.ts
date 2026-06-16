@@ -15,12 +15,17 @@ import { setChallengeStartedAt as apiSetChallengeStartedAt } from '@/api/profile
 
 export type Theme = 'light' | 'dark';
 export type TimeMode = 'real' | 'compressed' | 'manual';
+/** Font-size mode. 'default' = original sizes; 'large' raises every
+ *  font-size variable so the smallest CJK character is ≥10px and the
+ *  body text is ≥17px (accessibility option). */
+export type FontScale = 'default' | 'large';
 
 export interface UiStoreShape {
   theme: Theme;
   devMode: boolean;
   timeMode: TimeMode;
   manualDay: number;
+  fontScale: FontScale;
   challengeStartedAt: number; // epoch ms, hydrated from drust on login
   currentTab: 'home' | 'map' | 'check-in' | 'tasks' | 'profile';
 }
@@ -33,6 +38,7 @@ const defaults: UiStoreShape = {
   devMode: devFromUrl || devFromEnv,
   timeMode: storage.get<TimeMode>(KEYS.TIME_MODE, 'real'),
   manualDay: storage.get<number>(KEYS.MANUAL_DAY, 1),
+  fontScale: storage.get<FontScale>(KEYS.FONT_SCALE, 'default'),
   challengeStartedAt: Date.now(), // overwritten by bootstrapChallengeStartedAt after login
   currentTab: 'home',
 };
@@ -42,6 +48,10 @@ export const $ui = atom<UiStoreShape>(defaults);
 export function setTheme(theme: Theme) {
   storage.set(KEYS.THEME, theme);
   $ui.set({ ...$ui.get(), theme });
+}
+export function setFontScale(scale: FontScale) {
+  storage.set(KEYS.FONT_SCALE, scale);
+  $ui.set({ ...$ui.get(), fontScale: scale });
 }
 export function setTimeMode(mode: TimeMode) {
   storage.set(KEYS.TIME_MODE, mode);

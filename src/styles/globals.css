@@ -4,6 +4,37 @@
  * ============================================================================= */
 
 :root { color-scheme: light; }
+/* Accessibility font-size mode — bumps every size token AND root
+   font-size so the body sits well above the 17 px floor and the
+   smallest CJK label clears 10 px comfortably. The aggressive jump
+   makes the toggle visually obvious; components that hardcode
+   font-size:Npx (icons, etc.) stay intentionally fixed. */
+html.font-scale-large {
+  --text-caption-size:    16px;
+  --text-mini-size:       18px;
+  --text-body-size:       20px;
+  --text-h3-size:         28px;
+  --text-h2-size:         34px;
+  --text-h1-size:         40px;
+  --text-display-size:    38px;
+  --text-button-m-size:   22px;
+  --text-button-l-size:   24px;
+  --text-button-xl-size:  28px;
+}
+/* Hardcoded-px fallbacks — bump common small text values for elements
+   that didn't get refactored to use the size variables yet. The :not
+   guards keep Material-Symbol icons + emojis + the level-bar at
+   their authored sizes. */
+html.font-scale-large p,
+html.font-scale-large li,
+html.font-scale-large input,
+html.font-scale-large textarea,
+html.font-scale-large select,
+html.font-scale-large button,
+html.font-scale-large label,
+html.font-scale-large a {
+  font-size: max(1em, 17px);
+}
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; height: 100%; }
 body {
@@ -13,6 +44,11 @@ body {
    * paragraphs/spans no longer render in Regular 400 (which read too thin
    * against the warm cream background per the design mocks). */
   font-weight: var(--text-body-weight-cjk, 500);
+  /* Drive the root font-size from the body-size token so the
+     .font-scale-large mode actually cascades through to unstyled text.
+     Children that hardcode font-size still win locally, but everything
+     else inherits this value. */
+  font-size: var(--text-body-size);
   color: var(--color-foreground-alt, #2d2a26);
   background: var(--color-background, #fef9ed);
   min-height: 100dvh;
@@ -1024,6 +1060,114 @@ body {
 .store-soon-icon { font-size: 80px; }
 .store-soon-title { margin: 0; font-size: var(--text-h2-size); }
 .store-soon-text { margin: 0; color: var(--color-foreground-alt); }
+
+/* Two-tab switcher sitting under the store header: 活動 / 中獎名單.
+   Active tab gets the primary-green underline; inactive tabs read
+   as muted secondary buttons. */
+.store-tabs {
+  display: flex; gap: var(--space-2);
+  border-bottom: 1px solid var(--color-neutral-light-active);
+}
+.store-tab {
+  font-family: inherit; font-size: var(--text-mini-size); font-weight: var(--font-weight-bold);
+  background: none; border: none;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-foreground-alt);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.store-tab:hover { color: var(--color-primary-dark); }
+.store-tab.is-active {
+  color: var(--color-primary-dark);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Winners tab — one group per campaign, masked names in a list. */
+.store-winners { display: flex; flex-direction: column; gap: var(--space-5); }
+.winners-group {
+  background: var(--color-card); border-radius: var(--radius-lg);
+  padding: var(--space-4); border: 1px solid var(--color-neutral-light-active);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.winners-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.winners-group-title { margin: 0; font-size: var(--text-mini-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); }
+.winners-group-sub { font-size: var(--text-caption-size); color: var(--color-foreground-alt); }
+.winners-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.winners-row { display: flex; align-items: center; gap: 6px; font-size: var(--text-mini-size); color: var(--color-foreground); }
+.winners-row-icon { color: var(--color-secondary); font-size: 18px; }
+.winners-row-name { font-weight: var(--font-weight-bold); }
+
+/* Banner list — each item is one campaign card. Active = full colour
+   tappable; disabled = greyed with the 已結束 overlay. */
+.store-banners { display: flex; flex-direction: column; gap: var(--space-4); }
+.store-empty {
+  margin: 0; text-align: center; padding: var(--space-6) 0;
+  color: var(--color-foreground-alt); font-size: var(--text-mini-size);
+}
+.store-banner {
+  background: var(--color-card); border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.08);
+  border: 1px solid var(--color-neutral-light-active);
+  display: flex; flex-direction: column;
+}
+.store-banner.is-active { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+.store-banner.is-active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -4px rgba(0,0,0,0.12);
+}
+.store-banner-image-wrap { position: relative; aspect-ratio: 16 / 9; }
+.store-banner-img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+}
+.store-banner-img-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-secondary-light) 100%);
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-extrabold); font-size: var(--text-h2-size);
+  text-align: center; padding: var(--space-4);
+}
+.store-banner.is-disabled .store-banner-img,
+.store-banner.is-disabled .store-banner-img-placeholder {
+  filter: grayscale(1); opacity: 0.5;
+}
+.store-banner-ended-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(15, 23, 25, 0.4); color: #fff;
+  font-size: var(--text-h3-size); font-weight: var(--font-weight-extrabold);
+  letter-spacing: 4px;
+}
+.store-banner-body {
+  padding: var(--space-4);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.store-banner-partner {
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+  color: var(--color-secondary-dark); text-transform: uppercase; letter-spacing: 0.5px;
+}
+.store-banner-title { margin: 0; font-size: var(--text-h3-size); font-weight: var(--font-weight-extrabold); color: var(--color-foreground); }
+.store-banner-desc { margin: 0; font-size: var(--text-mini-size); color: var(--color-foreground-alt); line-height: 1.5; }
+.store-banner-limit {
+  display: inline-flex; align-self: flex-start;
+  padding: 2px var(--space-2); border-radius: var(--radius-pill);
+  background: var(--color-secondary-light); color: var(--color-secondary-dark);
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
+}
+.store-banner-cta {
+  align-self: flex-start; margin-top: var(--space-2);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.store-banner-cta .ms { font-size: 16px; }
+.store-banner-ended {
+  align-self: flex-start; margin-top: var(--space-2);
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-pill);
+  background: var(--color-neutral-light); color: var(--color-neutral-darker);
+  font-size: var(--text-mini-size); font-weight: var(--font-weight-bold);
+}
+.store-banner-ended .ms { font-size: 16px; }
 
 /* Missions card (home) — top 2 unfinished + "查看全部" sheet */
 .missions-card {

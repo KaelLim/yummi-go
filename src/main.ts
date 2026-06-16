@@ -81,6 +81,14 @@ async function boot() {
   setupDaySync();
   setupInstallPrompt();
   setupMealNotifier();          // NEW
+  // Font-size global toggle — class on <html> so the CSS variables in
+  // tokens.css can bump up under .font-scale-large. Subscribed once
+  // here so every route picks up the change without re-mounting.
+  const applyFontScale = (scale: string) => {
+    document.documentElement.classList.toggle('font-scale-large', scale === 'large');
+  };
+  applyFontScale($ui.get().fontScale);
+  $ui.subscribe((u) => applyFontScale(u.fontScale));
   // Subscribe to route changes BEFORE startRouter() so the very first
   // resolve doesn't count as a transition — the milestone handler skips
   // its first emission for exactly that reason.

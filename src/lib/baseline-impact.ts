@@ -41,6 +41,33 @@ export interface Baseline {
   plant?: number;
 }
 
+/**
+ * UI now collapses the 4 meat sliders into one 「肉食」 bar. We still
+ * store the per-kind breakdown so the impact calc keeps its
+ * resolution (beef has ~8× the CO2 of chicken). The mix below is a
+ * rough Taiwanese-average split: lots of pork + chicken, less beef
+ * + lamb. Sums to 1.0.
+ */
+const MEAT_MIX = { beef: 0.15, pork: 0.50, lamb: 0.05, chicken: 0.30 };
+
+/** Convert a single meat% (0-100) into the full 5-field Baseline. */
+export function baselineFromMeatPct(meatPct: number): Baseline {
+  const meat = Math.max(0, Math.min(100, meatPct)) / 100;
+  return {
+    beef:    meat * MEAT_MIX.beef,
+    pork:    meat * MEAT_MIX.pork,
+    lamb:    meat * MEAT_MIX.lamb,
+    chicken: meat * MEAT_MIX.chicken,
+    plant:   1 - meat,
+  };
+}
+
+/** Sum the 4 meat ratios out of a stored Baseline back into 0-100. */
+export function meatPctFromBaseline(b: Baseline): number {
+  const meat = (b.beef ?? 0) + (b.pork ?? 0) + (b.lamb ?? 0) + (b.chicken ?? 0);
+  return Math.round(meat * 100);
+}
+
 const PLANT_AVG_CO2 = 1.0; // kg CO2e per kg plant food
 const PLANT_AVG_WATER = 1000; // litres water per kg plant food
 const PLANT_AVG_LAND = 3; // m² land per kg plant food

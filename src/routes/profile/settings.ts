@@ -10,16 +10,18 @@ import { navigate } from '@/router';
 import { $user, $profile, clearUser, setLoggedInUser } from '@/store/user';
 import { drust } from '@/api/drust';
 import { updateProfile } from '@/api/profile';
-import { $ui, setTheme } from '@/store/ui';
+import { $ui, setFontScale } from '@/store/ui';
 import { bind } from '@/lib/lifecycle';
 import { requestMealNotificationPermission } from '@/lib/meal-notifier';
 import { $locale, setLocale, t } from '@/lib/i18n';
 
 const MEALS = [
-  { key: 'breakfast', labelKey: 'eattimes.meal1', defaultTime: '08:00' },
-  { key: 'lunch',     labelKey: 'eattimes.meal2', defaultTime: '12:30' },
-  { key: 'dinner',    labelKey: 'eattimes.meal3', defaultTime: '19:00' },
+  { key: 'breakfast', emoji: '🌅', labelKey: 'eattimes.meal1', defaultTime: '08:00' },
+  { key: 'lunch',     emoji: '☀️', labelKey: 'eattimes.meal2', defaultTime: '12:30' },
+  { key: 'dinner',    emoji: '🌙', labelKey: 'eattimes.meal3', defaultTime: '19:00' },
 ];
+
+const ORDINAL_KEYS = ['eattimes.meal1', 'eattimes.meal2', 'eattimes.meal3'];
 
 function formatBuildTime(): string {
   try {
@@ -36,42 +38,35 @@ export default function settings(): HTMLElement {
 
   wrap.innerHTML = `
     <header class="checkin-header">
-      <button class="checkin-back" id="back-btn" aria-label="${t('common.back')}">
+      <button class="checkin-back" id="back-btn" data-i18n-aria="common.back">
         <span class="ms">arrow_back</span>
       </button>
-      <span class="checkin-title">${t('settings.title')}</span>
+      <span class="checkin-title" data-i18n="settings.title">${t('settings.title')}</span>
       <span></span>
     </header>
     <div class="settings-body">
       <section class="settings-section">
-        <span class="settings-label">${t('settings.petName')}</span>
+        <span class="settings-label" data-i18n="settings.petName">${t('settings.petName')}</span>
         <input class="input" id="display-name" type="text" />
       </section>
 
       <section class="settings-section">
-        <span class="settings-label">${t('settings.mealReminders')}</span>
-        <div class="meal-list" id="meals">
-          ${MEALS.map(
-            (m) => `
-            <div class="meal-row">
-              <span class="meal-label">${t(m.labelKey)}</span>
-              <input type="time" class="meal-input" data-key="${m.key}" value="${m.defaultTime}" />
-            </div>`,
-          ).join('')}
-        </div>
+        <span class="settings-label" data-i18n="settings.mealReminders">${t('settings.mealReminders')}</span>
+        <p class="onb-sub text-mini" data-i18n="eattimes.subProfile">${t('eattimes.subProfile')}</p>
+        <div class="meal-list" id="meals"></div>
       </section>
 
       <section class="settings-section">
-        <span class="settings-label">${t('settings.notif')}</span>
-        <button class="btn text-btn-m btn-secondary btn-sm" id="ask-notif">${t('settings.notifAsk')}</button>
+        <span class="settings-label" data-i18n="settings.notif">${t('settings.notif')}</span>
+        <button class="btn text-btn-m btn-secondary btn-sm" id="ask-notif" data-i18n="settings.notifAsk">${t('settings.notifAsk')}</button>
         <span class="settings-hint" id="notif-status"></span>
       </section>
 
       <section class="settings-section">
-        <span class="settings-label">${t('settings.theme')}</span>
+        <span class="settings-label" data-i18n="settings.fontSize">${t('settings.fontSize')}</span>
         <div class="vegan-chips">
-          <button class="vegan-chip theme-chip" data-theme="light">${t('settings.themeLight')}</button>
-          <button class="vegan-chip theme-chip" data-theme="dark">${t('settings.themeDark')}</button>
+          <button class="vegan-chip font-chip" data-font="default" data-i18n="settings.fontDefault">${t('settings.fontDefault')}</button>
+          <button class="vegan-chip font-chip" data-font="large" data-i18n="settings.fontLarge">${t('settings.fontLarge')}</button>
         </div>
       </section>
 
@@ -83,38 +78,96 @@ export default function settings(): HTMLElement {
         </div>
       </section>
 
-      <div class="settings-success" id="ok" hidden>${t('settings.saveOk')}</div>
+      <div class="settings-success" id="ok" hidden data-i18n="settings.saveOk">${t('settings.saveOk')}</div>
       <div class="review-error" id="err" hidden></div>
-      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save">${t('settings.saveBtn')}</button>
+      <button class="btn text-btn-m btn-primary btn-l text-btn-l" id="save" data-i18n="settings.saveBtn">${t('settings.saveBtn')}</button>
       <button class="btn text-btn-m btn-secondary btn-l text-btn-l" id="logout">
-        <span class="ms">logout</span>${t('settings.logout')}
+        <span class="ms">logout</span><span data-i18n="settings.logout">${t('settings.logout')}</span>
       </button>
-      <footer class="settings-footer">
-        ${t('settings.footer').replace('{ver}', __APP_VERSION__).replace('{time}', formatBuildTime())}
-      </footer>
+      <footer class="settings-footer" id="settings-footer"></footer>
     </div>
   `;
+
+  // Local meal state — kept in sync with $profile.eat_times. Times persist
+  // across disable/re-enable cycles so re-adding a meal restores the
+  // last-picked time rather than the default.
+  const times: Record<string, string> = Object.fromEntries(MEALS.map((m) => [m.key, m.defaultTime]));
+  const disabled = new Set<string>();
+
+  function renderMealList(): void {
+    const list = wrap.querySelector<HTMLElement>('#meals');
+    if (!list) return;
+    const activeKeys = MEALS.filter((m) => !disabled.has(m.key)).map((m) => m.key);
+    const activeCount = activeKeys.length;
+    function activeLabel(key: string): string {
+      if (activeCount === 1) return t('eattimes.mealOnly');
+      const idx = activeKeys.indexOf(key);
+      return idx >= 0 ? t(ORDINAL_KEYS[idx] ?? '') : '';
+    }
+    list.innerHTML = MEALS.map((m) => {
+      const isOff = disabled.has(m.key);
+      if (isOff) {
+        return `
+          <div class="meal-row meal-row-off" data-key="${m.key}">
+            <span class="meal-emoji" style="opacity:.35">${m.emoji}</span>
+            <button class="btn-skip" data-action="enable" data-key="${m.key}" type="button">${t('eattimes.addBack')}</button>
+          </div>
+        `;
+      }
+      const removable = activeCount > 1;
+      const label = activeLabel(m.key);
+      return `
+        <div class="meal-row" data-key="${m.key}">
+          <span class="meal-emoji">${m.emoji}</span>
+          <span class="meal-label">${label}</span>
+          <input type="time" class="meal-input" data-key="${m.key}" value="${times[m.key]}" />
+          ${removable
+            ? `<button class="meal-remove" data-action="disable" data-key="${m.key}" type="button" aria-label="${label}"><span class="ms">close</span></button>`
+            : ''}
+        </div>
+      `;
+    }).join('');
+
+    list.querySelectorAll<HTMLInputElement>('.meal-input').forEach((input) => {
+      input.addEventListener('input', () => { times[input.dataset.key!] = input.value; });
+    });
+    list.querySelectorAll<HTMLButtonElement>('button[data-action]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.key!;
+        if (btn.dataset.action === 'disable') disabled.add(key);
+        else disabled.delete(key);
+        renderMealList();
+      });
+    });
+  }
 
   function hydrate() {
     const u = $user.get();
     const p = $profile.get();
     (wrap.querySelector('#display-name') as HTMLInputElement).value = u?.displayName ?? '';
 
+    // Re-derive local meal state from the stored eat_times JSON so the
+    // section paints with the user's actual schedule on mount.
     if (p?.eat_times) {
       try {
         const map = JSON.parse(p.eat_times) as Record<string, string>;
+        disabled.clear();
         for (const m of MEALS) {
-          const inp = wrap.querySelector<HTMLInputElement>(`.meal-input[data-key="${m.key}"]`);
-          if (inp && map[m.key]) inp.value = map[m.key];
+          if (map[m.key]) {
+            times[m.key] = map[m.key];
+          } else {
+            disabled.add(m.key);
+          }
         }
       } catch {
         /* malformed json — leave defaults */
       }
     }
+    renderMealList();
 
-    const theme = $ui.get().theme;
-    wrap.querySelectorAll<HTMLButtonElement>('.theme-chip').forEach((c) => {
-      c.classList.toggle('selected', c.dataset.theme === theme);
+    const scale = $ui.get().fontScale;
+    wrap.querySelectorAll<HTMLButtonElement>('.font-chip').forEach((c) => {
+      c.classList.toggle('selected', c.dataset.font === scale);
     });
   }
 
@@ -124,10 +177,10 @@ export default function settings(): HTMLElement {
 
   wrap.querySelector('#back-btn')?.addEventListener('click', () => navigate('/profile'));
 
-  wrap.querySelectorAll<HTMLButtonElement>('.theme-chip').forEach((c) => {
+  wrap.querySelectorAll<HTMLButtonElement>('.font-chip').forEach((c) => {
     c.addEventListener('click', () => {
-      const next = c.dataset.theme as 'light' | 'dark';
-      setTheme(next);
+      const next = c.dataset.font as 'default' | 'large';
+      setFontScale(next);
     });
   });
 
@@ -138,10 +191,28 @@ export default function settings(): HTMLElement {
     wrap.querySelectorAll<HTMLButtonElement>('.locale-chip').forEach((c) => {
       c.classList.toggle('selected', c.dataset.locale === cur);
     });
+    // Repaint every text label tagged with data-i18n.
     wrap.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
       const key = el.dataset.i18n;
       if (key) el.textContent = t(key);
     });
+    // aria-label flavour for accessibility-only labels.
+    wrap.querySelectorAll<HTMLElement>('[data-i18n-aria]').forEach((el) => {
+      const key = el.dataset.i18nAria;
+      if (key) el.setAttribute('aria-label', t(key));
+    });
+    // Footer has interpolated tokens ({ver}, {time}) so it lives in code.
+    const footer = wrap.querySelector<HTMLElement>('#settings-footer');
+    if (footer) {
+      footer.textContent = t('settings.footer')
+        .replace('{ver}', __APP_VERSION__)
+        .replace('{time}', formatBuildTime());
+    }
+    // Meal list rows are rendered by code (with locale-aware ordinals);
+    // re-render so 第一餐 / First meal swap on toggle.
+    renderMealList();
+    // Notification status string is also code-rendered.
+    if (typeof reflectPermission === 'function') reflectPermission();
   }
   reflectLocale();
   bind(wrap, $locale, reflectLocale);
@@ -174,10 +245,12 @@ export default function settings(): HTMLElement {
       err.textContent = t('settings.errName');
       return;
     }
+    // Persist only the active (non-disabled) meals so a user who's
+    // disabled e.g. breakfast doesn't have it reinstated on save.
     const eatTimes: Record<string, string> = {};
-    wrap.querySelectorAll<HTMLInputElement>('.meal-input').forEach((inp) => {
-      eatTimes[inp.dataset.key!] = inp.value;
-    });
+    for (const m of MEALS) {
+      if (!disabled.has(m.key)) eatTimes[m.key] = times[m.key];
+    }
 
     save.disabled = true;
     save.textContent = t('common.saving');
@@ -207,21 +280,24 @@ export default function settings(): HTMLElement {
     }
   });
 
-  const askBtn = wrap.querySelector<HTMLButtonElement>('#ask-notif');
-  const statusEl = wrap.querySelector<HTMLElement>('#notif-status');
+  // Lazy-lookup queries so reflectPermission() can be safely called
+  // from reflectLocale() during the initial paint, before the const
+  // declarations would otherwise be in TDZ.
   function reflectPermission() {
+    const status = wrap.querySelector<HTMLElement>('#notif-status');
+    const ask = wrap.querySelector<HTMLButtonElement>('#ask-notif');
     if (typeof Notification === 'undefined') {
-      if (statusEl) statusEl.textContent = t('settings.notifUnsupported');
-      if (askBtn) askBtn.disabled = true;
-    } else if (statusEl) {
-      statusEl.textContent =
+      if (status) status.textContent = t('settings.notifUnsupported');
+      if (ask) ask.disabled = true;
+    } else if (status) {
+      status.textContent =
         Notification.permission === 'granted' ? t('settings.notifGranted') :
         Notification.permission === 'denied'  ? t('settings.notifDenied') :
         t('settings.notifUnset');
     }
   }
   reflectPermission();
-  askBtn?.addEventListener('click', async () => {
+  wrap.querySelector<HTMLButtonElement>('#ask-notif')?.addEventListener('click', async () => {
     await requestMealNotificationPermission();
     reflectPermission();
   });
