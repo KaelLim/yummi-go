@@ -44,6 +44,7 @@ import {
   listCompletedPets,
   type PetSpecies,
 } from '@/lib/pet-collection';
+import { clearAnswers as clearQuestionnaireAnswers } from '@/lib/questionnaires';
 
 // Sample (species, name) pairs cycled by the dev "+1 樣本" button so
 // repeated presses populate the 典藏冊 with visibly different cards.
@@ -165,6 +166,13 @@ export function createDevPanel(): HTMLElement {
       </section>
 
       <section class="dev-section">
+        <span class="dev-label">問卷彈窗</span>
+        <div class="dev-chips" id="questionnaire-chips">
+          <button class="dev-chip" data-questionnaire="reset">重置問卷紀錄</button>
+        </div>
+      </section>
+
+      <section class="dev-section">
         <span class="dev-label">重置</span>
         <div class="dev-chips" id="reset-chips">
           <button class="dev-chip" data-reset="today">今日進度</button>
@@ -210,6 +218,9 @@ export function createDevPanel(): HTMLElement {
 
   // Manual-day slider — also flips into 手動 mode if the user drags from
   // real/compressed, so the value isn't silently ignored downstream.
+  // /home reads `manualDay` directly (when devMode + 手動 time mode)
+  // for the streak chip override + milestone questionnaire trigger,
+  // so the slider value persists across reloads through localStorage.
   slider.addEventListener('input', () => {
     const day = Number(slider.value);
     setManualDay(day);
@@ -281,6 +292,16 @@ export function createDevPanel(): HTMLElement {
     });
   });
   refreshCollectionReadout();
+
+  // Questionnaire reset — wipes the answered/skipped record so the
+  // milestone popup re-fires on the next /home mount (assuming the
+  // user's day count still meets a trigger).
+  wrap.querySelectorAll<HTMLButtonElement>('#questionnaire-chips .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      clearQuestionnaireAnswers();
+      flash('已重置問卷紀錄', false);
+    });
+  });
 
   // Strike chips — drives the 寵物食物中毒 demo
   wrap.querySelectorAll<HTMLButtonElement>('#strike-chips .dev-chip').forEach((c) => {

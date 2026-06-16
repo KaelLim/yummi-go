@@ -631,6 +631,98 @@ body {
 .modal-actions, .sheet-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
 .modal-actions .btn, .sheet-actions .btn { flex: 1; }
 
+/* Milestone questionnaire popup — modal-style overlay with a radio
+   list of single-select options. Shares the dark backdrop colour but
+   owns its own card class so we can tweak spacing without dragging
+   every modal along. */
+.qn-shell {
+  position: fixed; inset: 0; z-index: 110;
+  background: rgba(15, 23, 25, 0.5);
+  padding: var(--space-4);
+  display: flex; align-items: center; justify-content: center;
+}
+.qn-card {
+  width: 100%; max-width: 440px;
+  background: var(--color-card, #fff);
+  border-radius: 20px;
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  max-height: 85vh; overflow-y: auto;
+}
+.qn-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.qn-title {
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary-dark); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.qn-close {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--color-foreground-alt); padding: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.qn-question {
+  margin: 0;
+  font-size: var(--text-button-l-size); font-weight: var(--font-weight-black);
+  color: var(--color-foreground); line-height: 1.4;
+}
+.qn-options { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.qn-option {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3); border-radius: var(--radius-md);
+  background: var(--color-card-alt, #f7f7f5);
+  border: 2px solid transparent;
+  cursor: pointer; font-size: var(--text-mini-size); font-weight: var(--font-weight-semibold);
+  color: var(--color-foreground); line-height: 1.4;
+}
+.qn-option:hover { background: var(--color-neutral-light, #eef0ed); }
+.qn-option.selected { border-color: var(--color-primary); background: var(--color-primary-light); }
+.qn-radio {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--color-neutral-darker); flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent;
+}
+.qn-option.selected .qn-radio { border-color: var(--color-primary-dark); }
+.qn-option.selected .qn-radio::after {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--color-primary-dark);
+}
+.qn-option-label { flex: 1; }
+.qn-freetext {
+  width: 100%; resize: vertical; min-height: 56px;
+  font-family: inherit; font-size: var(--text-mini-size);
+}
+.qn-freetext[hidden] { display: none; }
+.qn-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
+.qn-actions .btn { flex: 1; }
+.qn-question-block { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.qn-question-block:last-child { margin-bottom: 0; }
+.qn-question-label {
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold);
+  color: var(--color-secondary-dark); letter-spacing: 0.04em;
+}
+.qn-questions { display: flex; flex-direction: column; gap: 0; }
+
+/* Deferred-questionnaire card — surfaces on /home when the user
+   picked "稍後再說" instead of submitting. Tap to re-open the popup. */
+.qn-deferred-card {
+  display: flex; align-items: center; gap: var(--space-3);
+  width: 100%;
+  background: linear-gradient(135deg, var(--color-secondary-light), var(--color-primary-light));
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer; font: inherit;
+  text-align: left;
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.08);
+}
+.qn-deferred-card[hidden] { display: none; }
+.qn-deferred-icon { color: var(--color-secondary-dark); font-size: 28px !important; flex-shrink: 0; }
+.qn-deferred-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.qn-deferred-title { font-size: var(--text-mini-size); font-weight: var(--font-weight-extrabold); color: var(--color-foreground); }
+.qn-deferred-sub { font-size: var(--text-caption-size); color: var(--color-foreground-alt); }
+.qn-deferred-arrow { color: var(--color-secondary-dark); flex-shrink: 0; }
+
 /* Flow viewer (/dev/flows) — bypasses the app layout, owns the viewport. */
 .flow-viewer {
   display: flex; height: 100vh;

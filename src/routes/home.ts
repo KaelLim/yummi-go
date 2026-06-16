@@ -18,16 +18,19 @@ import { navigate } from '@/router';
 import { $pet, $gems, type PetStoreShape, type GemsStoreShape } from '@/store/pet';
 import { $today, type TodayStoreShape } from '@/store/today';
 import { $user } from '@/store/user';
+import { $ui } from '@/store/ui';
 import { XP_PER_LEVEL } from '@/lib/pet-evolution';
 import { normalizeLuckyColor } from '@/lib/lucky-color';
 import { bind } from '@/lib/lifecycle';
 import { $locale, t } from '@/lib/i18n';
 import { openMissionsInfo } from '@/lib/missions-info';
 import { createPetView } from '@/components/PetView';
-import { listCheckIns } from '@/api/check-ins';
+import { createQuestionnairePopup } from '@/components/QuestionnairePopup';
+import { listCheckIns, type CheckInRow } from '@/api/check-ins';
 import { deriveStreak } from '@/lib/streak';
 import { pickDialogueNow } from '@/lib/pet-dialogue';
 import { buildMissions, homeVisibleMissions, type Mission } from '@/lib/missions';
+import { findPendingMilestone, findDeferredMilestone, type Milestone } from '@/lib/questionnaires';
 
 interface Phase1Option {
   days: number;
@@ -111,6 +114,14 @@ export default function home(): HTMLElement {
       </header>
       <ul class="missions-list" id="missions-list" aria-live="polite"></ul>
     </section>
+    <button class="qn-deferred-card" id="qn-deferred-card" type="button" hidden>
+      <span class="ms qn-deferred-icon">help</span>
+      <span class="qn-deferred-body">
+        <span class="qn-deferred-title" data-bind="qn-deferred-title"></span>
+        <span class="qn-deferred-sub" data-bind="qn-deferred-sub"></span>
+      </span>
+      <span class="ms qn-deferred-arrow">arrow_forward</span>
+    </button>
     <div class="phase1-modal" id="phase1-modal" hidden role="dialog" aria-modal="true" aria-labelledby="phase1-title">
       <div class="phase1-modal-card">
         <div class="phase1-icon" aria-hidden="true">🌱</div>
@@ -235,23 +246,98 @@ export default function home(): HTMLElement {
     if (gem) gem.textContent = String(g.balance);
   }
 
-  // Streak: derived from listCheckIns on mount. Refresh when $today's
-  // dayNumber advances (handles the midnight rollover from day-sync).
+  // Streak chip + milestone questionnaire — both derive from the
+  // user's check-in history. We fetch once per challenge-day, cache
+  // the rows, and let `paintStreakAndQuestionnaire` recompute both
+  // from cache. This lets a dev-only override (`$ui.devSimulatedDays`)
+  // pretend the user has more check-in days than they really do, so
+  // milestone popups can be previewed without logging real meals.
   let lastDayLoaded: number | null = null;
+  let serverRows: CheckInRow[] = [];
+
   async function refreshStreak(): Promise<void> {
     const u = $user.get();
     const today = $today.get().dayNumber;
     if (!u) return;
-    if (lastDayLoaded === today) return; // already loaded for today
-    lastDayLoaded = today;
-    try {
-      const rows = await listCheckIns(u.id);
-      const streak = deriveStreak({ checkIns: rows, todayDayNumber: today });
-      const el = $$('[data-bind="streak"]');
-      if (el) el.textContent = String(streak);
-    } catch {
-      /* leave the chip at 0 — non-fatal */
+    if (lastDayLoaded !== today) {
+      lastDayLoaded = today;
+      try {
+        serverRows = await listCheckIns(u.id);
+      } catch {
+        serverRows = [];
+      }
     }
+    paintStreakAndQuestionnaire();
+  }
+
+  function paintStreakAndQuestionnaire(): void {
+    const today = $today.get().dayNumber;
+    const realStreak = deriveStreak({ checkIns: serverRows, todayDayNumber: today });
+    const realDistinct = new Set(serverRows.map((r) => r.day_number)).size;
+    const ui = $ui.get();
+    // Dev override — when running in dev mode with manual time, pretend
+    // the user has checked in for `manualDay` distinct days. Persists
+    // across reloads because manualDay is in localStorage.
+    const useOverride = ui.devMode && ui.timeMode === 'manual' && ui.manualDay > 0;
+    const streakValue = useOverride ? ui.manualDay : realStreak;
+    const distinctValue = useOverride ? ui.manualDay : realDistinct;
+    const el = $$('[data-bind="streak"]');
+    if (el) el.textContent = String(streakValue);
+    // Defer one frame so the popup doesn't fight the home paint for layout.
+    window.requestAnimationFrame(() => syncMilestoneSurfaces(distinctValue));
+  }
+
+  // Track whether the popup is currently mounted — guards against
+  // re-mounting from rapid $ui changes.
+  let questionnaireMounted = false;
+  function syncMilestoneSurfaces(daysWithCheckIn: number): void {
+    // Pending = never touched → auto-popup.
+    const pending = findPendingMilestone(daysWithCheckIn);
+    if (pending && !questionnaireMounted) {
+      mountPopup(pending);
+    }
+    // Deferred = user picked "Maybe later" → render a tappable card on
+    // the pet page (= /home). The card stays put across re-paints.
+    paintDeferredCard(findDeferredMilestone(daysWithCheckIn));
+  }
+
+  function mountPopup(milestone: Milestone): void {
+    questionnaireMounted = true;
+    const popup = createQuestionnairePopup({
+      milestone,
+      onResolved: () => {
+        questionnaireMounted = false;
+        // After resolution the milestone may have moved into deferred
+        // OR answered state — re-derive the card visibility.
+        const ui = $ui.get();
+        const useOverride = ui.devMode && ui.timeMode === 'manual' && ui.manualDay > 0;
+        const days = useOverride
+          ? ui.manualDay
+          : new Set(serverRows.map((r) => r.day_number)).size;
+        paintDeferredCard(findDeferredMilestone(days));
+      },
+    });
+    wrap.appendChild(popup.el);
+  }
+
+  function paintDeferredCard(milestone: Milestone | null): void {
+    const card = $$('#qn-deferred-card') as HTMLButtonElement | null;
+    if (!card) return;
+    if (!milestone) {
+      card.hidden = true;
+      return;
+    }
+    const locale = $locale.get();
+    const title = $$('[data-bind="qn-deferred-title"]');
+    const sub = $$('[data-bind="qn-deferred-sub"]');
+    if (title) title.textContent = locale === 'en' ? milestone.title.en : milestone.title.zh;
+    if (sub) sub.textContent = locale === 'en' ? 'Tap to finish answering' : '點此繼續作答';
+    card.hidden = false;
+    // Rebind click each paint so the latest milestone reference is used.
+    card.onclick = () => {
+      if (questionnaireMounted) return;
+      mountPopup(milestone);
+    };
   }
 
   // Locale: re-paint the static labels on the top row when the user
@@ -272,6 +358,18 @@ export default function home(): HTMLElement {
   bind(wrap, $user, (u) => {
     const nameEl = $$('[data-bind="pet-name"]');
     if (nameEl) nameEl.textContent = u?.displayName ?? '';
+  });
+  // Dev override repaint — when the dev panel updates manualDay or
+  // timeMode (slider drag), we want the streak chip + questionnaire
+  // trigger to react immediately without waiting for $today rollover.
+  let lastManualDay = $ui.get().manualDay;
+  let lastTimeMode = $ui.get().timeMode;
+  bind(wrap, $ui, (ui) => {
+    if (ui.manualDay !== lastManualDay || ui.timeMode !== lastTimeMode) {
+      lastManualDay = ui.manualDay;
+      lastTimeMode = ui.timeMode;
+      paintStreakAndQuestionnaire();
+    }
   });
   bind(wrap, $today, (today) => {
     renderToday(today);

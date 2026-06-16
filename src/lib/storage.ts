@@ -30,4 +30,5 @@ export const KEYS = {
   LOCALE: 'yummi.locale',
   FONT_SCALE: 'yummi.fontScale',
   PET_COLLECTION: 'yummi.petCollection',
+  QUESTIONNAIRE_ANSWERS: 'yummi.questionnaireAnswers',
 } as const;
