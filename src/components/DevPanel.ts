@@ -273,10 +273,15 @@ export function createDevPanel(): HTMLElement {
       if (action === 'seed') {
         const existing = listCompletedPets().length;
         const sample = DEMO_PETS[existing % DEMO_PETS.length];
+        // Synth a plausible meal count: 30 days × 3 meals/day = 90,
+        // with a little variance so seeded cards don't all look the
+        // same. Real completion will snapshot the actual count.
+        const mealsLogged = 60 + Math.floor(Math.random() * 40);
         addCompletedPet({
           name: sample.name,
           species: sample.species,
           completedAt: Date.now(),
+          mealsLogged,
         });
         refreshCollectionReadout();
         flash(`已加入 ${sample.name}`, false);

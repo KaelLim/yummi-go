@@ -2946,8 +2946,9 @@ body {
   background: var(--color-primary-light); color: var(--color-primary-dark);
   font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
 }
-.collection-completed-at {
+.collection-meals {
   font-size: var(--text-caption-size); color: var(--color-foreground-alt);
+  font-weight: var(--font-weight-semibold);
 }
 .collection-empty {
   grid-column: 1 / -1;

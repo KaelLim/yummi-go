@@ -100,7 +100,7 @@ const DICT: Record<string, Entry> = {
   'collection.howHint':     { zh: '當一隻守護者升到 LV30，就會以最終型態加入這本典藏冊。', en: 'When a guardian reaches LV30 it joins this book in its final form.' },
   'collection.emptyTitle':  { zh: '還沒有收藏的守護者', en: 'No guardians collected yet' },
   'collection.emptyBody':   { zh: '把你現在養的這隻拉到 LV30，牠就會成為這本典藏冊的第一頁。', en: 'Raise your current guardian to LV30 — it will become the first page of this book.' },
-  'collection.dateFmt':     { zh: '{y}/{m}/{d} 完成', en: 'Completed {y}/{m}/{d}' },
+  'collection.mealsFmt':    { zh: '陪你完成 {n} 餐', en: '{n} meals together' },
   'collection.species.frog':     { zh: '青蛙', en: 'Frog' },
   'collection.species.koala':    { zh: '無尾熊', en: 'Koala' },
   'collection.species.elephant': { zh: '大象', en: 'Elephant' },

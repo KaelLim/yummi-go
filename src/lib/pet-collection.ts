@@ -53,6 +53,10 @@ export interface CompletedPet {
   species: PetSpecies;
   /** Epoch ms at LV30 completion. */
   completedAt: number;
+  /** Number of meals (check-ins) the user logged while raising this
+   *  guardian, snapshotted at completion. Shown beneath the portrait
+   *  on the collection card as a memento of the journey. */
+  mealsLogged: number;
 }
 
 function readAll(): CompletedPet[] {
@@ -69,7 +73,8 @@ function isEntry(v: unknown): v is CompletedPet {
     typeof o.name === 'string' &&
     typeof o.species === 'string' &&
     SPECIES_LIST.includes(o.species as PetSpecies) &&
-    typeof o.completedAt === 'number'
+    typeof o.completedAt === 'number' &&
+    typeof o.mealsLogged === 'number'
   );
 }
 
