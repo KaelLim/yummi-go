@@ -88,8 +88,8 @@ export default function home(): HTMLElement {
       <span class="ms lucky-card-arrow">arrow_forward</span>
     </section>
     <section class="home-bubble pet-bubble" data-bind="pet-bubble" id="pet-bubble">${t('home.petBubbleFallback')}</section>
-    <section class="pet-name-line"><span class="pet-name-tag" data-bind="pet-name"></span></section>
     <section class="home-hero" data-slot="pet"></section>
+    <section class="pet-name-line"><span class="pet-name-tag" data-bind="pet-name"></span></section>
     <section class="level-bar">
       <div class="level-bar-label">
         <span class="level-bar-lv">LV.<span data-bind="level">1</span></span>
@@ -357,7 +357,11 @@ export default function home(): HTMLElement {
   bind(wrap, $pet, renderPet);
   bind(wrap, $user, (u) => {
     const nameEl = $$('[data-bind="pet-name"]');
-    if (nameEl) nameEl.textContent = u?.displayName ?? '';
+    if (!nameEl) return;
+    // Fall back to the generic guardian label if the user-set name is
+    // empty — better than rendering an invisible :empty pill.
+    const name = u?.displayName?.trim() || t('onb.start.petFallback');
+    nameEl.textContent = name;
   });
   // Dev override repaint — when the dev panel updates manualDay or
   // timeMode (slider drag), we want the streak chip + questionnaire

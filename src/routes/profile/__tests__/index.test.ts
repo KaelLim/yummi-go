@@ -36,13 +36,12 @@ describe('profile hub', () => {
     expect(el.querySelector('#calendar')).toBeNull();
   });
 
-  it('exposes a 蔬食旅程 link that routes to /profile/calendar', () => {
+  it('does NOT expose a 蔬食旅程 link (already on the tab bar as the calendar tab)', () => {
     const el = profile();
     const link = Array.from(el.querySelectorAll<HTMLButtonElement>('.profile-link')).find(
       (b) => b.textContent?.includes('蔬食旅程'),
     );
-    link?.click();
-    expect(mockedRouter.navigate).toHaveBeenCalledWith('/profile/calendar');
+    expect(link).toBeUndefined();
   });
 
   it('clicking a profile-link navigates', () => {

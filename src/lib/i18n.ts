@@ -82,7 +82,6 @@ const DICT: Record<string, Entry> = {
   'profile.statsDays':      { zh: '挑戰天數', en: 'Challenge days' },
   'profile.statsMeals':     { zh: '打卡餐次', en: 'Meal check-ins' },
   'profile.statsCo2':       { zh: '減碳 kg CO₂e', en: 'kg CO₂e saved' },
-  'profile.linkJourney':    { zh: '蔬食旅程', en: 'Vegan Journey' },
   'profile.linkReviews':    { zh: '我的評論', en: 'My reviews' },
   'profile.linkBaseline':   { zh: '編輯基本飲食', en: 'Edit base diet' },
   'profile.linkSettings':   { zh: '設定', en: 'Settings' },

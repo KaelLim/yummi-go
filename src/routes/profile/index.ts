@@ -46,11 +46,6 @@ export default function profile(): HTMLElement {
     <section class="profile-stats" id="stats"></section>
     <section class="tolerance-card" id="tolerance" hidden></section>
     <section class="profile-links">
-      <button class="profile-link" data-route="/profile/calendar">
-        <span class="ms">calendar_month</span>
-        <span data-i18n="profile.linkJourney">蔬食旅程</span>
-        <span class="ms profile-link-arrow">arrow_forward_ios</span>
-      </button>
       <button class="profile-link" data-route="/profile/pet-collection">
         <span class="ms">collections_bookmark</span>
         <span data-i18n="profile.linkCollection">守護者圖鑑</span>
