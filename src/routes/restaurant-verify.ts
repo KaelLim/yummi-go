@@ -70,8 +70,8 @@ export default function verify(params: Record<string, string>): HTMLElement {
       </div>
 
       <div class="review-section">
-        <span class="review-section-label">${t('review.text')}</span>
-        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="${t('review.textPh')}"></textarea>
+        <span class="review-section-label">${t('verify.text')}</span>
+        <textarea name="text" id="text" rows="4" maxlength="500" placeholder="${t('review.textPh')}" required></textarea>
       </div>
 
       <div class="review-section">
@@ -165,6 +165,11 @@ export default function verify(params: Record<string, string>): HTMLElement {
     }
     const veganType = Array.from(veganSet).join(',');
     const text = String((wrap.querySelector<HTMLTextAreaElement>('#text')!).value || '').trim();
+    if (!text) {
+      errorEl.hidden = false;
+      errorEl.textContent = t('verify.errText');
+      return;
+    }
     // photo is stubbed — no upload pipeline yet. Kept available for future
     // wiring.
     void photoDataUrl;

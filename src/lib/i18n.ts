@@ -287,8 +287,8 @@ const DICT: Record<string, Entry> = {
 
   // Verify route
   'verify.title':           { zh: '認證餐廳', en: 'Verify restaurant' },
-  'verify.text':            { zh: '想說些什麼？', en: 'What would you like to say?' },
-  'verify.photo':           { zh: '餐點照片 (選填)', en: 'Meal photo (optional)' },
+  'verify.text':            { zh: '想說些什麼？（必填）', en: 'What would you like to say? (required)' },
+  'verify.errText':         { zh: '請寫下您的認證內容', en: 'Please describe your visit' },
   'verify.asCheckin':       { zh: '同時當作今日打卡照（+30 XP 打卡）', en: "Also use as today's check-in (+30 XP)" },
   'verify.submit':          { zh: '送出認證 (+{xp} XP)', en: 'Submit verification (+{xp} XP)' },
   'verify.successTitle':    { zh: '認證成功！', en: 'Verification done!' },
