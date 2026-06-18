@@ -38,11 +38,6 @@ export default function success(): HTMLElement {
     return wrap;
   }
 
-  const replaced = $checkin.get().wasMeatReplaced;
-  const today = $today.get().dayNumber;
-  const segments = Array.from({ length: 30 }, (_, i) => i + 1)
-    .map((d) => `<span class="seg ${d <= today ? 'fill' : ''} ${d === today ? 'now' : ''}"></span>`)
-    .join('');
   const n = r.nutrition;
   const nutritionGrid = n
     ? `
@@ -55,46 +50,8 @@ export default function success(): HTMLElement {
       </div>`
     : '<p class="nutrition-empty">—</p>';
 
-  const fedRow = r.xpFedToPet > 0
-    ? `<div class="dist-row dist-feed">
-         <span class="ms dist-icon">pets</span>
-         <span class="dist-text">${t('success.distFeed').replace('{xp}', String(r.xpFedToPet))}</span>
-       </div>`
-    : '';
-  // Three cases for the gem half of the distribution row:
-  //   1. xpFedToPet > 0 && gemsFromXp > 0  → this is the call that
-  //      *crossed* 100 XP today. Suppress the row entirely — the
-  //      milestone popup on the next home mount handles the storytelling.
-  //   2. xpFedToPet === 0 && gemsFromXp > 0 → user is already past the
-  //      cap for today; every subsequent earn auto-converts. Show a
-  //      compact "+N 💎" indicator (no 小綠 explanation).
-  //   3. gemsFromXp === 0 → no row.
-  const crossedThisCall = r.xpFedToPet > 0 && r.gemsFromXp > 0;
-  const gemRow = !crossedThisCall && r.gemsFromXp > 0
-    ? `<div class="dist-row dist-gems">
-         <span class="ms dist-icon">diamond</span>
-         <span class="dist-text">${t('success.distGems').replace('{n}', String(r.gemsFromXp))}</span>
-         <span class="gem-sparkle" aria-hidden="true"><span></span><span></span><span></span></span>
-       </div>`
-    : '';
-  const emptyRow = r.xpFedToPet === 0 && r.gemsFromXp === 0
-    ? `<div class="dist-row dist-empty">
-         <span class="dist-text">${t('success.distEmpty')}</span>
-       </div>`
-    : '';
-  // Meal-complete bonus (UX_UPDATE_SPEC v0.3 §3): only set on the 3rd
-  // meal of the day. Renders below the regular +XP / +gem row as a
-  // second visible reward.
-  const bonusRow = r.mealCompleteBonusXp > 0
-    ? `<div class="dist-row dist-feed">
-         <span class="ms dist-icon">workspace_premium</span>
-         <span class="dist-text">${t('success.distBonus').replace('{xp}', String(r.mealCompleteBonusXp))}</span>
-       </div>`
-    : '';
-
   // First-time AHA: when this is the user's first ever check-in, lead
-  // with a celebratory banner + swap the title + extra burst bubble.
-  // Everything else (distribution, nutrition, actions) stays identical.
+  // with a celebratory banner + swap the title.
   const firstBanner = r.isFirstCheckIn
     ? `<div class="first-banner" id="first-banner">
          <span class="first-banner-emoji" aria-hidden="true">🎉</span>
@@ -105,26 +62,19 @@ export default function success(): HTMLElement {
        </div>`
     : '';
   const title = r.isFirstCheckIn ? t('success.welcome') : t('success.titleDone');
-  const firstBubble = r.isFirstCheckIn
-    ? `<span class="xp-bubble xp-first">${t('success.firstBubbleUnlock')}</span>`
-    : '';
 
+  // Hero replaces the pet sprite — a big XP icon + the amount earned.
+  // Floating XP-burst bubbles + the 獲得多少能量 distribution row are
+  // intentionally gone: the hero already carries that info and the
+  // user wanted a calmer success page (2026-06-18 brief).
   wrap.innerHTML = `
     <div class="success-body">
       ${firstBanner}
-      <div class="xp-burst" aria-hidden="true">
-        <span class="xp-bubble xp-1">+${r.xpEarned} XP</span>
-        ${firstBubble}
-        ${r.luckyColorMatched ? `<span class="xp-bubble xp-2">${t('success.luckyBubble')}</span>` : ''}
-        ${replaced ? `<span class="xp-bubble xp-3">${t('success.replacedBubble')}</span>` : ''}
-        ${r.gemsFromXp > 0 ? `<span class="xp-bubble gem-bubble"><span class="ms">diamond</span>+${r.gemsFromXp}</span>` : ''}
+      <div class="success-xp-hero" aria-live="polite">
+        <span class="ms success-xp-icon">bolt</span>
+        <span class="success-xp-amount">+${r.xpEarned} XP</span>
       </div>
-      <div class="success-progress" aria-label="30-day progress">${segments}</div>
-      <div class="success-pet">🐸</div>
       <h1 class="success-title">${title}</h1>
-      <div class="success-distribution" id="success-distribution">
-        ${fedRow}${gemRow}${emptyRow}${bonusRow}
-      </div>
       <div class="nutrition-details" id="nutrition-details">
         <button type="button" class="nutrition-toggle" id="nutrition-toggle" aria-expanded="false">
           <span class="ms">restaurant_menu</span>
@@ -164,7 +114,6 @@ export default function success(): HTMLElement {
     timers.push(window.setTimeout(() => {
       wrap.classList.remove('act-1', 'act-2', 'act-3');
       wrap.classList.add(cls);
-      if (cls === 'act-3') startGemCountUp(wrap);
     }, ms));
   }
 
@@ -172,7 +121,6 @@ export default function success(): HTMLElement {
     timers.forEach(window.clearTimeout);
     wrap.classList.remove('act-1', 'act-2', 'act-3');
     wrap.classList.add('settled');
-    startGemCountUp(wrap);
   }
   wrap.querySelector('.success-body')?.addEventListener('click', settle, { once: true });
 
@@ -201,7 +149,7 @@ export default function success(): HTMLElement {
   });
 
   wrap.querySelector('#share')?.addEventListener('click', () => {
-    void shareSummary(today, r.xpEarned, r.luckyColorMatched);
+    void shareSummary($today.get().dayNumber, r.xpEarned, r.luckyColorMatched);
   });
 
   // Optional "leave a review for the restaurant you just ate at" path.
@@ -230,27 +178,6 @@ export default function success(): HTMLElement {
   });
 
   return wrap;
-}
-
-function startGemCountUp(wrap: HTMLElement): void {
-  const el = wrap.querySelector<HTMLElement>('.dist-gems strong[data-gem-count]');
-  if (!el || el.dataset.gemAnimated === '1') return;
-  const target = Number(el.dataset.gemCount) || 0;
-  el.dataset.gemAnimated = '1';
-  if (target <= 0) {
-    el.textContent = '+0 寶石';
-    return;
-  }
-  const duration = 700;
-  const start = performance.now();
-  function step(now: number): void {
-    const t = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - t, 3);
-    const value = Math.round(target * eased);
-    el!.textContent = `+${value} 寶石`;
-    if (t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
 }
 
 async function shareSummary(day: number, xp: number, lucky: boolean): Promise<void> {

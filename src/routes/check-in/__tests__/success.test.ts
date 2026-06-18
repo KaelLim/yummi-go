@@ -55,11 +55,13 @@ describe('check-in/success', () => {
     $profile.set(profileWith(2));
   });
 
-  it('renders xp burst, progress, and pet/title acts', () => {
+  it('renders XP hero (progress bar, xp-burst, pet sprite, distribution all removed 2026-06-18)', () => {
     const el = success();
-    expect(el.querySelector('.xp-burst')).not.toBeNull();
-    expect(el.querySelector('.success-progress')).not.toBeNull();
-    expect(el.querySelector('.success-pet')).not.toBeNull();
+    expect(el.querySelector('.success-xp-hero')).not.toBeNull();
+    expect(el.querySelector('.success-progress')).toBeNull();
+    expect(el.querySelector('.xp-burst')).toBeNull();
+    expect(el.querySelector('.success-pet')).toBeNull();
+    expect(el.querySelector('.success-distribution')).toBeNull();
   });
 
   it('progresses through act-1 → act-2 → act-3 → settled classes', () => {
@@ -118,13 +120,13 @@ describe('check-in/success', () => {
       expect(el.querySelector('.xp-bubble.xp-first')).toBeNull();
     });
 
-    it('renders banner + welcome title + first-time bubble when isFirstCheckIn', () => {
+    it('renders banner + welcome title when isFirstCheckIn (xp-burst bubbles removed 2026-06-18)', () => {
       const prev = $checkin.get().lastResult!;
       setLastResult({ ...prev, isFirstCheckIn: true });
       const el = success();
       expect(el.querySelector('#first-banner')).not.toBeNull();
       expect(el.querySelector('.success-title')?.textContent).toBe('歡迎踏出第一步！');
-      expect(el.querySelector('.xp-bubble.xp-first')?.textContent).toContain('首次打卡');
+      expect(el.querySelector('.xp-bubble.xp-first')).toBeNull();
     });
   });
 
