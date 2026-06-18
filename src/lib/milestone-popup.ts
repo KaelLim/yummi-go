@@ -1,19 +1,19 @@
 /**
- * Global milestone popup — fires on the user's *next* route after they
- * first crossed 100 XP today. The trigger is decoupled from any specific
- * route: store/pet.awardXp drops a flag in localStorage, and a single
- * `$route` subscriber wired in `main.ts` watches for transitions away
- * from the page that earned the XP. The first transition pops the modal
- * (regardless of destination — home, eat-times, map, …) and clears the
- * flag so subsequent navigations stay quiet.
+ * Global milestone popup — fires the moment the user crosses 100 XP
+ * fed-to-pet today. `store/pet.awardXp` calls `showMilestonePopup`
+ * directly so flows that don't navigate after earning XP (quiz,
+ * review, restaurant verify — all of which render an in-place
+ * success state) still see the popup. A localStorage flag +
+ * `$route` subscriber kick in as a safety net for any future path
+ * that sets the flag without calling the function directly.
  *
- * The modal is appended to `document.body`, not into any route's wrap,
- * so it survives the route swap that triggers it. The overlay's own
- * click + the CTA both remove the element.
+ * The modal is appended to `document.body`, not into any route's
+ * wrap, so it survives a route swap. The CTA removes the element.
  */
-import { MILESTONE_PENDING_KEY } from '@/store/pet';
 import { $route } from '@/router';
 import { t } from '@/lib/i18n';
+
+export const MILESTONE_PENDING_KEY = 'yummi:xp_milestone_pending';
 
 interface MilestonePayload {
   bonus: number;

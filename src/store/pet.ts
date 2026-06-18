@@ -19,6 +19,9 @@ import * as walletApi from '@/api/wallet';
 import { stageFromLevel, type PetStage } from '@/lib/pet-evolution';
 import type { PetMood } from '@/lib/pet-sprites';
 import { showGemGain } from '@/lib/gem-toast';
+import { MILESTONE_PENDING_KEY, showMilestonePopup } from '@/lib/milestone-popup';
+// Re-export so external callers keep a stable import path.
+export { MILESTONE_PENDING_KEY };
 
 export const POISON_DURATION_MS = 24 * 60 * 60 * 1000; // 24h
 export const STRIKE_THRESHOLD = 3;
@@ -128,11 +131,6 @@ export interface AwardXpResult {
  *  uses this value verbatim in its breakdown. */
 export const XP_MILESTONE_BONUS_GEMS = 10;
 
-/** localStorage key consumed by home to render the milestone popup on
- *  the user's next page mount. Value is JSON-encoded
- *  { bonus: number, overflow: number }. */
-export const MILESTONE_PENDING_KEY = 'yummi:xp_milestone_pending';
-
 export async function awardXp(
   userId: number,
   deltaXp: number,
@@ -155,9 +153,13 @@ export async function awardXp(
   if (fed.pet) setPetFromRow(fed.pet);
 
   // Milestone: first time crossing 100 XP today. Award the bonus gems
-  // immediately, drop a flag for the next home mount to celebrate, and
-  // SUPPRESS the per-meal gem-gain toast — the popup will summarise the
-  // whole moment so the toast would feel redundant.
+  // immediately, fire the popup directly (so flows that stay on the
+  // same route after earning XP — quiz, review, restaurant verify —
+  // also see the popup), AND drop a flag in localStorage as a safety
+  // net consumed by the `$route` subscriber for any path that bypasses
+  // showMilestonePopup. SUPPRESS the per-meal gem-gain toast — the
+  // popup summarises the whole moment so the toast would feel
+  // redundant.
   if (fed.crossedTodayCap) {
     try {
       await walletApi.addGems(userId, XP_MILESTONE_BONUS_GEMS, 'xp_milestone');
@@ -165,16 +167,20 @@ export async function awardXp(
       console.warn('[awardXp] milestone bonus failed:', err);
     }
     void reloadWallet(userId);
+    const payload = { bonus: XP_MILESTONE_BONUS_GEMS, overflow: gemsFromXp };
     try {
-      localStorage.setItem(MILESTONE_PENDING_KEY, JSON.stringify({
-        bonus: XP_MILESTONE_BONUS_GEMS,
-        overflow: gemsFromXp,
-      }));
-      console.info('[awardXp] milestone flag set — next home mount shows popup', {
-        bonus: XP_MILESTONE_BONUS_GEMS,
-        overflow: gemsFromXp,
-      });
-    } catch { /* private mode — popup just won't fire, no harm */ }
+      localStorage.setItem(MILESTONE_PENDING_KEY, JSON.stringify(payload));
+      console.info('[awardXp] milestone crossed — firing popup', payload);
+    } catch { /* private mode — direct fire still works */ }
+    // Fire the popup on the next microtask so the caller's own
+    // navigate() / setState updates can run first and the popup
+    // lands on top of the resulting page.
+    queueMicrotask(() => {
+      try {
+        localStorage.removeItem(MILESTONE_PENDING_KEY);
+      } catch { /* private mode */ }
+      showMilestonePopup(payload);
+    });
     return { credited: deltaXp, xpFedToPet: fed.fed, gemsFromXp };
   }
 

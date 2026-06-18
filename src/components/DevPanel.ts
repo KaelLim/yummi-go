@@ -25,13 +25,12 @@ import { $user, $profile } from '@/store/user';
 import {
   $pet,
   addStrike,
-  awardXp,
   clearStrikes,
   poisonRemainingMs,
 } from '@/store/pet';
 import { resetTodayProgress } from '@/store/today';
 import { addGems, addFragments, resetGems, resetMakeup } from '@/api/wallet';
-import { resetPet } from '@/api/pet';
+import { resetPet, addXp as petAddXp } from '@/api/pet';
 import { deleteAllCheckIns } from '@/api/check-ins';
 import { getUserFull } from '@/api/profile';
 import { setPetFromRow } from '@/store/pet';
@@ -45,6 +44,8 @@ import {
   type PetSpecies,
 } from '@/lib/pet-collection';
 import { clearAnswers as clearQuestionnaireAnswers } from '@/lib/questionnaires';
+import { showMilestonePopup } from '@/lib/milestone-popup';
+import { XP_MILESTONE_BONUS_GEMS } from '@/store/pet';
 
 // Sample (species, name) pairs cycled by the dev "+1 樣本" button so
 // repeated presses populate the 典藏冊 with visibly different cards.
@@ -173,6 +174,13 @@ export function createDevPanel(): HTMLElement {
       </section>
 
       <section class="dev-section">
+        <span class="dev-label">每日 XP 達標彈窗</span>
+        <div class="dev-chips" id="xp-milestone-chips">
+          <button class="dev-chip" data-xp-milestone="fire">模擬今日 XP &gt; 100</button>
+        </div>
+      </section>
+
+      <section class="dev-section">
         <span class="dev-label">重置</span>
         <div class="dev-chips" id="reset-chips">
           <button class="dev-chip" data-reset="today">今日進度</button>
@@ -199,6 +207,15 @@ export function createDevPanel(): HTMLElement {
   const slider = wrap.querySelector<HTMLInputElement>('#day-slider')!;
   const readout = wrap.querySelector<HTMLElement>('#day-readout')!;
   const status = wrap.querySelector<HTMLElement>('#dev-status')!;
+
+  // Dev-only running tally of XP granted via the panel in this session.
+  // We feed the pet directly (bypassing the wallet's daily cap) so the
+  // LV/XP readout always moves on click — but the milestone popup
+  // (which production fires when fed_today crosses 100) needs its
+  // own simulated trigger. This counter watches for that crossing
+  // and fires showMilestonePopup once. Cleared by the "今日進度"
+  // reset chip below.
+  let devSessionXp = 0;
 
   fab.addEventListener('click', () => {
     sheet.hidden = !sheet.hidden;
@@ -308,6 +325,18 @@ export function createDevPanel(): HTMLElement {
     });
   });
 
+  // Daily XP >100 milestone — fires the celebration modal directly
+  // with the real bonus value + a sample overflow. Skips the
+  // localStorage-flag + route-transition dance so the popup appears
+  // immediately on click; perfect for previewing copy + layout.
+  wrap.querySelectorAll<HTMLButtonElement>('#xp-milestone-chips .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      showMilestonePopup({ bonus: XP_MILESTONE_BONUS_GEMS, overflow: 5 });
+      sheet.hidden = true;
+      fab.classList.remove('open');
+    });
+  });
+
   // Strike chips — drives the 寵物食物中毒 demo
   wrap.querySelectorAll<HTMLButtonElement>('#strike-chips .dev-chip').forEach((c) => {
     c.addEventListener('click', () => {
@@ -363,6 +392,9 @@ export function createDevPanel(): HTMLElement {
     try {
       if (which === 'today') {
         resetTodayProgress();
+        // Also wipe the session-XP tally so the milestone popup can
+        // fire again on the next +XP click sequence.
+        devSessionXp = 0;
       } else if (which === 'pet' && u) {
         const next = await resetPet(u.id);
         setPetFromRow(next);
@@ -379,6 +411,7 @@ export function createDevPanel(): HTMLElement {
         await resetMakeup(u.id);
         const n = await deleteAllCheckIns(u.id);
         resetTodayProgress();
+        devSessionXp = 0;
         flash(`完全重置（刪 ${n} 筆打卡）`, false);
       }
       if (u) {
@@ -402,7 +435,25 @@ export function createDevPanel(): HTMLElement {
     flash('處理中…', false);
     try {
       if (kind === 'xp') {
-        await awardXp(u.id, amount, 'devpanel');
+        // Bypass the wallet → 100 XP/day cap pipeline that the real
+        // earn flow uses. Dev mode exists to skip grind, not to be
+        // capped — feed the pet directly so the LV/XP readout always
+        // moves on click. (Earlier path through awardXp silently
+        // converted overflow to gems once the daily cap was hit,
+        // which is correct in prod but surprising in the panel.)
+        const pet = await petAddXp(u.id, amount, 'devpanel');
+        setPetFromRow(pet);
+        // Simulate the production "fed_today crosses 100 → milestone
+        // popup" behaviour using our session tally. Fires exactly once
+        // per session (until 今日進度 reset clears the counter).
+        const before = devSessionXp;
+        devSessionXp += amount;
+        if (before < 100 && devSessionXp >= 100) {
+          showMilestonePopup({
+            bonus: XP_MILESTONE_BONUS_GEMS,
+            overflow: Math.max(0, devSessionXp - 100),
+          });
+        }
       } else if (kind === 'gems') {
         await addGems(u.id, amount, 'devpanel_add');
         showGemGain(amount);
