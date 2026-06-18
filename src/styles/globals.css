@@ -1264,10 +1264,45 @@ body {
   font-size: var(--text-caption-size); font-weight: var(--font-weight-bold);
 }
 .store-banner-cta {
-  align-self: flex-start; margin-top: var(--space-2);
   display: inline-flex; align-items: center; gap: 4px;
 }
 .store-banner-cta .ms { font-size: 16px; }
+.store-banner-actions {
+  margin-top: var(--space-2);
+  display: flex; align-items: center; gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.store-banner-detail {
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.store-banner-detail .ms { font-size: 16px; }
+/* Banner-detail modal body — image, partner, description and the
+   inventory + cost meta rows render in a single column with their
+   own icon glyphs. */
+.store-banner-detail-body {
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.store-banner-detail-img {
+  width: 100%; height: auto; border-radius: var(--radius-md);
+  object-fit: cover; max-height: 200px;
+}
+.store-banner-detail-partner {
+  margin: 0; font-size: var(--text-caption-size);
+  color: var(--color-secondary-dark); font-weight: var(--font-weight-extrabold);
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.store-banner-detail-desc {
+  margin: 0; font-size: var(--text-mini-size);
+  color: var(--color-foreground); line-height: 1.6; white-space: pre-line;
+}
+.store-banner-detail-limit,
+.store-banner-detail-cost {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin: 0; font-size: var(--text-mini-size);
+  color: var(--color-foreground-alt); font-weight: var(--font-weight-semibold);
+}
+.store-banner-detail-limit .ms { font-size: 20px; color: var(--color-primary-dark); }
+.store-banner-detail-cost .ms { font-size: 20px; color: var(--color-secondary-dark); }
 .store-banner-ended {
   align-self: flex-start; margin-top: var(--space-2);
   display: inline-flex; align-items: center; gap: 4px;

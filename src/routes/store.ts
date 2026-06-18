@@ -19,6 +19,7 @@ import { $locale, t } from '@/lib/i18n';
 import { listVisibleBanners, buildSurveycakeUrl, type StoreBanner } from '@/api/store-banners';
 import { listVisibleWinners, maskEmail, type StoreWinner } from '@/api/store-winners';
 import { requireRealName, hasGuestName } from '@/lib/name-prompt';
+import createModal from '@/components/Modal';
 
 type Tab = 'banners' | 'winners';
 
@@ -93,8 +94,72 @@ export default function store(): HTMLElement {
     }
     panel.innerHTML = `<section class="store-banners">${banners.map(renderBanner).join('')}</section>`;
     panel.querySelectorAll<HTMLElement>('.store-banner[data-active="1"]').forEach((card) => {
-      card.addEventListener('click', () => onTapActive(card, banners));
+      card.addEventListener('click', (e) => {
+        // Tapping the detail button or its icon shouldn't also trigger
+        // the card's redeem action — let the detail handler take it.
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-action="detail"]')) return;
+        onTapActive(card, banners);
+      });
     });
+    panel.querySelectorAll<HTMLButtonElement>('[data-action="detail"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = Number(btn.dataset.id);
+        const banner = banners.find((b) => b.id === id);
+        if (banner) openBannerDetail(banner, banners);
+      });
+    });
+  }
+
+  function openBannerDetail(banner: StoreBanner, allBanners: StoreBanner[]): void {
+    const body = document.createElement('div');
+    body.className = 'store-banner-detail-body';
+    const isActive = banner.status === 'active';
+    const partner = banner.partner_name
+      ? `<p class="store-banner-detail-partner">${escapeHtml(banner.partner_name)}</p>`
+      : '';
+    const image = banner.image_url
+      ? `<img class="store-banner-detail-img" src="${escapeAttr(banner.image_url)}" alt="${escapeAttr(banner.title)}" />`
+      : '';
+    const description = banner.description
+      ? `<p class="store-banner-detail-desc">${escapeHtml(banner.description)}</p>`
+      : '';
+    const limit = banner.monthly_limit
+      ? `<p class="store-banner-detail-limit"><span class="ms">inventory_2</span>${t('store.bannerLimited').replace('{n}', String(banner.monthly_limit))}</p>`
+      : '';
+    const cost = banner.cost_gems > 0
+      ? `<p class="store-banner-detail-cost"><span class="ms">diamond</span>${t('store.detailCostFmt').replace('{n}', String(banner.cost_gems))}</p>`
+      : '';
+    body.innerHTML = `${image}${partner}${description}${limit}${cost}`;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn btn-secondary btn-l text-btn-l';
+    closeBtn.textContent = t('store.bannerClose');
+    closeBtn.type = 'button';
+    const actions: HTMLElement[] = [closeBtn];
+
+    if (isActive) {
+      const ctaBtn = document.createElement('button');
+      ctaBtn.className = 'btn btn-primary btn-l text-btn-l';
+      ctaBtn.type = 'button';
+      ctaBtn.innerHTML = `<span class="ms">diamond</span>${banner.cost_gems} · ${t('store.bannerCta')}`;
+      ctaBtn.addEventListener('click', () => {
+        modal.remove();
+        const card = wrap.querySelector<HTMLElement>(`.store-banner[data-id="${banner.id}"]`);
+        if (card) onTapActive(card, allBanners);
+      });
+      actions.push(ctaBtn);
+    }
+
+    const modal = createModal({
+      title: banner.title,
+      body,
+      actions,
+      onClose: () => modal.remove(),
+    });
+    closeBtn.addEventListener('click', () => modal.remove());
+    wrap.appendChild(modal);
   }
 
   async function renderWinnersTab(panel: HTMLElement): Promise<void> {
@@ -168,7 +233,12 @@ function renderBanner(b: StoreBanner): string {
         <h2 class="store-banner-title">${escapeHtml(b.title)}</h2>
         ${description}
         ${limit}
-        ${cta}
+        <div class="store-banner-actions">
+          <button class="btn btn-secondary btn-sm text-mini store-banner-detail" type="button" data-action="detail" data-id="${b.id}">
+            <span class="ms">info</span>${t('store.bannerDetail')}
+          </button>
+          ${cta}
+        </div>
       </div>
     </article>
   `;
