@@ -928,7 +928,8 @@ body {
   margin-bottom: var(--space-2); font-size: var(--text-mini-size);
 }
 .level-bar-lv { font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); font-size: var(--text-mini-size); }
-.level-bar-xp { color: var(--color-neutral-darker); font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); }
+.level-bar-xp { color: var(--color-neutral-darker); font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); display: inline-flex; align-items: center; gap: 4px; }
+.level-bar-xp .currency-icon { margin-left: 2px; }
 .level-bar-track {
   height: 8px;
   background: var(--color-neutral-light-active);
@@ -1269,11 +1270,13 @@ body {
 .store-banner-cta .ms { font-size: 16px; }
 .store-banner-actions {
   margin-top: var(--space-2);
-  display: flex; align-items: center; gap: var(--space-2);
-  flex-wrap: wrap;
+  display: flex; align-items: stretch; gap: var(--space-2);
 }
+/* Both action buttons split the row evenly so the card reads as a
+   balanced two-action surface (詳細 + 兌換). */
+.store-banner-actions .btn { flex: 1 1 0; justify-content: center; }
 .store-banner-detail {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
 }
 .store-banner-detail .ms { font-size: 16px; }
 /* Banner-detail modal body — image, partner, description and the
@@ -1343,7 +1346,7 @@ body {
 .mission-row.done { opacity: 0.55; }
 .mission-emoji { font-size: 20px; }
 .mission-label { flex: 1; font-size: var(--text-mini-size); font-weight: var(--font-weight-semibold); color: var(--color-foreground); }
-.mission-xp { font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); font-variant-numeric: tabular-nums; }
+.mission-xp { font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold); color: var(--color-primary-dark); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 3px; }
 .mission-xp-zero { color: var(--color-neutral-darker); font-weight: var(--font-weight-bold); }
 .mission-arrow { font-size: 18px; color: var(--color-neutral-darker); }
 .mission-check { width: 18px; height: 18px; }
@@ -1970,10 +1973,15 @@ body {
   50%      { opacity: 1;    transform: scale(1.06); }
 }
 .success-xp-icon {
-  font-size: 64px !important;
-  color: var(--color-secondary-dark);
+  width: 56px; height: 70px;
+  /* Drop-shadow keeps the soft glow from the previous bolt icon era. */
   filter: drop-shadow(0 2px 4px rgba(29, 89, 55, 0.25));
 }
+/* Shared sizing/alignment for the redesigned currency icons (XP drop
+   + Gem petal). Each call site passes its own width/height attrs to
+   the <img>; this rule keeps them vertically aligned in chips, CTAs,
+   toasts, and modal rows. */
+.currency-icon { display: inline-block; vertical-align: middle; flex-shrink: 0; }
 .success-xp-amount {
   font-size: var(--text-h1-size, var(--text-h2-size));
   font-weight: var(--font-weight-black);

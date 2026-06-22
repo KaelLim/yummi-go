@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="24" height="30" role="img" aria-label="XP">
+  <!-- Teal water-drop. Outer outline = primary-dark; fill = mid teal.
+       Highlight is a soft inner stroke for a glassy feel. -->
+  <path
+    d="M16 2 C 10 12, 4 20, 4 27 C 4 34, 9.4 38, 16 38 C 22.6 38, 28 34, 28 27 C 28 20, 22 12, 16 2 Z"
+    fill="#79C2A8"
+    stroke="#1D5937"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M12 26 C 11.5 22, 13 18, 16 14"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-opacity="0.55"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
+</svg>

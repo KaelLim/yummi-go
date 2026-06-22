@@ -41,3 +41,6 @@ CLAUDE.md
 App Design 設計/
 *.psd
 *.ai
+
+# Local scratch used while reading design screenshots inline. Safe to nuke.
+.design-cache/

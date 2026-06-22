@@ -23,7 +23,14 @@ export interface StoreBanner {
   /** 'active' | 'disabled' | 'archive' */
   status: string;
   cost_gems: number;
+  /** Redeem URL — opens SurveyCake (or wherever) with anonId +
+   *  googleEmail appended. Surfaced as the "兌換" button. */
   surveycake_url: string | null;
+  /** Standalone "詳細" URL — campaign landing / partner microsite that
+   *  doesn't take query params. Surfaced as a sibling button next to
+   *  redeem. Falls back to surveycake_url when empty so old fixtures
+   *  still render two buttons. */
+  detail_url: string | null;
   partner_name: string | null;
   monthly_limit: number | null;
   sort_order: number;

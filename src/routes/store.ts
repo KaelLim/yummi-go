@@ -17,11 +17,8 @@ import { $gems } from '@/store/pet';
 import { bind } from '@/lib/lifecycle';
 import { $locale, t } from '@/lib/i18n';
 import { listVisibleBanners, buildSurveycakeUrl, type StoreBanner } from '@/api/store-banners';
-import { listVisibleWinners, maskEmail, type StoreWinner } from '@/api/store-winners';
 import { requireRealName, hasGuestName } from '@/lib/name-prompt';
-import createModal from '@/components/Modal';
-
-type Tab = 'banners' | 'winners';
+import { gemIcon } from '@/lib/currency-icons';
 
 export default function store(): HTMLElement {
   const wrap = document.createElement('div');
@@ -30,20 +27,14 @@ export default function store(): HTMLElement {
     <header class="store-header">
       <h1 class="store-title" data-bind="store-title">${t('store.title')}</h1>
       <div class="store-balance">
-        <span class="ms">diamond</span>
+        ${gemIcon(22)}
         <span class="store-balance-num" data-bind="gems">0</span>
       </div>
     </header>
-    <div class="store-tabs" role="tablist">
-      <button class="store-tab is-active" role="tab" aria-selected="true" data-tab="banners" data-bind="tab-banners">${t('store.tabBanners')}</button>
-      <button class="store-tab" role="tab" aria-selected="false" data-tab="winners" data-bind="tab-winners">${t('store.tabWinners')}</button>
-    </div>
     <section class="store-tab-content" id="tab-content">
       <p class="store-empty">${t('store.loading')}</p>
     </section>
   `;
-
-  let activeTab: Tab = 'banners';
 
   bind(wrap, $gems, (g) => {
     const num = wrap.querySelector<HTMLElement>('[data-bind="gems"]');
@@ -53,36 +44,14 @@ export default function store(): HTMLElement {
   bind(wrap, $locale, () => {
     const title = wrap.querySelector<HTMLElement>('[data-bind="store-title"]');
     if (title) title.textContent = t('store.title');
-    const tb = wrap.querySelector<HTMLElement>('[data-bind="tab-banners"]');
-    if (tb) tb.textContent = t('store.tabBanners');
-    const tw = wrap.querySelector<HTMLElement>('[data-bind="tab-winners"]');
-    if (tw) tw.textContent = t('store.tabWinners');
     void renderActive();
-  });
-
-  wrap.querySelectorAll<HTMLButtonElement>('.store-tab').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const next = btn.dataset.tab as Tab;
-      if (next === activeTab) return;
-      activeTab = next;
-      wrap.querySelectorAll<HTMLButtonElement>('.store-tab').forEach((b) => {
-        const on = b.dataset.tab === activeTab;
-        b.classList.toggle('is-active', on);
-        b.setAttribute('aria-selected', String(on));
-      });
-      void renderActive();
-    });
   });
 
   async function renderActive(): Promise<void> {
     const panel = wrap.querySelector<HTMLElement>('#tab-content');
     if (!panel) return;
     panel.innerHTML = `<p class="store-empty">${t('store.loading')}</p>`;
-    if (activeTab === 'banners') {
-      await renderBannersTab(panel);
-    } else {
-      await renderWinnersTab(panel);
-    }
+    await renderBannersTab(panel);
   }
   void renderActive();
 
@@ -93,103 +62,31 @@ export default function store(): HTMLElement {
       return;
     }
     panel.innerHTML = `<section class="store-banners">${banners.map(renderBanner).join('')}</section>`;
-    panel.querySelectorAll<HTMLElement>('.store-banner[data-active="1"]').forEach((card) => {
-      card.addEventListener('click', (e) => {
-        // Tapping the detail button or its icon shouldn't also trigger
-        // the card's redeem action — let the detail handler take it.
-        const target = e.target as HTMLElement;
-        if (target.closest('[data-action="detail"]')) return;
-        onTapActive(card, banners);
-      });
-    });
+    // 詳細 — landing page / partner microsite. Plain detail_url; no
+    // identity binding needed since it doesn't take query params.
     panel.querySelectorAll<HTMLButtonElement>('[data-action="detail"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = Number(btn.dataset.id);
         const banner = banners.find((b) => b.id === id);
-        if (banner) openBannerDetail(banner, banners);
+        if (!banner) return;
+        const url = banner.detail_url || banner.surveycake_url;
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+      });
+    });
+    // 兌換 — SurveyCake URL with anonId + googleEmail appended.
+    // Gated by requireRealName so guest accounts get prompted first.
+    panel.querySelectorAll<HTMLButtonElement>('[data-action="redeem"]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = Number(btn.dataset.id);
+        const banner = banners.find((b) => b.id === id);
+        if (banner) openRedeemUrl(banner);
       });
     });
   }
 
-  function openBannerDetail(banner: StoreBanner, allBanners: StoreBanner[]): void {
-    const body = document.createElement('div');
-    body.className = 'store-banner-detail-body';
-    const isActive = banner.status === 'active';
-    const partner = banner.partner_name
-      ? `<p class="store-banner-detail-partner">${escapeHtml(banner.partner_name)}</p>`
-      : '';
-    const image = banner.image_url
-      ? `<img class="store-banner-detail-img" src="${escapeAttr(banner.image_url)}" alt="${escapeAttr(banner.title)}" />`
-      : '';
-    const description = banner.description
-      ? `<p class="store-banner-detail-desc">${escapeHtml(banner.description)}</p>`
-      : '';
-    const limit = banner.monthly_limit
-      ? `<p class="store-banner-detail-limit"><span class="ms">inventory_2</span>${t('store.bannerLimited').replace('{n}', String(banner.monthly_limit))}</p>`
-      : '';
-    const cost = banner.cost_gems > 0
-      ? `<p class="store-banner-detail-cost"><span class="ms">diamond</span>${t('store.detailCostFmt').replace('{n}', String(banner.cost_gems))}</p>`
-      : '';
-    body.innerHTML = `${image}${partner}${description}${limit}${cost}`;
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'btn btn-secondary btn-l text-btn-l';
-    closeBtn.textContent = t('store.bannerClose');
-    closeBtn.type = 'button';
-    const actions: HTMLElement[] = [closeBtn];
-
-    if (isActive) {
-      const ctaBtn = document.createElement('button');
-      ctaBtn.className = 'btn btn-primary btn-l text-btn-l';
-      ctaBtn.type = 'button';
-      ctaBtn.innerHTML = `<span class="ms">diamond</span>${banner.cost_gems} · ${t('store.bannerCta')}`;
-      ctaBtn.addEventListener('click', () => {
-        modal.remove();
-        const card = wrap.querySelector<HTMLElement>(`.store-banner[data-id="${banner.id}"]`);
-        if (card) onTapActive(card, allBanners);
-      });
-      actions.push(ctaBtn);
-    }
-
-    const modal = createModal({
-      title: banner.title,
-      body,
-      actions,
-      onClose: () => modal.remove(),
-    });
-    closeBtn.addEventListener('click', () => modal.remove());
-    wrap.appendChild(modal);
-  }
-
-  async function renderWinnersTab(panel: HTMLElement): Promise<void> {
-    const winners = await listVisibleWinners();
-    if (winners.length === 0) {
-      panel.innerHTML = `<p class="store-empty">${t('store.winnersEmpty')}</p>`;
-      return;
-    }
-    // Group by banner so each campaign gets its own block. Preserve
-    // insertion order (already sorted newest-first by the API).
-    const groups = new Map<number, { title: string; rows: StoreWinner[] }>();
-    for (const w of winners) {
-      let g = groups.get(w.banner_id);
-      if (!g) {
-        g = { title: w.banner_title, rows: [] };
-        groups.set(w.banner_id, g);
-      }
-      g.rows.push(w);
-    }
-    panel.innerHTML = `<section class="store-winners">${
-      Array.from(groups.entries())
-        .map(([, g]) => renderWinnerGroup(g.title, g.rows))
-        .join('')
-    }</section>`;
-  }
-
-  function onTapActive(card: HTMLElement, banners: StoreBanner[]): void {
-    const id = Number(card.dataset.id);
-    const banner = banners.find((b) => b.id === id);
-    if (!banner) return;
+  function openRedeemUrl(banner: StoreBanner): void {
     void (async () => {
       await requireRealName(wrap);
       const u = $user.get();
@@ -218,8 +115,22 @@ function renderBanner(b: StoreBanner): string {
   const description = b.description
     ? `<p class="store-banner-desc">${escapeHtml(b.description)}</p>`
     : '';
-  const cta = isActive
-    ? `<button class="btn text-btn-m btn-primary btn-sm text-mini store-banner-cta" type="button"><span class="ms">diamond</span>${b.cost_gems} · ${t('store.bannerCta')}</button>`
+  // Two side-by-side actions — 詳細 opens the standalone detail URL,
+  // 兌換 opens the SurveyCake URL with anonId + googleEmail appended.
+  // Disabled banners drop both buttons and show the ended badge.
+  const detailUrl = b.detail_url || b.surveycake_url;
+  const detailBtn = detailUrl
+    ? `<button class="btn btn-secondary btn-sm text-mini store-banner-detail" type="button" data-action="detail" data-id="${b.id}">
+         ${t('store.bannerDetail')}<span class="ms">open_in_new</span>
+       </button>`
+    : '';
+  const redeemBtn = b.surveycake_url
+    ? `<button class="btn btn-primary btn-sm text-mini store-banner-cta" type="button" data-action="redeem" data-id="${b.id}">
+         ${gemIcon(16)}${b.cost_gems} · ${t('store.bannerCta')}
+       </button>`
+    : '';
+  const action = isActive
+    ? `${redeemBtn}${detailBtn}`
     : `<span class="store-banner-ended"><span class="ms">history</span>${t('store.bannerEnded')}</span>`;
 
   return `
@@ -233,35 +144,9 @@ function renderBanner(b: StoreBanner): string {
         <h2 class="store-banner-title">${escapeHtml(b.title)}</h2>
         ${description}
         ${limit}
-        <div class="store-banner-actions">
-          <button class="btn btn-secondary btn-sm text-mini store-banner-detail" type="button" data-action="detail" data-id="${b.id}">
-            <span class="ms">info</span>${t('store.bannerDetail')}
-          </button>
-          ${cta}
-        </div>
+        <div class="store-banner-actions">${action}</div>
       </div>
     </article>
-  `;
-}
-
-function renderWinnerGroup(title: string, rows: StoreWinner[]): string {
-  const datePart = rows[0]?.drawn_at.split(' ')[0] ?? '';
-  const sub = datePart ? t('store.winnersDrawnFmt').replace('{date}', datePart) : '';
-  return `
-    <section class="winners-group">
-      <header class="winners-group-head">
-        <h2 class="winners-group-title">${escapeHtml(title)}</h2>
-        ${sub ? `<span class="winners-group-sub">${escapeHtml(sub)}</span>` : ''}
-      </header>
-      <ul class="winners-list">
-        ${rows.map((w) => `
-          <li class="winners-row">
-            <span class="ms winners-row-icon">emoji_events</span>
-            <span class="winners-row-name">${escapeHtml(maskEmail(w.email ?? w.display_name))}</span>
-          </li>
-        `).join('')}
-      </ul>
-    </section>
   `;
 }
 

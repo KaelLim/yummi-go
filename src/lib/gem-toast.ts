@@ -7,6 +7,8 @@
  * toasts.
  */
 
+import { gemIcon } from '@/lib/currency-icons';
+
 const TOAST_LIFETIME_MS = 1400;
 
 export function showGemGain(amount: number): void {
@@ -15,7 +17,7 @@ export function showGemGain(amount: number): void {
   const host = ensureHost();
   const toast = document.createElement('div');
   toast.className = 'gem-toast';
-  toast.innerHTML = `<span class="ms">diamond</span><span>+${amount}</span>`;
+  toast.innerHTML = `${gemIcon(20)}<span>+${amount}</span>`;
   host.appendChild(toast);
   window.setTimeout(() => toast.remove(), TOAST_LIFETIME_MS);
 }

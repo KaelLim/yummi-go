@@ -71,7 +71,7 @@ export default function success(): HTMLElement {
     <div class="success-body">
       ${firstBanner}
       <div class="success-xp-hero" aria-live="polite">
-        <span class="ms success-xp-icon">bolt</span>
+        <img class="success-xp-icon" src="/icons/xp.svg" alt="XP" width="56" height="70" draggable="false" />
         <span class="success-xp-amount">+${r.xpEarned} XP</span>
       </div>
       <h1 class="success-title">${title}</h1>

@@ -17,6 +17,11 @@ import {
 import { addXp as petAddXp, type PetState } from './pet';
 
 export const PET_DAILY_XP_CAP = 100;
+/** Daily XP at which the milestone popup fires. Decoupled from the
+ *  100-XP feed cap so the popup is reachable from meals alone
+ *  (3 × 20 XP = 60). The cap stays at 100 for the XP→gem overflow
+ *  conversion math; only the popup trigger drops here. */
+export const XP_MILESTONE_THRESHOLD = 60;
 /** 1 XP buys 1 gem once the daily pet cap is hit (per docs/analysis CSV). */
 export const XP_TO_GEM_RATE = 1;
 
@@ -111,11 +116,13 @@ export interface FeedPetResult {
   fedToday: number;
   capReached: boolean;
   /**
-   * True only when *this* call took fed_today from below the daily cap
-   * to at-or-above. Lets callers tell "the user just crossed 100 XP
-   * today" apart from "the user is already capped and we just fed 0".
-   * Used by store/pet.awardXp to fire the milestone bonus exactly once
-   * per local day.
+   * True only when *this* call took fed_today from below the milestone
+   * threshold (XP_MILESTONE_THRESHOLD) to at-or-above. Lets callers
+   * tell "the user just crossed the milestone today" apart from "the
+   * user is already past it and we just fed more". Used by
+   * store/pet.awardXp to fire the milestone bonus + popup exactly
+   * once per local day. (Threshold is intentionally decoupled from
+   * PET_DAILY_XP_CAP so 3 meal check-ins alone can trip it.)
    */
   crossedTodayCap: boolean;
   pet: PetState | null;
@@ -147,9 +154,12 @@ export async function feedPet(
   }
   const newBalance = row.balance - fed;
   const newFedToday = row.fed_today + fed;
-  // Crossing is computed BEFORE we hit drust — a subsequent meal same
-  // day will see row.fed_today already >= cap and won't re-trigger.
-  const crossedTodayCap = row.fed_today < PET_DAILY_XP_CAP && newFedToday >= PET_DAILY_XP_CAP;
+  // Crossing the popup milestone (60 XP/day by default). The next
+  // call same day will see row.fed_today already >= threshold and
+  // won't re-trigger. Threshold is below PET_DAILY_XP_CAP so 3 meal
+  // check-ins (60 XP) reliably fire the popup.
+  const crossedTodayCap =
+    row.fed_today < XP_MILESTONE_THRESHOLD && newFedToday >= XP_MILESTONE_THRESHOLD;
   await drust.update('xp_balances', row.id, {
     balance: newBalance,
     fed_today: newFedToday,

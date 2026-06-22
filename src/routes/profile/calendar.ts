@@ -29,6 +29,7 @@ import { spendGemsForMakeup } from '@/api/wallet';
 import { getGemBalance } from '@/api/wallet';
 import { buildCalendar, type CalendarCell, type DayStatus } from '@/lib/calendar';
 import { openItemsEditor } from '@/lib/items-editor';
+import { gemIcon } from '@/lib/currency-icons';
 import type { MockFood } from '@/lib/mock-ai';
 import { t } from '@/lib/i18n';
 import {
@@ -278,7 +279,7 @@ function openMakeupModal({ host, iso, dayNumber, onDone }: OpenModalArgs): void 
         <span class="makeup-streak-delta">${t('makeup.streakDelta')}</span>
       </div>
       <div class="makeup-cost-row">
-        <span class="ms">diamond</span>
+        ${gemIcon(22)}
         <span class="makeup-cost-num">${cost}</span>
         <span class="makeup-cost-label">${t('makeup.costLabel')}</span>
       </div>

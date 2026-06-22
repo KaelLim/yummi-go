@@ -31,6 +31,7 @@ import { deriveStreak } from '@/lib/streak';
 import { pickDialogueNow } from '@/lib/pet-dialogue';
 import { buildMissions, homeVisibleMissions, type Mission } from '@/lib/missions';
 import { findPendingMilestone, findDeferredMilestone, type Milestone } from '@/lib/questionnaires';
+import { gemIcon, xpIcon } from '@/lib/currency-icons';
 
 interface Phase1Option {
   days: number;
@@ -69,7 +70,7 @@ export default function home(): HTMLElement {
   wrap.innerHTML = `
     <header class="home-resources" aria-label="resources">
       <div class="resource-chip" data-resource="gem" data-bind="gem-chip" title="${t('home.gem')}">
-        <span class="ms">diamond</span>
+        ${gemIcon(20)}
         <span class="resource-num" data-bind="gems">0</span>
       </div>
       <button class="resource-chip resource-chip-button" data-resource="streak" id="streak-chip" type="button" data-bind="streak-chip" title="${t('home.streakTooltip')}">
@@ -93,7 +94,7 @@ export default function home(): HTMLElement {
     <section class="level-bar">
       <div class="level-bar-label">
         <span class="level-bar-lv">LV.<span data-bind="level">1</span></span>
-        <span class="level-bar-xp"><span data-bind="cur-xp">0</span>/<span data-bind="next-xp">30</span> XP</span>
+        <span class="level-bar-xp"><span data-bind="cur-xp">0</span>/<span data-bind="next-xp">30</span> ${xpIcon(16)}</span>
       </div>
       <div class="level-bar-track">
         <div class="level-bar-fill" data-bind="level-fill" style="width:0%"></div>
@@ -433,7 +434,7 @@ function renderMissionRow(m: Mission): HTMLElement {
     ? `<input type="checkbox" class="mission-check" ${m.done ? 'checked' : ''} disabled />`
     : `<span class="ms mission-arrow">arrow_forward</span>`;
   const xpTag = m.xp > 0
-    ? `<span class="mission-xp">+${m.xp} XP</span>`
+    ? `<span class="mission-xp">+${m.xp}${xpIcon(14)}</span>`
     : `<span class="mission-xp mission-xp-zero">${t('home.missionsSustainable')}</span>`;
   li.innerHTML = `
     <span class="mission-emoji" aria-hidden="true">${m.emoji}</span>
