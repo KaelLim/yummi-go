@@ -1,39 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 44" width="22" height="24" role="img" aria-label="Gem">
-  <!-- Amber flipped flower — five-petal lotus rotated so the pointed
-       tip sits at the top (flipped). Each petal is an outlined almond
-       in warm amber; outer petals sit slightly lower, the centre
-       petal points straight up. Stroke is a deep umber to echo the
-       project's other outlined glyphs. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 44" width="22" height="40" role="img" aria-label="Gem">
+  <!-- Single flipped petal — amber. Slim almond body with vertical
+       ribs and a small amber cap at the top. Matches the design
+       board "flipped petal — 6 colour options" (teal + amber row).
+       Stroke is a warm umber; the body fill is very light so the
+       ribs read through cleanly. -->
 
-  <!-- Back / side petals (drawn first so the centre petal overlaps). -->
-  <g stroke="#8C4A12" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
-    <!-- Far-left petal -->
-    <path d="M20 38
-             C 10 32, 4 22, 8 12
-             C 14 14, 19 22, 20 30 Z"
-          fill="#E0A040" />
-    <!-- Mid-left petal -->
-    <path d="M20 38
-             C 13 30, 11 18, 14 6
-             C 18 10, 20 20, 20 30 Z"
-          fill="#EAB055" />
-    <!-- Centre petal (points straight up, slightly larger) -->
-    <path d="M20 38
-             C 14 30, 14 14, 20 2
-             C 26 14, 26 30, 20 38 Z"
-          fill="#F2C26B" />
-    <!-- Mid-right petal -->
-    <path d="M20 38
-             C 27 30, 29 18, 26 6
-             C 22 10, 20 20, 20 30 Z"
-          fill="#EAB055" />
-    <!-- Far-right petal -->
-    <path d="M20 38
-             C 30 32, 36 22, 32 12
-             C 26 14, 21 22, 20 30 Z"
-          fill="#E0A040" />
-  </g>
+  <!-- Top cap / calyx: a short rounded half-ellipse sitting above
+       the petal tip. -->
+  <path
+    d="M9 6
+       C 9 3, 15 3, 15 6
+       L 14 8
+       L 10 8
+       Z"
+    fill="#D89035"
+    stroke="#8C4A12"
+    stroke-width="1.4"
+    stroke-linejoin="round"
+  />
 
-  <!-- Base — the rounded calyx the petals bloom out of. -->
-  <ellipse cx="20" cy="38" rx="9" ry="3" fill="#C97E2A" stroke="#8C4A12" stroke-width="2" />
+  <!-- Petal body: almond shape, slightly tapered at top, gently
+       rounded at the bottom. -->
+  <path
+    d="M12 8
+       C 5 14, 3 26, 4 34
+       C 5 39, 9 41, 12 41
+       C 15 41, 19 39, 20 34
+       C 21 26, 19 14, 12 8 Z"
+    fill="#FFF7E8"
+    stroke="#C97E2A"
+    stroke-width="1.6"
+    stroke-linejoin="round"
+  />
+
+  <!-- Vertical ribs running the length of the petal. Three lines:
+       a central rib plus two flanking ones that follow the curve of
+       the petal so they don't look like stripes pasted on a flat
+       shape. -->
+  <path d="M12 11 L 12 40"
+        fill="none"
+        stroke="#C97E2A"
+        stroke-width="1"
+        stroke-linecap="round" />
+  <path d="M8.5 14
+           C 6.5 22, 6.5 32, 8.5 39"
+        fill="none"
+        stroke="#C97E2A"
+        stroke-width="1"
+        stroke-linecap="round" />
+  <path d="M15.5 14
+           C 17.5 22, 17.5 32, 15.5 39"
+        fill="none"
+        stroke="#C97E2A"
+        stroke-width="1"
+        stroke-linecap="round" />
 </svg>

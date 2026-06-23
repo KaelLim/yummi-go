@@ -1306,6 +1306,78 @@ body {
 }
 .store-banner-detail-limit .ms { font-size: 20px; color: var(--color-primary-dark); }
 .store-banner-detail-cost .ms { font-size: 20px; color: var(--color-secondary-dark); }
+
+/* In-app banner detail page (/store/banner/:id). Replaces the old
+   in-card modal — full screen, back-button header, image at top,
+   meta rows below, sticky CTA at the bottom of the safe area. */
+.store-detail-screen { display: flex; flex-direction: column; min-height: 100%; }
+.store-detail-body {
+  flex: 1;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4);
+}
+.store-detail-image-wrap {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-neutral-light);
+}
+.store-detail-img {
+  width: 100%; height: auto; max-height: 240px;
+  object-fit: cover; display: block;
+}
+.store-detail-img-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-secondary-light));
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-extrabold);
+  text-align: center;
+}
+.store-detail-partner {
+  margin: 0; font-size: var(--text-caption-size);
+  color: var(--color-secondary-dark); font-weight: var(--font-weight-extrabold);
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.store-detail-title {
+  margin: 0; font-size: var(--text-h2-size);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary-dark);
+}
+.store-detail-desc {
+  margin: 0; font-size: var(--text-mini-size);
+  color: var(--color-foreground); line-height: 1.6; white-space: pre-line;
+}
+.store-detail-meta-rows {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.store-detail-meta {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin: 0; font-size: var(--text-mini-size);
+  color: var(--color-foreground); font-weight: var(--font-weight-semibold);
+}
+.store-detail-meta .ms { font-size: 20px; color: var(--color-primary-dark); }
+.store-detail-partner-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-light);
+  color: var(--color-foreground);
+  font-size: var(--text-caption-size);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+.store-detail-partner-link .ms { font-size: 16px; }
+.store-detail-actions {
+  position: sticky; bottom: 0;
+  padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent 0%, var(--color-background) 30%);
+  display: flex;
+}
+.store-detail-actions .btn { flex: 1; }
 .store-banner-ended {
   align-self: flex-start; margin-top: var(--space-2);
   display: inline-flex; align-items: center; gap: 4px;

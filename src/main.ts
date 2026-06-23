@@ -59,6 +59,7 @@ defRoute('/check-in/result', wrap(() => import('./routes/check-in/result')));
 defRoute('/check-in/fail', wrap(() => import('./routes/check-in/fail')));
 defRoute('/check-in/success', wrap(() => import('./routes/check-in/success')));
 defRoute('/store', wrap(() => import('./routes/store')));
+defRoute('/store/banner/:id', wrap(() => import('./routes/store-banner-detail')));
 // /tasks index page removed in the 2026-05-19 pivot — missions now live on
 // home. /tasks/makeup is also gone: its card-swap model was replaced by the
 // direct-Gem makeup flow inside /profile/calendar. The remaining leaf

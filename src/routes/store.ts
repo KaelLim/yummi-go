@@ -16,6 +16,7 @@ import { $user, $profile } from '@/store/user';
 import { $gems } from '@/store/pet';
 import { bind } from '@/lib/lifecycle';
 import { $locale, t } from '@/lib/i18n';
+import { navigate } from '@/router';
 import { listVisibleBanners, buildSurveycakeUrl, type StoreBanner } from '@/api/store-banners';
 import { requireRealName, hasGuestName } from '@/lib/name-prompt';
 import { gemIcon } from '@/lib/currency-icons';
@@ -62,16 +63,16 @@ export default function store(): HTMLElement {
       return;
     }
     panel.innerHTML = `<section class="store-banners">${banners.map(renderBanner).join('')}</section>`;
-    // 詳細 — landing page / partner microsite. Plain detail_url; no
-    // identity binding needed since it doesn't take query params.
+    // 詳細 — navigates to the in-app detail page (/store/banner/:id)
+    // instead of opening an external URL. The detail page surfaces
+    // the partner microsite link below the description for users who
+    // still want to leave the app.
     panel.querySelectorAll<HTMLButtonElement>('[data-action="detail"]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = Number(btn.dataset.id);
-        const banner = banners.find((b) => b.id === id);
-        if (!banner) return;
-        const url = banner.detail_url || banner.surveycake_url;
-        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        if (!Number.isFinite(id)) return;
+        navigate(`/store/banner/${id}`);
       });
     });
     // 兌換 — SurveyCake URL with anonId + googleEmail appended.
