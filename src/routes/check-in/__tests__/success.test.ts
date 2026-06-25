@@ -130,30 +130,20 @@ describe('check-in/success', () => {
     });
   });
 
-  describe('修改內容 button', () => {
-    // The inline edit-sheet was removed — editing now lives on the
-    // 蔬食旅程 page so the same "no later meal logged" lock rule
-    // applies whether the user fixes the just-logged meal or a past
-    // one. The button here is a navigation shortcut.
-    it('navigates to /profile/calendar (蔬食旅程) on click', () => {
-      const el = success();
-      el.querySelector<HTMLButtonElement>('#edit-items')?.click();
-      expect(mockedRouter.navigate).toHaveBeenCalledWith('/profile/calendar');
-    });
-  });
-
-  it('nutrition details start collapsed and open when toggled', () => {
+  it('nutrition details render expanded by default; no toggle, no 修改內容 button', () => {
+    // 2026-06-24: the expand/collapse toggle + 修改內容 button were
+    // removed. Nutrition data is always visible; a static note tells
+    // the user to edit on the Veggie Journey page if they have
+    // concerns about the data.
     const el = success();
     const details = el.querySelector<HTMLElement>('#nutrition-details')!;
-    const toggle = el.querySelector<HTMLButtonElement>('#nutrition-toggle')!;
-    expect(details.classList.contains('is-open')).toBe(false);
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    toggle.click();
     expect(details.classList.contains('is-open')).toBe(true);
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    // Nutrition grid is in the DOM either way (CSS animates the reveal).
+    expect(el.querySelector('#nutrition-toggle')).toBeNull();
+    expect(el.querySelector('#edit-items')).toBeNull();
     expect(el.querySelector('.nutrition-grid')).not.toBeNull();
     expect(el.textContent).toContain('320 kcal');
     expect(el.textContent).toContain('12 g');
+    expect(el.querySelector('.nutrition-edit-concern')).not.toBeNull();
+    expect(el.textContent).toContain('蔬食旅程');
   });
 });

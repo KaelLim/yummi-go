@@ -33,6 +33,7 @@ import {
 import { awardXp } from '@/store/pet';
 import { VEGAN_TIERS, openVeganTierInfo } from '@/lib/vegan-tiers';
 import { t } from '@/lib/i18n';
+import { maybeShowReviewGuideline } from '@/lib/review-guideline';
 
 const VEGAN_TYPES = VEGAN_TIERS.map((tier) => tier.value);
 
@@ -90,6 +91,10 @@ export default function review(params: Record<string, string>): HTMLElement {
       <button class="btn text-btn-m btn-primary btn-l text-btn-l" type="submit" id="submit">${t('review.submit').replace('{xp}', String(REVIEW_XP_FIRST))}</button>
     </form>
   `;
+
+  // First-time review-guideline popup (spec #18). No-ops after first
+  // dismissal — the localStorage flag prevents re-show.
+  maybeShowReviewGuideline(wrap);
 
   let rating = 0;
   const veganSet = new Set<string>();

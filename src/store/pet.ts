@@ -20,6 +20,10 @@ import { stageFromLevel, type PetStage } from '@/lib/pet-evolution';
 import type { PetMood } from '@/lib/pet-sprites';
 import { showGemGain } from '@/lib/gem-toast';
 import { MILESTONE_PENDING_KEY, showMilestonePopup } from '@/lib/milestone-popup';
+import {
+  hasShownFirstHundredXp,
+  showFirstHundredXpPopup,
+} from '@/lib/first-hundred-xp-popup';
 // Re-export so external callers keep a stable import path.
 export { MILESTONE_PENDING_KEY };
 
@@ -179,7 +183,16 @@ export async function awardXp(
       try {
         localStorage.removeItem(MILESTONE_PENDING_KEY);
       } catch { /* private mode */ }
-      showMilestonePopup(payload);
+      // Spec #43: the FIRST-EVER 100 XP crossing replaces the
+      // regular milestone popup with an education one explaining
+      // the XP / gem / overflow loop. Subsequent days show the
+      // normal milestone popup unchanged. Dismissal of the
+      // education popup persists a flag so it never re-fires.
+      if (!hasShownFirstHundredXp()) {
+        showFirstHundredXpPopup();
+      } else {
+        showMilestonePopup(payload);
+      }
     });
     return { credited: deltaXp, xpFedToPet: fed.fed, gemsFromXp };
   }

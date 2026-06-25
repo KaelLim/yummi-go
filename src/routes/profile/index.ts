@@ -66,6 +66,16 @@ export default function profile(): HTMLElement {
         <span data-i18n="profile.linkSettings">設定</span>
         <span class="ms profile-link-arrow">arrow_forward_ios</span>
       </button>
+      <button class="profile-link" data-route="/profile/about">
+        <span class="ms">info</span>
+        <span data-i18n="profile.linkAbout">關於我們</span>
+        <span class="ms profile-link-arrow">arrow_forward_ios</span>
+      </button>
+      <button class="profile-link" data-route="/profile/faq">
+        <span class="ms">help</span>
+        <span data-i18n="profile.linkFaq">常見問題</span>
+        <span class="ms profile-link-arrow">arrow_forward_ios</span>
+      </button>
     </section>
   `;
 

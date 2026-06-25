@@ -119,6 +119,20 @@ export function buildMissions({
     selfCheck: true,
   });
 
+  // Restaurant verify / review — evergreen CTA into the map, sits at
+  // the bottom of the mission list. No XP label, no done state;
+  // tapping the row deep-links to the map so users can pick a place
+  // to verify or review. (Per user request 2026-06-24: include in
+  // the daily mission list as the last item.)
+  missions.push({
+    key: 'restaurant-action',
+    emoji: '📍',
+    label: t('mission.restaurant'),
+    xp: 0,
+    href: '/map',
+    done: false,
+  });
+
   return missions;
 }
 

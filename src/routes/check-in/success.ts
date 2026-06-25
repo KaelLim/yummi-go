@@ -75,18 +75,11 @@ export default function success(): HTMLElement {
         <span class="success-xp-amount">+${r.xpEarned} XP</span>
       </div>
       <h1 class="success-title">${title}</h1>
-      <div class="nutrition-details" id="nutrition-details">
-        <button type="button" class="nutrition-toggle" id="nutrition-toggle" aria-expanded="false">
-          <span class="ms">restaurant_menu</span>
-          <span>${t('success.viewNutrition')}</span>
-          <span class="ms nutrition-chevron">expand_more</span>
-        </button>
+      <div class="nutrition-details is-open" id="nutrition-details">
         <div class="nutrition-content" id="nutrition-content">
           ${nutritionGrid}
-          <button class="btn text-btn-m btn-secondary btn-sm text-mini ai-edit-btn" id="edit-items" type="button">
-            <span class="ms">edit</span>${t('success.editItems')}
-          </button>
           <p class="nutrition-card-hint">${t('nutrition.aiHint')}</p>
+          <p class="nutrition-edit-concern">${t('success.editConcern')}</p>
         </div>
       </div>
       <div class="success-secondary">
@@ -159,22 +152,6 @@ export default function success(): HTMLElement {
   // less landing spot.
   wrap.querySelector('#review')?.addEventListener('click', () => {
     navigate('/map');
-  });
-
-  const toggle = wrap.querySelector<HTMLButtonElement>('#nutrition-toggle');
-  const details = wrap.querySelector<HTMLElement>('#nutrition-details');
-  toggle?.addEventListener('click', () => {
-    const open = !details?.classList.contains('is-open');
-    details?.classList.toggle('is-open', open);
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-
-  // 修改內容 sits inside the nutrition section; tapping it sends the
-  // user to 蔬食旅程 where the per-meal editor (with the spec's
-  // "no later meal logged" lock) lives. Keeps a single editor surface
-  // instead of duplicating logic across two screens.
-  wrap.querySelector<HTMLButtonElement>('#edit-items')?.addEventListener('click', () => {
-    navigate('/profile/calendar');
   });
 
   return wrap;

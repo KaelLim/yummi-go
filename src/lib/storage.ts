@@ -31,4 +31,6 @@ export const KEYS = {
   FONT_SCALE: 'yummi.fontScale',
   PET_COLLECTION: 'yummi.petCollection',
   QUESTIONNAIRE_ANSWERS: 'yummi.questionnaireAnswers',
+  REVIEW_GUIDELINE_SHOWN: 'yummi.reviewGuidelineShown',
+  FIRST_100_XP_SHOWN: 'yummi.first100XpShown',
 } as const;

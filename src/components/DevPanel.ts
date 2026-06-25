@@ -44,6 +44,11 @@ import {
   type PetSpecies,
 } from '@/lib/pet-collection';
 import { clearAnswers as clearQuestionnaireAnswers } from '@/lib/questionnaires';
+import { clearReviewGuidelineShown } from '@/lib/review-guideline';
+import {
+  clearFirstHundredXpShown,
+  showFirstHundredXpPopup,
+} from '@/lib/first-hundred-xp-popup';
 import { showMilestonePopup } from '@/lib/milestone-popup';
 import { XP_MILESTONE_BONUS_GEMS } from '@/store/pet';
 
@@ -177,6 +182,21 @@ export function createDevPanel(): HTMLElement {
         <span class="dev-label">每日 XP 達標彈窗</span>
         <div class="dev-chips" id="xp-milestone-chips">
           <button class="dev-chip" data-xp-milestone="fire">模擬今日 XP &gt; 100</button>
+        </div>
+      </section>
+
+      <section class="dev-section">
+        <span class="dev-label">評論規範彈窗 (spec #18)</span>
+        <div class="dev-chips" id="review-guideline-chips">
+          <button class="dev-chip" data-review-guideline="reset">首次評論</button>
+        </div>
+      </section>
+
+      <section class="dev-section">
+        <span class="dev-label">首次 100 XP 教育彈窗 (spec #43)</span>
+        <div class="dev-chips" id="first-100-xp-chips">
+          <button class="dev-chip" data-first-100-xp="fire">模擬首次達標</button>
+          <button class="dev-chip" data-first-100-xp="reset">首次評論</button>
         </div>
       </section>
 
@@ -334,6 +354,33 @@ export function createDevPanel(): HTMLElement {
       showMilestonePopup({ bonus: XP_MILESTONE_BONUS_GEMS, overflow: 5 });
       sheet.hidden = true;
       fab.classList.remove('open');
+    });
+  });
+
+  // Review-guideline shown flag (spec #18). Clearing re-arms the
+  // first-time popup so the next visit to /verify or /review fires it.
+  wrap.querySelectorAll<HTMLButtonElement>('#review-guideline-chips .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      clearReviewGuidelineShown();
+      flash('已重置評論規範彈窗', false);
+    });
+  });
+
+  // First-100-XP education popup (spec #43). "模擬首次達標" fires
+  // the popup directly so we can preview copy/layout without
+  // earning real XP; "重置旗標" only clears the persisted "shown"
+  // flag so the next real 100 XP crossing re-arms it.
+  wrap.querySelectorAll<HTMLButtonElement>('#first-100-xp-chips .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      const action = c.dataset.first100Xp;
+      if (action === 'fire') {
+        showFirstHundredXpPopup();
+        sheet.hidden = true;
+        fab.classList.remove('open');
+      } else if (action === 'reset') {
+        clearFirstHundredXpShown();
+        flash('已重置首次達標旗標', false);
+      }
     });
   });
 

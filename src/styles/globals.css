@@ -1909,60 +1909,244 @@ body {
 .checkin-veg-title { color: var(--color-primary-dark); margin: 0; font-size: var(--text-h2-size); font-weight: var(--font-weight-extrabold); }
 .checkin-veg-text { color: var(--color-neutral-darker); margin: 0; font-size: var(--text-mini-size); }
 
-/* Success page: collapsible "read more" nutrition reveal */
+/* Success page: nutrition panel — always-open static section (the
+   expand/collapse toggle and 修改內容 button were removed
+   2026-06-24; nutrition data now shows by default and edits route
+   through the Veggie Journey page instead). */
 .nutrition-details {
   border: 1px solid var(--color-neutral-light-active, #eee);
   border-radius: var(--radius-md);
   background: var(--color-card, #fff);
   overflow: hidden;
 }
-.nutrition-toggle {
-  width: 100%; display: flex; align-items: center; gap: 8px;
-  padding: var(--space-3) var(--space-4);
-  background: transparent; border: none;
-  font-family: inherit;
-  font-size: var(--text-mini-size); font-weight: var(--font-weight-semibold);
-  color: var(--color-primary-dark);
-  cursor: pointer;
-}
-.nutrition-toggle > span:nth-child(2) { flex: 1; text-align: left; }
-.nutrition-toggle .nutrition-chevron { transition: transform 0.25s ease; color: var(--color-neutral-darker); }
-.nutrition-details.is-open .nutrition-chevron { transform: rotate(180deg); }
 .nutrition-content {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.35s ease;
-}
-.nutrition-details.is-open .nutrition-content { grid-template-rows: 1fr; }
-.nutrition-content > * { min-height: 0; }
-.nutrition-content > .nutrition-grid,
-.nutrition-content > .nutrition-empty,
-.nutrition-content > .nutrition-card-hint,
-.nutrition-content > .ai-edit-btn {
-  overflow: hidden;
-  padding-left: var(--space-4); padding-right: var(--space-4);
-  margin: 0;
-}
-/* The button keeps a sensible centred display only when the section
-   is open. When collapsed it shares the grid-row clamp and effectively
-   disappears with the rest of the nutrition content. */
-.nutrition-content > .ai-edit-btn { display: none; }
-.nutrition-details.is-open > .nutrition-content > .ai-edit-btn {
-  display: inline-flex; align-self: center; justify-self: center;
-  margin: 0 auto var(--space-2);
-}
-.nutrition-details.is-open > .nutrition-content > .nutrition-grid {
-  padding-bottom: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-2);
   animation: nutrition-cells-in 0.45s ease-out both;
 }
-.nutrition-details.is-open > .nutrition-content > .nutrition-card-hint {
-  padding-bottom: var(--space-3);
+.nutrition-content > .nutrition-card-hint {
+  margin: 0;
   color: var(--color-neutral-darker);
   font-size: var(--text-caption-size);
+}
+.nutrition-content > .nutrition-edit-concern {
+  margin: 0;
+  font-size: var(--text-caption-size);
+  color: var(--color-foreground-alt);
+  line-height: 1.6;
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-neutral-light-active, #eee);
 }
 @keyframes nutrition-cells-in {
   0%   { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Review-guideline first-time popup (spec #18). Modal-style overlay
+   layered on top of the verify/review form route — appended to the
+   route wrap (not document.body) so it scopes to that screen's
+   lifecycle. Dismissable via the X or the primary CTA. */
+.review-guideline-overlay {
+  position: fixed; inset: 0; z-index: 130;
+  background: rgba(15, 23, 25, 0.55);
+  padding: var(--space-4);
+  display: flex; align-items: center; justify-content: center;
+  animation: phase1-fade 200ms ease-out both;
+}
+.review-guideline-card {
+  width: 100%; max-width: 420px;
+  background: var(--color-card, #fff);
+  border-radius: 20px;
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  max-height: 85vh; overflow-y: auto;
+  animation: phase1-pop 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.review-guideline-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-2);
+}
+.review-guideline-eyebrow {
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary-dark); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.review-guideline-close {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--color-foreground-alt); padding: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.review-guideline-title {
+  margin: 0; font-size: var(--text-h3-size, var(--text-button-l-size));
+  font-weight: var(--font-weight-black); color: var(--color-foreground);
+}
+.review-guideline-list {
+  margin: 0; padding: 0;
+  list-style: none;
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.review-guideline-list li {
+  position: relative;
+  padding-left: var(--space-5);
+  font-size: var(--text-mini-size); line-height: 1.55;
+  color: var(--color-foreground);
+}
+.review-guideline-list li::before {
+  content: '';
+  position: absolute; left: 4px; top: 8px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+.review-guideline-foot {
+  margin: 0;
+  font-size: var(--text-caption-size); line-height: 1.55;
+  color: var(--color-foreground-alt);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-neutral-light-active, #eee);
+}
+.review-guideline-cta { margin-top: var(--space-2); }
+
+/* First-100-XP education popup (spec #43). Modal layered on document
+   .body so it survives any route swap awardXp triggers. Hero row
+   shows XP-drop → arrow → Gem-flower to anchor the explanation. */
+.first-100-xp-modal {
+  position: fixed; inset: 0; z-index: 140;
+  background: rgba(15, 23, 25, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  animation: phase1-fade 200ms ease-out both;
+}
+.first-100-xp-card {
+  width: 100%; max-width: 420px;
+  background: var(--color-card, #fff);
+  border-radius: 20px;
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  max-height: 85vh; overflow-y: auto;
+  animation: phase1-pop 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  text-align: center;
+}
+.first-100-xp-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-2);
+}
+.first-100-xp-eyebrow {
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold);
+  color: var(--color-secondary-dark); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.first-100-xp-close {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--color-foreground-alt); padding: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.first-100-xp-hero {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+.first-100-xp-arrow {
+  font-size: 28px; color: var(--color-secondary-dark);
+  font-weight: var(--font-weight-black);
+}
+.first-100-xp-title {
+  margin: 0; font-size: var(--text-h3-size, var(--text-button-l-size));
+  font-weight: var(--font-weight-black);
+  color: var(--color-primary-dark);
+}
+.first-100-xp-list {
+  margin: 0; padding: 0;
+  list-style: none;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  text-align: left;
+}
+.first-100-xp-list li {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-card-alt, #f7f7f5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-mini-size); line-height: 1.55;
+  color: var(--color-foreground);
+}
+.first-100-xp-step-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; flex-shrink: 0;
+  color: var(--color-primary-dark);
+}
+.first-100-xp-step-icon .ms { font-size: 22px; }
+.first-100-xp-cta { margin-top: var(--space-2); }
+
+/* Static info pages (/profile/about, /profile/faq). Shared shell —
+   each one renders inside the same screen wrapper with the checkin-
+   style header + a scrollable content body. */
+.static-page-screen { display: flex; flex-direction: column; min-height: 100%; }
+.static-page-body {
+  flex: 1;
+  padding: var(--space-4) var(--space-5) var(--space-8);
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.static-page-tagline {
+  margin: 0;
+  font-size: var(--text-body-size);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-dark);
+  line-height: 1.55;
+  text-align: center;
+}
+.static-page-section {
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.static-page-h {
+  margin: 0;
+  font-size: var(--text-button-l-size);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-foreground);
+}
+.static-page-p {
+  margin: 0;
+  font-size: var(--text-mini-size);
+  line-height: 1.7;
+  color: var(--color-foreground);
+}
+.static-page-version,
+.static-page-contact {
+  margin: 0;
+  font-size: var(--text-caption-size);
+  color: var(--color-foreground-alt);
+  text-align: center;
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-neutral-light-active, #eee);
+}
+
+/* FAQ — collapsible Q/A rows via native <details>. */
+.faq-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.faq-item {
+  background: var(--color-card, #fff);
+  border: 1px solid var(--color-neutral-light-active, #eee);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.faq-item[open] { border-color: var(--color-primary-light, #d8eedb); }
+.faq-question {
+  list-style: none;
+  cursor: pointer;
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-mini-size);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-foreground);
+}
+.faq-question::-webkit-details-marker { display: none; }
+.faq-question-text { flex: 1; }
+.faq-chevron { transition: transform 0.25s ease; color: var(--color-foreground-alt); }
+.faq-item[open] .faq-chevron { transform: rotate(180deg); }
+.faq-answer {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4);
+  font-size: var(--text-mini-size);
+  line-height: 1.7;
+  color: var(--color-foreground-alt);
 }
 
 /* Banner hint copy on the meat-detected prompt */

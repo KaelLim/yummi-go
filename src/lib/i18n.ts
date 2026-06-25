@@ -85,6 +85,32 @@ const DICT: Record<string, Entry> = {
   'profile.linkReviews':    { zh: '我的評論', en: 'My reviews' },
   'profile.linkBaseline':   { zh: '編輯基本飲食', en: 'Edit base diet' },
   'profile.linkSettings':   { zh: '設定', en: 'Settings' },
+  'profile.linkAbout':      { zh: '關於我們', en: 'About us' },
+  'profile.linkFaq':        { zh: '常見問題', en: 'FAQ' },
+  'about.title':            { zh: '關於我們', en: 'About us' },
+  'about.tagline':          { zh: '陪你 30 天，把蔬食變成生活', en: 'Walk with you for 30 days — turning plant-based eating into a daily habit' },
+  'about.section1.title':   { zh: '我們在做什麼', en: 'What we do' },
+  'about.section1.body':    { zh: 'Yummi Go 好味走走是一款 30 天蔬食挑戰 PWA。每天記錄你的三餐，AI 會自動辨識食材、計算營養並把當天的努力換成成就。一邊照顧你自己，一邊照顧你的守護者，一邊為地球減碳。', en: 'Yummi Go is a 30-day plant-based challenge PWA. Log your meals daily; AI identifies ingredients, tracks nutrition, and turns each day of effort into rewards. Care for yourself, your guardian, and the planet — all at once.' },
+  'about.section2.title':   { zh: '我們是誰', en: 'Who we are' },
+  'about.section2.body':    { zh: '我們是一群關心健康飲食與永續生活的人，由慈濟基金會支持開發。希望透過遊戲化的設計，讓更多人願意嘗試蔬食，並把這份心意持續下去。', en: "We're a team focused on healthy eating and sustainable living, supported by the Tzu Chi Foundation. Through gamified design, we hope more people will give plant-based eating a try — and keep going." },
+  'about.section3.title':   { zh: '聯絡我們', en: 'Contact us' },
+  'about.section3.body':    { zh: '回饋、合作或任何想分享的，歡迎來信：hello@yummi-go.app', en: 'Feedback, partnerships, or anything else — drop us a line: hello@yummi-go.app' },
+  'about.version':          { zh: '版本 {ver}', en: 'Version {ver}' },
+
+  'faq.title':              { zh: '常見問題', en: 'FAQ' },
+  'faq.q1':                 { zh: 'XP 跟寶石有什麼差別？', en: "What's the difference between XP and gems?" },
+  'faq.a1':                 { zh: 'XP 用來餵守護者升級（每天上限 100 XP）；超過 100 XP 的部分會自動轉換成寶石，存到錢包用來兌換餐券或捐款。', en: 'XP feeds your guardian and powers level-ups (up to 100 XP/day). Anything past 100 XP auto-converts to gems — store currency for vouchers or charity donations.' },
+  'faq.q2':                 { zh: '如果某天沒打卡會怎樣？', en: 'What happens if I miss a day?' },
+  'faq.a2':                 { zh: '連續打卡 (🔥 streak) 會中斷，守護者的心情會變差。可以到「蔬食旅程」用寶石購買補簽卡救回那一天。', en: "Your streak (🔥) breaks and your guardian's mood drops. Head to Veggie Journey to spend gems on a makeup card and recover the day." },
+  'faq.q3':                 { zh: '守護者怎麼升等到 LV30？', en: 'How does my guardian reach LV30?' },
+  'faq.a3':                 { zh: '每餐打卡 +20 XP、完成全日三餐再加 +10 XP，再加上每日任務 (小測驗、幸運色、永續行動)，大約 30 天可以陪牠升到 LV30 畢業。', en: "Each meal check-in is +20 XP, completing all 3 meals adds +10, and daily missions (quiz, lucky colour, sustainable actions) top it up. About 30 days takes you to LV30 graduation." },
+  'faq.q4':                 { zh: '辨識結果有錯怎麼辦？', en: "What if the AI gets my meal wrong?" },
+  'faq.a4':                 { zh: '在打卡完成頁面下方有提示——請到「蔬食旅程」頁面點當天的記錄修改內容；下一餐記錄後就會鎖定不能改了。', en: 'A hint at the bottom of the success page points you to Veggie Journey; tap that day to edit. Once you log the next meal, the earlier one locks.' },
+  'faq.q5':                 { zh: '寶石可以拿來做什麼？', en: 'What can I do with gems?' },
+  'faq.a5':                 { zh: '能量石商店有合作餐廳的折扣餐券抽獎、以及把寶石轉成蔬食公益捐款的選項，每月限量。', en: "The Gem Store has partner-restaurant voucher draws and an option to convert gems into plant-based charity donations. Limited each month." },
+  'faq.q6':                 { zh: '如何刪除評論？', en: 'How do I delete a review?' },
+  'faq.a6':                 { zh: '到「蔬食地圖」打開你評論過的餐廳，找到自己的評論卡點選「刪除」即可。為了避免衝動刪除，剛發出 30 分鐘內會先鎖定，過了 30 分鐘可以選原因（內容有誤／想法改變）後確認；獲得過的 XP 與連續日不會被收回。', en: 'Go to Veggie Map, open the restaurant you reviewed, find your own review card and tap "Delete". Reviews are locked for the first 30 minutes to prevent impulse deletes; after that you pick a reason (wrong info / changed my mind) and confirm. XP and streaks already earned are not revoked.' },
+  'faq.contact':            { zh: '還有問題？來信 hello@yummi-go.app', en: 'Still have questions? Email hello@yummi-go.app' },
   'profile.linkCollection': { zh: '守護者典藏冊', en: 'Pet collection book' },
 
   // Pet collection (典藏冊) — one card per completed guardian. A
@@ -347,6 +373,7 @@ const DICT: Record<string, Entry> = {
   'success.replacedBubble': { zh: '替代為植物肉', en: 'Swapped to plant-based' },
   'success.viewNutrition':  { zh: '查看營養成分', en: 'View nutrition' },
   'success.editItems':      { zh: '修改內容', en: 'Edit items' },
+  'success.editConcern':    { zh: '對資料有疑慮？請到「蔬食旅程」頁面進行調整。', en: 'If you have concerns on the data, please edit on the Veggie Journey page.' },
   'success.review':         { zh: '為餐廳留評論', en: 'Leave a review' },
   'success.share':          { zh: '分享成果', en: 'Share result' },
   'success.editHint':       { zh: '想再回頭調整？到「蔬食旅程」點當天的 ✓ 開啟營養抽屜。<br/>提醒：下一餐記錄後就鎖定了。', en: "Want to adjust later? Go to Vegan Journey and tap the day's ✓ to open the nutrition drawer.<br/>Once the next meal is logged, the earlier one locks." },
@@ -489,6 +516,27 @@ const DICT: Record<string, Entry> = {
   'mission.mealComplete':    { zh: '完成全日三餐', en: 'Complete all 3 meals' },
   'mission.quiz':            { zh: '每日小測驗', en: 'Daily quiz' },
   'mission.lucky':           { zh: '今日幸運色', en: "Today's lucky colour" },
+  'mission.restaurant':      { zh: '餐廳認證／評論', en: 'Verify / review a restaurant' },
+
+  // First-time review-guideline popup (spec #18). Fires once when the
+  // user enters /verify or /review and never again after dismissal.
+  'reviewGuideline.eyebrow':  { zh: '評論規範', en: 'Review guidelines' },
+  'reviewGuideline.title':    { zh: '寫評論前請看一下', en: "Before you write a review" },
+  'reviewGuideline.point1':   { zh: '請依實際用餐體驗誠實評論，避免不實或具誤導性的內容。', en: 'Be honest — write what you actually experienced, no misleading content.' },
+  'reviewGuideline.point2':   { zh: '尊重店家與其他用戶，不使用攻擊性、歧視或人身攻擊的字眼。', en: 'Be respectful — no attacks, slurs, or personal insults toward staff or other users.' },
+  'reviewGuideline.point3':   { zh: '評論可能會被審核，不符規範的內容將被移除。', en: 'Reviews may be moderated; content that breaks the rules will be removed.' },
+  'reviewGuideline.footnote': { zh: '完成評論可獲得 XP 與寶石獎勵，但僅限符合規範的評論。', en: 'You earn XP and gems for posting — only when the review meets these rules.' },
+  'reviewGuideline.cta':      { zh: '我知道了', en: 'Got it' },
+
+  // First-100-XP education popup (spec #43). Fires once in a user's
+  // lifetime, replacing the regular milestone popup on the first
+  // crossing.
+  'first100xp.eyebrow':       { zh: '首次達標', en: 'First milestone' },
+  'first100xp.title':         { zh: '你已達成今日 100 XP！', en: "You've hit today's 100 XP!" },
+  'first100xp.step1':         { zh: '每天最多 100 XP 會餵給守護者，幫牠升級。', en: 'Up to 100 XP per day feeds your guardian and powers level-ups.' },
+  'first100xp.step2':         { zh: '超過 100 XP 的部分會自動換成寶石，存到你的錢包。', en: 'Anything past 100 XP automatically converts to gems in your wallet.' },
+  'first100xp.step3':         { zh: '寶石可以到能量石商店兌換餐券或公益捐款。', en: 'Spend gems in the store on partner vouchers or charity donations.' },
+  'first100xp.cta':           { zh: '了解，繼續加油！', en: "Got it — let's keep going!" },
   'mission.r.refuse':        { zh: '拒絕一次性用品', en: 'Refuse single-use items' },
   'mission.r.reduce':        { zh: '減少不必要消費', en: 'Reduce unnecessary spending' },
   'mission.r.reuse':         { zh: '重複使用容器', en: 'Reuse containers' },

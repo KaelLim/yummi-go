@@ -433,9 +433,16 @@ function renderMissionRow(m: Mission): HTMLElement {
   const arrow = m.selfCheck
     ? `<input type="checkbox" class="mission-check" ${m.done ? 'checked' : ''} disabled />`
     : `<span class="ms mission-arrow">arrow_forward</span>`;
+  // Three render modes for the right-hand label:
+  //   xp > 0          → "+N {drop icon}"
+  //   xp = 0 + selfCheck (5R rows) → "永續行動" badge
+  //   xp = 0 + !selfCheck (e.g. evergreen CTA rows like 餐廳認證／評論)
+  //                   → no badge at all, the arrow speaks for itself.
   const xpTag = m.xp > 0
     ? `<span class="mission-xp">+${m.xp}${xpIcon(14)}</span>`
-    : `<span class="mission-xp mission-xp-zero">${t('home.missionsSustainable')}</span>`;
+    : m.selfCheck
+      ? `<span class="mission-xp mission-xp-zero">${t('home.missionsSustainable')}</span>`
+      : '';
   li.innerHTML = `
     <span class="mission-emoji" aria-hidden="true">${m.emoji}</span>
     <span class="mission-label">${m.label}</span>
