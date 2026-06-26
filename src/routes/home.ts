@@ -31,6 +31,12 @@ import { deriveStreak } from '@/lib/streak';
 import { pickDialogueNow } from '@/lib/pet-dialogue';
 import { buildMissions, homeVisibleMissions, type Mission } from '@/lib/missions';
 import { findPendingMilestone, findDeferredMilestone, type Milestone } from '@/lib/questionnaires';
+import {
+  readDeferredStreakRecovery,
+  showStreakRecoveryPopup,
+  type DeferredStreakRecovery,
+} from '@/lib/streak-recovery';
+import { getGemBalance } from '@/api/wallet';
 import { gemIcon, xpIcon } from '@/lib/currency-icons';
 
 interface Phase1Option {
@@ -120,6 +126,14 @@ export default function home(): HTMLElement {
       <span class="qn-deferred-body">
         <span class="qn-deferred-title" data-bind="qn-deferred-title"></span>
         <span class="qn-deferred-sub" data-bind="qn-deferred-sub"></span>
+      </span>
+      <span class="ms qn-deferred-arrow">arrow_forward</span>
+    </button>
+    <button class="qn-deferred-card qn-deferred-card-streak" id="streak-deferred-card" type="button" hidden>
+      <span class="qn-deferred-icon" aria-hidden="true">🔥</span>
+      <span class="qn-deferred-body">
+        <span class="qn-deferred-title" data-bind="streak-deferred-title"></span>
+        <span class="qn-deferred-sub" data-bind="streak-deferred-sub"></span>
       </span>
       <span class="ms qn-deferred-arrow">arrow_forward</span>
     </button>
@@ -300,6 +314,9 @@ export default function home(): HTMLElement {
     // Deferred = user picked "Maybe later" → render a tappable card on
     // the pet page (= /home). The card stays put across re-paints.
     paintDeferredCard(findDeferredMilestone(daysWithCheckIn));
+    // Same idea for the streak-recovery popup (separate storage key,
+    // separate card just below the questionnaire one).
+    paintStreakRecoveryCard(readDeferredStreakRecovery());
   }
 
   function mountPopup(milestone: Milestone): void {
@@ -338,6 +355,51 @@ export default function home(): HTMLElement {
     card.onclick = () => {
       if (questionnaireMounted) return;
       mountPopup(milestone);
+    };
+  }
+
+  function paintStreakRecoveryCard(entry: DeferredStreakRecovery | null): void {
+    const card = $$('#streak-deferred-card') as HTMLButtonElement | null;
+    if (!card) return;
+    if (!entry) {
+      card.hidden = true;
+      return;
+    }
+    const locale = $locale.get();
+    const title = $$('[data-bind="streak-deferred-title"]');
+    const sub = $$('[data-bind="streak-deferred-sub"]');
+    if (title) {
+      title.textContent =
+        locale === 'en' ? 'Your streak broke yesterday' : '你的連續打卡昨天斷了';
+    }
+    if (sub) {
+      sub.textContent =
+        locale === 'en'
+          ? `Tap to recover D${entry.missedDay}`
+          : `點此救回 D${entry.missedDay}`;
+    }
+    card.hidden = false;
+    card.onclick = () => {
+      void (async () => {
+        let gemBalance = 0;
+        try {
+          const row = await getGemBalance(entry.userId);
+          gemBalance = row?.balance ?? 0;
+        } catch {
+          /* fall through with 0 */
+        }
+        showStreakRecoveryPopup({
+          userId: entry.userId,
+          missedDay: entry.missedDay,
+          costGems: entry.costGems,
+          gemBalance,
+          onRecovered: () => {
+            // Hide the card immediately on success — the storage
+            // flag was already cleared by the popup.
+            paintStreakRecoveryCard(readDeferredStreakRecovery());
+          },
+        });
+      })();
     };
   }
 

@@ -109,7 +109,7 @@ const DICT: Record<string, Entry> = {
   'faq.q5':                 { zh: '寶石可以拿來做什麼？', en: 'What can I do with gems?' },
   'faq.a5':                 { zh: '能量石商店有合作餐廳的折扣餐券抽獎、以及把寶石轉成蔬食公益捐款的選項，每月限量。', en: "The Gem Store has partner-restaurant voucher draws and an option to convert gems into plant-based charity donations. Limited each month." },
   'faq.q6':                 { zh: '如何刪除評論？', en: 'How do I delete a review?' },
-  'faq.a6':                 { zh: '到「蔬食地圖」打開你評論過的餐廳，找到自己的評論卡點選「刪除」即可。為了避免衝動刪除，剛發出 30 分鐘內會先鎖定，過了 30 分鐘可以選原因（內容有誤／想法改變）後確認；獲得過的 XP 與連續日不會被收回。', en: 'Go to Veggie Map, open the restaurant you reviewed, find your own review card and tap "Delete". Reviews are locked for the first 30 minutes to prevent impulse deletes; after that you pick a reason (wrong info / changed my mind) and confirm. XP and streaks already earned are not revoked.' },
+  'faq.a6':                 { zh: '評論一旦送出，目前無法自行刪除。如果需要移除某則評論，請來信客服 hello@yummi-go.app，附上餐廳名稱與您的匿名 ID（在「我的」頁面），我們會協助處理。', en: "Once a review is submitted, you can't delete it yourself. To remove a review, email customer support at hello@yummi-go.app with the restaurant name and your anonymous ID (shown on the Profile page) and we'll handle it for you." },
   'faq.contact':            { zh: '還有問題？來信 hello@yummi-go.app', en: 'Still have questions? Email hello@yummi-go.app' },
   'profile.linkCollection': { zh: '守護者典藏冊', en: 'Pet collection book' },
 
@@ -265,19 +265,7 @@ const DICT: Record<string, Entry> = {
   'detail.reviewReasonOther': { zh: '其他', en: 'Other' },
   'detail.reportReview':    { zh: '檢舉這則評論', en: 'Report this review' },
   'detail.editReview':      { zh: '編輯', en: 'Edit' },
-  'detail.deleteReview':    { zh: '刪除', en: 'Delete' },
   'detail.myReview':        { zh: '我的評論', en: 'My review' },
-  'detail.deleteTitle':     { zh: '刪除評論？', en: 'Delete review?' },
-  'detail.deleteLock':      { zh: '發布未滿 30 分鐘，僅可編輯。<br/>還剩約 {n} 分鐘。', en: 'Published less than 30 min ago, edit only.<br/>About {n} min remaining.' },
-  'detail.deleteSwitch':    { zh: '改為編輯', en: 'Edit instead' },
-  'detail.deleteNudge':     { zh: '你也可以「<a href="#" data-act="edit">編輯</a>」這則評論，而不是刪除。', en: 'You can also <a href="#" data-act="edit">edit</a> instead of deleting.' },
-  'detail.deleteWhy':       { zh: '刪除原因', en: 'Reason for deletion' },
-  'detail.deleteReasonContent': { zh: '內容有誤', en: 'Content was wrong' },
-  'detail.deleteReasonMind':{ zh: '想法改變', en: 'Changed my mind' },
-  'detail.deleteWarn':      { zh: 'XP 與連續日不會被扣回，但這則評論會永久消失。', en: "XP and streak won't be revoked, but the review will be gone forever." },
-  'detail.deleteConfirm':   { zh: '確認刪除', en: 'Confirm delete' },
-  'detail.deleting':        { zh: '刪除中…', en: 'Deleting…' },
-  'detail.deleteFail':      { zh: '刪除失敗，請稍後再試', en: 'Delete failed, please try again' },
   'detail.notFound':        { zh: '店家不存在', en: "Restaurant not found" },
 
   // Review form
@@ -537,6 +525,17 @@ const DICT: Record<string, Entry> = {
   'first100xp.step2':         { zh: '超過 100 XP 的部分會自動換成寶石，存到你的錢包。', en: 'Anything past 100 XP automatically converts to gems in your wallet.' },
   'first100xp.step3':         { zh: '寶石可以到能量石商店兌換餐券或公益捐款。', en: 'Spend gems in the store on partner vouchers or charity donations.' },
   'first100xp.cta':           { zh: '了解，繼續加油！', en: "Got it — let's keep going!" },
+
+  // Streak-recovery popup — fires on /check-in/success when yesterday
+  // wasn't checked in and wasn't already made up.
+  'streakRecovery.eyebrow':   { zh: '🔥 連續打卡', en: '🔥 Streak' },
+  'streakRecovery.title':     { zh: '你的連續打卡昨天斷了', en: 'Your streak broke yesterday' },
+  'streakRecovery.bodyFmt':   { zh: '昨天 ({day}) 沒有打卡。要用能量石救回那一天，把連續打卡接回來嗎？', en: "You didn't check in yesterday ({day}). Spend gems to recover that day and restore your streak?" },
+  'streakRecovery.costLabel': { zh: '救回那一天', en: 'to save that day' },
+  'streakRecovery.balanceFmt': { zh: '目前餘額：💎 {n}', en: 'Balance: 💎 {n}' },
+  'streakRecovery.insufficient': { zh: '能量石不足，下次努力打卡吧！', en: "Not enough gems — let's just keep going!" },
+  'streakRecovery.skip':      { zh: '下次再說', en: 'Maybe next time' },
+  'streakRecovery.recover':   { zh: '救回連續打卡', en: 'Recover streak' },
   'mission.r.refuse':        { zh: '拒絕一次性用品', en: 'Refuse single-use items' },
   'mission.r.reduce':        { zh: '減少不必要消費', en: 'Reduce unnecessary spending' },
   'mission.r.reuse':         { zh: '重複使用容器', en: 'Reuse containers' },

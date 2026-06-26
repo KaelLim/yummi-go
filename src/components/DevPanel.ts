@@ -49,6 +49,8 @@ import {
   clearFirstHundredXpShown,
   showFirstHundredXpPopup,
 } from '@/lib/first-hundred-xp-popup';
+import { previewStreakRecoveryPopup } from '@/lib/streak-recovery';
+import { $today } from '@/store/today';
 import { showMilestonePopup } from '@/lib/milestone-popup';
 import { XP_MILESTONE_BONUS_GEMS } from '@/store/pet';
 
@@ -197,6 +199,13 @@ export function createDevPanel(): HTMLElement {
         <div class="dev-chips" id="first-100-xp-chips">
           <button class="dev-chip" data-first-100-xp="fire">模擬首次達標</button>
           <button class="dev-chip" data-first-100-xp="reset">首次評論</button>
+        </div>
+      </section>
+
+      <section class="dev-section">
+        <span class="dev-label">連續打卡救回彈窗</span>
+        <div class="dev-chips" id="streak-recovery-chips">
+          <button class="dev-chip" data-streak-recovery="fire">模擬昨天沒打卡</button>
         </div>
       </section>
 
@@ -381,6 +390,25 @@ export function createDevPanel(): HTMLElement {
         clearFirstHundredXpShown();
         flash('已重置首次達標旗標', false);
       }
+    });
+  });
+
+  // Streak-recovery popup — fires the popup with stub data so we can
+  // preview the "yesterday was missed, recover with gems?" flow
+  // without engineering a missed day in the real check-in history.
+  wrap.querySelectorAll<HTMLButtonElement>('#streak-recovery-chips .dev-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      const u = $user.get();
+      if (!u) {
+        flash('請先登入', true);
+        return;
+      }
+      previewStreakRecoveryPopup({
+        userId: u.id,
+        todayDayNumber: $today.get().dayNumber,
+      });
+      sheet.hidden = true;
+      fab.classList.remove('open');
     });
   });
 

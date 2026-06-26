@@ -18,8 +18,10 @@
 import { navigate } from '@/router';
 import { $checkin, resetCheckin } from '@/store/checkin';
 import { $today } from '@/store/today';
-import { $profile } from '@/store/user';
+import { $user, $profile } from '@/store/user';
 import { t } from '@/lib/i18n';
+import { listCheckIns } from '@/api/check-ins';
+import { maybeShowStreakRecovery } from '@/lib/streak-recovery';
 
 const MEAL_LABEL: Record<number, string> = { 1: '第一餐', 2: '第二餐', 3: '第三餐' };
 
@@ -135,6 +137,33 @@ export default function success(): HTMLElement {
   // if the user navigates around before reaching home.
   if (r.isFirstCheckIn) {
     try { localStorage.setItem('yummi:phase1_modal_pending', '1'); } catch { /* private mode */ }
+  }
+
+  // Streak-recovery prompt — if yesterday's challenge day has no
+  // check-in (and isn't already made up), offer to spend gems to
+  // recover it. Skipped entirely on the very first check-in (no
+  // prior day to miss). Lazy via setTimeout so the success
+  // animation has a moment to play before the popup lands.
+  if (!r.isFirstCheckIn) {
+    const u = $user.get();
+    const todayDayNumber = $today.get().dayNumber;
+    if (u && todayDayNumber > 1) {
+      window.setTimeout(() => {
+        void (async () => {
+          try {
+            const rows = await listCheckIns(u.id);
+            const days = new Set(rows.map((row) => row.day_number));
+            await maybeShowStreakRecovery({
+              userId: u.id,
+              todayDayNumber,
+              checkedInDays: days,
+            });
+          } catch {
+            /* non-fatal — popup just won't fire */
+          }
+        })();
+      }, 1500);
+    }
   }
 
   wrap.querySelector('#next')?.addEventListener('click', () => {

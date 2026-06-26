@@ -2077,6 +2077,85 @@ body {
 .first-100-xp-step-icon .ms { font-size: 22px; }
 .first-100-xp-cta { margin-top: var(--space-2); }
 
+/* Streak-recovery popup — fires on /check-in/success when yesterday
+   was missed. Modal-style overlay layered on document.body so it
+   survives route transitions the underlying success page initiates. */
+.streak-recovery-overlay {
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(15, 23, 25, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  animation: phase1-fade 200ms ease-out both;
+}
+.streak-recovery-card {
+  width: 100%; max-width: 400px;
+  background: var(--color-card, #fff);
+  border-radius: 20px;
+  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  max-height: 85vh; overflow-y: auto;
+  animation: phase1-pop 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  text-align: center;
+}
+.streak-recovery-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-2);
+}
+.streak-recovery-eyebrow {
+  font-size: var(--text-caption-size); font-weight: var(--font-weight-extrabold);
+  color: var(--color-secondary-dark); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.streak-recovery-close {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--color-foreground-alt); padding: 4px;
+}
+.streak-recovery-hero {
+  font-size: 56px;
+  filter: drop-shadow(0 4px 8px rgba(255, 107, 53, 0.4));
+}
+.streak-recovery-title {
+  margin: 0; font-size: var(--text-h3-size, var(--text-button-l-size));
+  font-weight: var(--font-weight-black);
+  color: var(--color-primary-dark);
+}
+.streak-recovery-body {
+  margin: 0; font-size: var(--text-mini-size);
+  line-height: 1.6; color: var(--color-foreground);
+}
+.streak-recovery-cost {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--space-2);
+  background: linear-gradient(135deg, var(--color-secondary-light), var(--color-primary-light));
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-mini-size);
+  align-self: center;
+}
+.streak-recovery-cost-num {
+  font-size: var(--text-h3-size, var(--text-button-l-size));
+  font-weight: var(--font-weight-black);
+  color: var(--color-primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+.streak-recovery-cost-label {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-foreground-alt);
+}
+.streak-recovery-balance {
+  margin: 0; font-size: var(--text-caption-size);
+  color: var(--color-foreground-alt);
+}
+.streak-recovery-warn {
+  margin: 0; font-size: var(--text-caption-size);
+  color: var(--color-secondary-dark);
+  font-weight: var(--font-weight-semibold);
+}
+.streak-recovery-actions {
+  display: flex; gap: var(--space-3); margin-top: var(--space-2);
+}
+.streak-recovery-actions .btn { flex: 1; }
+
 /* Static info pages (/profile/about, /profile/faq). Shared shell —
    each one renders inside the same screen wrapper with the checkin-
    style header + a scrollable content body. */

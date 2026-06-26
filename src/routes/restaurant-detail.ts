@@ -10,8 +10,6 @@ import { navigate } from '@/router';
 import { getRestaurant, type Restaurant } from '@/api/content';
 import {
   listReviewsForRestaurant,
-  deleteReview,
-  REVIEW_DELETE_LOCK_MS,
   type RestaurantReview,
 } from '@/api/reviews';
 import { requireRealName } from '@/lib/name-prompt';
@@ -45,11 +43,6 @@ const REVIEW_REPORT_REASON_KEYS = [
   'detail.reviewReasonFake',
   'detail.reviewReasonOther',
 ];
-
-const REVIEW_DELETE_REASON_KEYS = [
-  'detail.deleteReasonContent',
-  'detail.deleteReasonMind',
-] as const;
 
 export default function detail(params: Record<string, string>): HTMLElement {
   const id = Number(params.id);
@@ -173,23 +166,8 @@ export default function detail(params: Record<string, string>): HTMLElement {
       navigate(`/map/restaurant/${id}/review`);
       return;
     }
-    const delBtn = (e.target as Element).closest<HTMLButtonElement>('.review-delete');
-    if (delBtn) {
-      const rid = Number(delBtn.dataset.reviewId);
-      const createdAt = delBtn.dataset.createdAt ?? '';
-      openDeleteReviewModal(wrap, rid, createdAt, async () => {
-        try {
-          await deleteReview(rid);
-          // Re-fetch and re-render so the row disappears and the empty
-          // state can surface if it was the only review.
-          allReviews = await listReviewsForRestaurant(id);
-          renderList();
-        } catch (err) {
-          console.error('[detail] deleteReview failed:', err);
-          window.alert(t('detail.deleteFail'));
-        }
-      });
-    }
+    // Delete-review path removed 2026-06-25 — users now contact
+    // customer support to remove a review (see FAQ Q6).
   });
 
   void (async () => {
@@ -211,93 +189,6 @@ export default function detail(params: Record<string, string>): HTMLElement {
   })();
 
   return wrap;
-}
-
-/**
- * Delete-review modal. Two states keyed off the 30-min spec lock:
- *   - within 30 min of created_at → button row replaced with an
- *     explainer 「發布未滿 30 分鐘，僅可編輯」 + a 「改為編輯」 shortcut.
- *   - past 30 min → reason picker (內容有誤 / 想法改變) + the spec's
- *     nudge text 「你也可以「編輯」這則評論，而不是刪除」.
- */
-function openDeleteReviewModal(
-  host: HTMLElement,
-  reviewId: number,
-  createdAtRaw: string,
-  onConfirm: (reason: string) => void | Promise<void>,
-): void {
-  const createdAt = parseDrustTimestamp(createdAtRaw);
-  const elapsedMs = createdAt ? Date.now() - createdAt.getTime() : Number.POSITIVE_INFINITY;
-  const locked = elapsedMs >= 0 && elapsedMs < REVIEW_DELETE_LOCK_MS;
-  const minsLeft = locked
-    ? Math.max(1, Math.ceil((REVIEW_DELETE_LOCK_MS - elapsedMs) / 60000))
-    : 0;
-
-  const overlay = document.createElement('div');
-  overlay.className = 'delete-review-overlay';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.innerHTML = `
-    <div class="delete-review-card">
-      <h2 class="delete-review-title">${t('detail.deleteTitle')}</h2>
-      ${
-        locked
-          ? `<p class="delete-review-lock">${t('detail.deleteLock').replace('{n}', String(minsLeft))}</p>
-             <div class="delete-review-actions">
-               <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">${t('common.cancel')}</button>
-               <button type="button" class="btn text-btn-m btn-primary btn-l text-btn-l" data-act="edit">${t('detail.deleteSwitch')}</button>
-             </div>`
-          : `<p class="delete-review-nudge">${t('detail.deleteNudge')}</p>
-             <fieldset class="delete-review-reasons">
-               <legend>${t('detail.deleteWhy')}</legend>
-               ${REVIEW_DELETE_REASON_KEYS.map(
-                 (k, i) => {
-                   const reason = t(k);
-                   return `
-                 <label class="delete-review-reason">
-                   <input type="radio" name="delete-reason" value="${reason}" ${i === 0 ? 'checked' : ''} />
-                   <span>${reason}</span>
-                 </label>`;
-                 },
-               ).join('')}
-             </fieldset>
-             <p class="delete-review-warn">${t('detail.deleteWarn')}</p>
-             <div class="delete-review-actions">
-               <button type="button" class="btn text-btn-m btn-secondary btn-l text-btn-l" data-act="cancel">${t('common.cancel')}</button>
-               <button type="button" class="btn text-btn-m btn-danger btn-l text-btn-l" data-act="confirm">${t('detail.deleteConfirm')}</button>
-             </div>`
-      }
-    </div>
-  `;
-
-  function close(): void { overlay.remove(); }
-
-  overlay.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    if (target === overlay) { close(); return; }
-    const act = target.closest<HTMLElement>('[data-act]')?.dataset.act;
-    if (!act) return;
-    e.preventDefault();
-    if (act === 'cancel') { close(); return; }
-    if (act === 'edit') {
-      // Land on the review route — 4a code rehydrates the existing review.
-      close();
-      const restaurantId = window.location.hash.match(/restaurant\/(\d+)/)?.[1];
-      if (restaurantId) navigate(`/map/restaurant/${restaurantId}/review`);
-      return;
-    }
-    if (act === 'confirm') {
-      const picked = overlay.querySelector<HTMLInputElement>('input[name="delete-reason"]:checked');
-      if (!picked) return;
-      const btn = overlay.querySelector<HTMLButtonElement>('[data-act="confirm"]');
-      if (btn) { btn.disabled = true; btn.textContent = t('detail.deleting'); }
-      void Promise.resolve(onConfirm(picked.value)).finally(close);
-    }
-    // Suppress unused-var warning for reviewId — the caller closes over it.
-    void reviewId;
-  });
-
-  host.appendChild(overlay);
 }
 
 /**
@@ -358,19 +249,6 @@ function openReportPicker(host: HTMLElement, opts: ReportPickerOpts): void {
   });
 
   host.appendChild(overlay);
-}
-
-/**
- * drust serialises timestamps as either ISO ("2026-05-27T12:34:56Z") or
- * SQL-flavoured ("2026-05-27 12:34:56"). Date.parse accepts the first
- * cleanly; we re-format the second to ISO before parsing so the result
- * is consistent across both shapes.
- */
-function parseDrustTimestamp(s: string): Date | null {
-  if (!s) return null;
-  const iso = s.includes('T') ? s : s.replace(' ', 'T') + 'Z';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function renderMeta(el: HTMLElement, r: Restaurant): void {
@@ -453,14 +331,13 @@ function renderReviews(
   el.innerHTML = tally + visible
     .map((rv) => {
       const isMine = currentUserId !== null && rv.user_id === currentUserId;
-      // Own-review row drops the report flag (no point reporting yourself)
-      // and gains the edit / delete action pair instead.
+      // Own-review row drops the report flag (no point reporting
+      // yourself) and gains an edit action. Delete was removed
+      // 2026-06-25 per policy: users contact customer support to
+      // remove a review — see FAQ Q6.
       const actions = isMine
         ? `<button class="review-edit" type="button" aria-label="${t('detail.editReview')}" title="${t('detail.editReview')}">
              <span class="ms">edit</span>
-           </button>
-           <button class="review-delete" data-review-id="${rv.id}" data-created-at="${escapeHtml(rv.created_at)}" type="button" aria-label="${t('detail.deleteReview')}" title="${t('detail.deleteReview')}">
-             <span class="ms">delete</span>
            </button>`
         : `<button class="review-flag" data-review-id="${rv.id}" type="button" aria-label="${t('detail.reportReview')}" title="${t('detail.reportReview')}">
              <span class="ms">flag</span>

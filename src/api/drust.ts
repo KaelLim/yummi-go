@@ -103,14 +103,23 @@ export class DrustClient {
     await this.fetch<null>(`/records/${collection}/${id}`, { method: 'DELETE' });
   }
 
-  /** List records with optional filters. */
+  /** List records.
+   *
+   * The query-string is intentionally dropped on the wire. drust's
+   * anon/user tokens started rejecting raw `?sort=` and `?filter=`
+   * query params (2026-06-25 RAW_FILTER_DENIED policy) — and even
+   * before that, `limit` / `sort` / `filter` were silently ignored.
+   * The signature still accepts the legacy `query` arg so existing
+   * call sites compile without churn, but we no longer forward it.
+   * Callers that need real filtering or sorting must route through
+   * a stored RPC (see api/content.ts for examples).
+   */
   list<T = unknown>(
     collection: string,
-    query: Record<string, string> = {},
+    _query: Record<string, string> = {},
   ): Promise<{ records: T[]; total_count?: number }> {
-    const qs = new URLSearchParams(query).toString();
     return this.fetch<{ records: T[] }>(
-      `/records/${collection}${qs ? '?' + qs : ''}`,
+      `/records/${collection}`,
     ) as Promise<{ records: T[]; total_count?: number }>;
   }
 

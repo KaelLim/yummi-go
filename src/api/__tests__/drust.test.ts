@@ -114,12 +114,15 @@ describe('DrustClient', () => {
   });
 
   describe('list', () => {
-    it('builds query string correctly', async () => {
+    it('drops the query string (RAW_FILTER_DENIED policy, 2026-06-25)', async () => {
+      // drust now rejects ?sort= / ?filter= raw query strings from
+      // anon/user tokens. The list helper accepts the legacy query
+      // arg for source-compat but never forwards it.
       fetchMock.mockResolvedValueOnce(mockResponse({ records: [{ id: 1 }] }));
       const out = await client.list('check_ins', { user_id: 'eq.5', day_number: 'eq.3' });
 
       const [url] = fetchMock.mock.calls[0];
-      expect(url).toBe('https://drust.example.com/records/check_ins?user_id=eq.5&day_number=eq.3');
+      expect(url).toBe('https://drust.example.com/records/check_ins');
       expect(out).toEqual({ records: [{ id: 1 }] });
     });
 

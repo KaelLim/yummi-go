@@ -33,4 +33,5 @@ export const KEYS = {
   QUESTIONNAIRE_ANSWERS: 'yummi.questionnaireAnswers',
   REVIEW_GUIDELINE_SHOWN: 'yummi.reviewGuidelineShown',
   FIRST_100_XP_SHOWN: 'yummi.first100XpShown',
+  STREAK_RECOVERY_DEFERRED: 'yummi.streakRecoveryDeferred',
 } as const;
