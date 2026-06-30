@@ -9,6 +9,13 @@ vi.mock('@/api/check-ins', () => ({
 vi.mock('@/router', () => ({
   navigate: vi.fn(),
 }));
+// Streak-recovery card's onclick fetches the gem balance before
+// mounting the popup. Stub so the chain resolves synchronously in
+// jsdom rather than hitting fetch.
+vi.mock('@/api/wallet', () => ({
+  getGemBalance: vi.fn().mockResolvedValue({ id: 1, user_id: 1, balance: 250 }),
+  spendGemsForMakeup: vi.fn().mockResolvedValue({ balance: 150 }),
+}));
 
 import home from '../home';
 import { $pet } from '@/store/pet';
@@ -171,5 +178,77 @@ describe('home route', () => {
     expect(card.classList.contains('hit')).toBe(true);
     expect(card.querySelector('[data-bind="lucky-status"]')?.textContent).toContain('已命中');
     el.remove();
+  });
+
+  describe('streak-recovery deferred card', () => {
+    const STORAGE_KEY = 'yummi.streakRecoveryDeferred';
+
+    beforeEach(() => {
+      window.localStorage.removeItem(STORAGE_KEY);
+    });
+
+    it('stays hidden when no deferred recovery state is persisted', async () => {
+      const el = home();
+      document.body.appendChild(el);
+      // Let the bind(wrap, $today, …) → refreshStreak → rAF chain
+      // settle so the streak card paint has a chance to run.
+      await flush();
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      const card = el.querySelector<HTMLButtonElement>('#streak-deferred-card');
+      expect(card).not.toBeNull();
+      expect(card?.hidden).toBe(true);
+    });
+
+    it('surfaces a card pointing at the missed day when deferred state exists', async () => {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          userId: 1,
+          missedDay: 4,
+          costGems: 100,
+          deferredAt: Date.now(),
+        }),
+      );
+      $today.set({ dayNumber: 5, totalXpToday: 0, missionsDone: [], luckyColor: '' });
+      const el = home();
+      document.body.appendChild(el);
+      await flush();
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      const card = el.querySelector<HTMLButtonElement>('#streak-deferred-card');
+      expect(card).not.toBeNull();
+      expect(card?.hidden).toBe(false);
+      const sub = el.querySelector('[data-bind="streak-deferred-sub"]');
+      expect(sub?.textContent).toContain('D4');
+      const title = el.querySelector('[data-bind="streak-deferred-title"]');
+      expect(title?.textContent).toContain('連續打卡');
+    });
+
+    it('tapping the deferred card mounts the recovery popup on document.body', async () => {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          userId: 1,
+          missedDay: 3,
+          costGems: 100,
+          deferredAt: Date.now(),
+        }),
+      );
+      $today.set({ dayNumber: 4, totalXpToday: 0, missionsDone: [], luckyColor: '' });
+      const el = home();
+      document.body.appendChild(el);
+      await flush();
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      const card = el.querySelector<HTMLButtonElement>('#streak-deferred-card');
+      expect(card?.hidden).toBe(false);
+      card?.click();
+      // The card's onclick does an async getGemBalance lookup before
+      // calling showStreakRecoveryPopup; flush a couple of microtasks.
+      await flush();
+      await flush();
+      const overlay = document.getElementById('streak-recovery-host');
+      expect(overlay).not.toBeNull();
+      // Cleanup so the next test isn't littered with this overlay.
+      overlay?.remove();
+    });
   });
 });
