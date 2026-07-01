@@ -21,7 +21,7 @@ import { navigate } from '@/router';
 import { registerGuest } from '@/api/auth';
 import createButton from '@/components/Button';
 import { MOCK_GOOGLE_ACCOUNTS, mockGoogleSignIn } from '@/lib/mock-google-auth';
-import { t } from '@/lib/i18n';
+import { $locale, setLocale, t } from '@/lib/i18n';
 
 export default function splash(): HTMLElement {
   const wrap = document.createElement('div');
@@ -36,13 +36,40 @@ export default function splash(): HTMLElement {
     </div>
     <div class="splash-actions" id="splash-actions" hidden>
       <p class="splash-error" id="guest-error" hidden></p>
+      <div class="splash-locale" id="splash-locale" role="group" aria-label="Language">
+        <button class="splash-locale-chip" data-locale="zh" type="button">繁中</button>
+        <button class="splash-locale-chip" data-locale="en" type="button">EN</button>
+      </div>
     </div>
   `;
 
-  // Language picker removed 2026-06-30 — locale is now driven only by
-  // /profile/settings. The splash kept the chips temporarily during
-  // the bilingual rollout; with the app settled they were noise on
-  // the first surface a user sees.
+  // Locale chips — pick a language before tapping a CTA. Needed on
+  // the splash because the diet-survey + onboarding flow runs
+  // before the user can reach /profile/settings; the toggle here
+  // persists via setLocale so the chosen language carries through.
+  function reflectLocale(): void {
+    const cur = $locale.get();
+    wrap.querySelectorAll<HTMLButtonElement>('.splash-locale-chip').forEach((c) => {
+      c.classList.toggle('selected', c.dataset.locale === cur);
+    });
+    // Pre-actions-render CTAs may not exist yet on first call; the
+    // button refs below handle their own re-label after creation.
+    startBtnRef?.replaceChildren(document.createTextNode(t('splash.getStarted')));
+    if (googleBtnRef) {
+      googleBtnRef.innerHTML =
+        '<span class="splash-google-mark" aria-hidden="true">G</span>' + t('splash.googleLogin');
+    }
+  }
+  let startBtnRef: HTMLButtonElement | null = null;
+  let googleBtnRef: HTMLButtonElement | null = null;
+  wrap.querySelectorAll<HTMLButtonElement>('.splash-locale-chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      const next = c.dataset.locale as 'zh' | 'en';
+      setLocale(next);
+    });
+  });
+  const unsubLocale = $locale.subscribe(reflectLocale);
+  wrap.addEventListener('lifecycle:unmount', () => unsubLocale());
 
   const actions = wrap.querySelector<HTMLElement>('#splash-actions')!;
   const errorEl = wrap.querySelector<HTMLElement>('#guest-error')!;
@@ -54,6 +81,7 @@ export default function splash(): HTMLElement {
   });
   startBtn.id = 'get-started';
   actions.insertBefore(startBtn, errorEl);
+  startBtnRef = startBtn;
 
   // Second CTA: mock Google sign-in. Real Google OAuth is a Phase 2 PR;
   // see lib/mock-google-auth for the stub. Existing email → /home,
@@ -67,6 +95,10 @@ export default function splash(): HTMLElement {
   googleBtn.classList.add('splash-google-btn');
   googleBtn.innerHTML = '<span class="splash-google-mark" aria-hidden="true">G</span>' + googleBtn.innerHTML;
   actions.insertBefore(googleBtn, errorEl);
+  googleBtnRef = googleBtn;
+  // Now that both buttons exist, run an initial paint to highlight the
+  // active locale chip and ensure all labels are in sync.
+  reflectLocale();
 
   // Once Get Started is tapped, the auto-redirect must never fire — the
   // user has explicitly chosen the onboarding path, and any race where
